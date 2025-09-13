@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>🌈新新小朋友的工具集2⚡️</title>
+    <title>🌈新新小朋友的工具集⚡️</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
@@ -564,7 +564,6 @@
             <button onclick="showTool('paramParser')">📋 参数解析器</button>
             <button onclick="showTool('webViewer')">🌐 网页查看器</button>
             <button onclick="showTool('iccidTool')">📱 ICCID详情</button>
-            <button onclick="showTool('md5Tool')">🔓 MD5工具</button>
             <button onclick="showTool('waterValueTool')">💧 金额水量换算</button>
             <button onclick="showTool('waterPriceTool')">🚰 水单价计算</button>
             <button onclick="showTool('csv89860Tool')">📊 CSV 898620 处理</button>
@@ -584,7 +583,7 @@
                 <select id="templateSelect">
                     <option value="ic卡入库模板.xls" selected>ic卡入库模板.xls</option>
                 </select>
-                <div id="templateStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px;">✅ 已选择默认模板：ic卡入库模板.xls</div>
+                <div id="templateStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px;">🔄 正在加载远程模板...</div>
             </div>
             <div class="button-group">
                 <button onclick="processExcelFile()" class="btn-primary" disabled>📊 处理Excel文件</button>
@@ -602,11 +601,39 @@
                 <div class="title">💡 使用说明：</div>
                 <div class="content">
                     • 支持.xlsx和.xls格式的Excel文件<br>
-                    • 自动使用同目录下的"ic卡入库模板.xls"模板文件<br>
+                    • 使用GitHub Pages/Gitee Pages托管模板文件，稳定可靠<br>
                     • 自动识别A、B列中的水卡号（包含字母）和流水号（纯数字）<br>
                     • 如果首行包含"流水号"、"水卡号"等中文字符，将跳过首行<br>
-                    • 处理后的数据将填入选择的模板文件中<br>
-                    • 水卡号填入模板A列（从A2开始），流水号填入B列（从B2开始）
+                    • 处理后的数据将填入远程模板文件中<br>
+                    • 水卡号填入模板A列（从A2开始），流水号填入B列（从B2开始）<br><br>
+                    🔧 <strong>配置模板文件步骤：</strong><br>
+                    1️⃣ 在GitHub上创建一个公开仓库<br>
+                    2️⃣ 上传`ic卡入库模板.xls`文件到仓库根目录<br>
+                    3️⃣ 在仓库Settings中启用GitHub Pages<br>
+                    4️⃣ 获取模板文件的公开URL（如：https://username.github.io/repo/ic卡入库模板.xls）<br>
+                    5️⃣ 修改代码中的templateUrl为实际URL<br><br>
+                    🎆 <strong>Gitee Pages备用方案（国内访问更快）：</strong><br>
+                    1️⃣ 在Gitee上创建一个公开仓库<br>
+                    2️⃣ 上传`ic卡入库模板.xls`文件到仓库根目录<br>
+                    3️⃣ 在仓库的"服务"中选择"Gitee Pages"<br>
+                    4️⃣ 选择部署分支（通常为master），点击"启动"<br>
+                    5️⃣ 成功后获取URL（如：https://username.gitee.io/repo/ic卡入库模板.xls）<br>
+                    6️⃣ 将此URL设置为fallbackUrls[0]<br><br>
+                    🌍 <strong>如果Gitee Pages不可用，替代方案：</strong><br>
+                    • <strong>jsDelivr CDN</strong>: https://cdn.jsdelivr.net/gh/用户名/仓库名/文件名<br>
+                    • <strong>GitHub Raw</strong>: https://raw.githubusercontent.com/用户名/仓库名/main/文件名<br>
+                    • <strong>Coding.net</strong>: https://用户名.coding.net/p/项目名/d/仓库名/git/raw/master/文件名
+                </div>
+            </div>
+            <div class="info-box" style="border-color: #007bff; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                <div class="title" style="color: #1565c0;">🌐 当前多重备用配置：</div>
+                <div class="content" style="color: #1565c0; font-size: 12px;">
+                    • 主URL：<code>GitHub Raw</code><br>
+                    • 备用URL 1：<code>GitHub Pages</code><br>
+                    • 备用URL 2：<code>Gitee Pages</code><br>
+                    • 备用URL 3：<code>jsDelivr CDN</code><br>
+                    • 备用URL 4：<code>Coding.net</code><br>
+                    • 状态：✅ 多重保障，高可用性
                 </div>
             </div>
         </section>
@@ -680,50 +707,30 @@
             <iframe id="webFrame" style="width:100%; height:500px; border:2px solid #e9ecef; border-radius:12px;"></iframe>
         </section>
         
+        <!-- ICCID详情工具模块 -->
         <section id="iccidTool" class="calculator" style="display:none;">
-            <h2>📱 ICCID详情工具</h2>
+            <h2>ICCID详情工具</h2>
             <div class="form-group">
-                <label>ICCID数据：</label>
-                <textarea id="iccidInput" placeholder="粘贴ICCID范围文本..."></textarea>
+                <textarea id="iccidInput" placeholder="粘贴ICCID范围文本... 示例：
+898604C6062290468489到898604C6062290468491(3张)
+898604C6062290469305到898604C6062290469309（5张）
+898604D00623D0047511'
+898604D00623D0047313'
+898604D00623D0046269'
+
+支持同时解析两种格式的ICCID
+按Ctrl+Enter可以换行
+" style="width:100%; height:100px; padding:8px; margin-bottom:10px;"></textarea>
             </div>
-            <div class="button-group">
-                <button onclick="parseIccids()" class="btn-primary">🔍 解析数据</button>
-                <button onclick="formatIccids()" class="btn-success">📝 修改格式</button>
-                <button onclick="addQuotesToIccids()" class="btn-warning">🔄 恢复格式</button>
-                <button onclick="parseICCID()" class="btn-danger">📊 解析ICCID</button>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button onclick="parseIccids()" style="background: #007bff; color: white; padding: 8px 20px;">解析数据</button>
+                <button onclick="formatIccids()" style="background: #28a745; color: white; padding: 8px 20px;">修改格式</button>
+                <button onclick="addQuotesToIccids()" style="background: #ffc107; color: black; padding: 8px 20px;">恢复格式</button>
             </div>
             
             <div class="form-group">
                 <label>解析结果：</label>
-                <textarea id="iccidResult" class="result-area"></textarea>
-            </div>
-        </section>
-
-        <section id="md5Tool" class="calculator" style="display:none;">
-            <h2>🔓 MD5解析工具</h2>
-            <div class="form-group">
-                <label>MD5哈希值：</label>
-                <input type="text" id="md5HashInput" placeholder="请输入32位MD5哈希值..." style="font-family: 'Consolas', monospace;">
-            </div>
-            <div class="button-group">
-                <button onclick="decryptMD5()" class="btn-primary">🔍 解析MD5</button>
-                <button onclick="clearMD5Decrypt()" class="btn-warning">🗑️ 清空</button>
-                <button onclick="copyMD5Result()" class="btn-success">📋 复制结果</button>
-            </div>
-            <div class="form-group">
-                <label>解析结果：</label>
-                <div id="md5DecryptResult" class="result-area">
-                    <div id="md5DecryptOutput">请输入MD5哈希值进行解析</div>
-                </div>
-                <span id="md5DecryptStatus" class="status-indicator"></span>
-            </div>
-            <div class="info-box">
-                <div class="title">💡 使用说明：</div>
-                <div class="content">
-                    • 支持常见弱密码和数字组合的MD5解析<br>
-                    • 支持在线API查询（需要网络连接）<br>
-                    • 仅用于合法的密码恢复和安全测试
-                </div>
+                <textarea id="iccidResult" style="width:100%; height:200px; padding:8px;"></textarea>
             </div>
         </section>
 
@@ -873,6 +880,123 @@
         let templateWorkbook = null;
         let loadedTemplates = new Map(); // 存储已加载的模板文件
         
+        // 远程模板配置（多重备用方案）
+        const remoteTemplateConfig = {
+            // 🔗 主方案使用GitHub Raw，更稳定可靠
+            templateUrl: 'https://raw.githubusercontent.com/DDzhp/ICkamuban/main/ic卡入库模板.xls',
+            templateName: 'ic卡入库模板.xls',
+            // 多个备用URL（按优先级排序）
+            fallbackUrls: [
+                'https://DDzhp.github.io/ICkamuban/ic卡入库模板.xls',  // GitHub Pages
+                'https://raw.githubusercontent.com/DDzhp/ICkamuban/main/ic卡入库模板.xls',  // Gitee Pages
+                'https://cdn.jsdelivr.net/gh/DDzhp/ICkamuban/ic卡入库模板.xls',  // jsDelivr CDN
+                'https://your-username.coding.net/p/your-project/d/your-repo/git/raw/master/ic卡入库模板.xls'  // Coding.net
+            ]
+        };
+        
+        // 从远程URL加载模板文件（支持多重备用）
+        async function loadRemoteTemplate() {
+            const statusDiv = document.getElementById('templateStatus');
+            const { templateUrl, templateName, fallbackUrls } = remoteTemplateConfig;
+            
+            statusDiv.innerHTML = '🔄 正在从远程服务器加载模板...';
+            
+            // 所有要尝试的URL列表
+            const urlsToTry = [templateUrl, ...fallbackUrls];
+            let lastError = null;
+            
+            for (let i = 0; i < urlsToTry.length; i++) {
+                const currentUrl = urlsToTry[i];
+                if (!currentUrl || currentUrl.includes('your-username')) {
+                    continue; // 跳过未配置的URL
+                }
+                
+                try {
+                    statusDiv.innerHTML = `🔄 正在尝试第${i + 1}个服务器: ${getServerName(currentUrl)}...`;
+                    
+                    const response = await fetch(currentUrl, {
+                        method: 'GET',
+                        mode: 'cors',
+                        cache: 'default'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    // 获取文件数据
+                    const arrayBuffer = await response.arrayBuffer();
+                    const data = new Uint8Array(arrayBuffer);
+                    
+                    // 使用XLSX读取模板
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // 验证工作簿
+                    if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                        throw new Error('模板文件格式无效');
+                    }
+                    
+                    // 存储模板工作簿和来源信息
+                    loadedTemplates.set(templateName, {
+                        workbook: workbook,
+                        fileName: templateName,
+                        fileData: data,
+                        source: `${getServerName(currentUrl)} - ${currentUrl}`,
+                        loadedAt: new Date().toISOString()
+                    });
+                    
+                    statusDiv.innerHTML = `✅ 远程模板加载成功: ${templateName}<br>` +
+                        `📊 包含 ${workbook.SheetNames.length} 个工作表<br>` +
+                        `🌐 来源: ${getServerName(currentUrl)} (第${i + 1}个服务器)<br>` +
+                        `🔗 当前URL: <code style="font-size:11px;color:#666;">${currentUrl}</code>`;
+                    
+                    console.log('远程模板加载成功:', {
+                        name: templateName,
+                        sheets: workbook.SheetNames,
+                        size: `${(data.length / 1024).toFixed(2)}KB`,
+                        source: currentUrl
+                    });
+                    
+                    // 启用处理按钮
+                    updateProcessButton();
+                    
+                    return; // 成功后退出
+                    
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`第${i + 1}个服务器失败:`, currentUrl, error.message);
+                    
+                    if (i < urlsToTry.length - 1) {
+                        statusDiv.innerHTML = `⚠️ ${getServerName(currentUrl)}失败，正在尝试下一个服务器...`;
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+                    }
+                }
+            }
+            
+            // 所有URL都失败
+            console.error('所有远程模板加载失败:', lastError);
+            statusDiv.innerHTML = `❌ 所有远程模板都加载失败<br>` +
+                `📝 请检查以下事项：<br>` +
+                `• 确保模板文件已正确上传<br>` +
+                `• 检查URL配置是否正确<br>` +
+                `• 确保网络连接正常<br>` +
+                `• 尝试使用下面的替代方案<br>` +
+                `🔗 尝试的URL列表: <details><summary>点击查看</summary><pre style="font-size:10px;">${urlsToTry.filter(url => url && !url.includes('your-username')).join('\n')}</pre></details>`;
+            
+            // 禁用处理按钮
+            updateProcessButton();
+        }
+        
+        // 获取服务器名称
+        function getServerName(url) {
+            if (url.includes('github.io')) return 'GitHub Pages';
+            if (url.includes('gitee.io')) return 'Gitee Pages';
+            if (url.includes('coding.net')) return 'Coding.net';
+            if (url.includes('jsdelivr.net')) return 'jsDelivr CDN';
+            if (url.includes('githubusercontent.com')) return 'GitHub Raw';
+            return '未知服务器';
+        }
+        
         // 工具切换函数
         function showTool(toolId) {
             document.querySelectorAll('.calculator').forEach(tool => {
@@ -929,7 +1053,7 @@
                 
             } catch (error) {
                 console.error('加载模板失败:', error);
-                statusDiv.innerHTML = `⚠️ 加载模板失败: ${error.message}<br>请确保模板文件存在于: ${templatePath} 或同目录下`;
+                statusDiv.innerHTML = `⚠️ 加载模板失败: ${error.message}<br>请确保本地服务器运行且模板文件可访问: ${templatePath}`;
             }
         }
         async function loadTemplateList() {
@@ -1150,30 +1274,40 @@
             }
             
             if (!loadedTemplates.has(templateName)) {
-                statusDiv.innerHTML = '选中的模板文件不存在，请重新选择';
+                statusDiv.innerHTML = '选中的模板文件不存在，请重新加载模板';
                 return;
             }
             
             try {
-                statusDiv.innerHTML = '正在使用模板处理数据...';
+                statusDiv.innerHTML = '🔄 正在使用模板处理数据...';
                 
-                // 获取模板工作簿
+                // 获取模板工作簿和来源信息
                 const templateInfo = loadedTemplates.get(templateName);
                 const templateWorkbook = templateInfo.workbook;
+                const templateSource = templateInfo.source || '本地缓存';
                 
                 // 使用模板处理数据
-                processWithTemplate(templateWorkbook, templateName);
+                const result = await processWithTemplate(templateWorkbook, templateName, templateSource);
+                
+                if (result.success) {
+                    statusDiv.innerHTML = `✅ 文件处理完成！<br>` +
+                        `• 使用模板：${templateName}<br>` +
+                        `• 模板来源：${templateSource}<br>` +
+                        `• 已下载文件：${result.filename}<br>` +
+                        `• 水卡号：${parsedData.waterCardNumbers.length}条，流水号：${parsedData.serialNumbers.length}条<br>` +
+                        `• 数据已填入模板A列和B列（从A2、B2开始）`;
+                } else {
+                    statusDiv.innerHTML = `❌ 处理失败：${result.error}`;
+                }
                 
             } catch (error) {
-                statusDiv.innerHTML = `处理失败: ${error.message}`;
+                statusDiv.innerHTML = `❌ 处理失败: ${error.message}`;
                 console.error('处理Excel文件失败:', error);
             }
         }
         
         // 使用模板处理数据
-        function processWithTemplate(templateWorkbook, templateName) {
-            const statusDiv = document.getElementById('excelProcessStatus');
-            
+        async function processWithTemplate(templateWorkbook, templateName, templateSource) {
             try {
                 // 克隆模板工作簿
                 const newWorkbook = XLSX.utils.book_new();
@@ -1234,17 +1368,20 @@
                 const originalName = uploadedFileName;
                 const extension = originalName.lastIndexOf('.') >= 0 ? originalName.slice(originalName.lastIndexOf('.')) : '.xlsx';
                 const baseName = originalName.lastIndexOf('.') >= 0 ? originalName.slice(0, originalName.lastIndexOf('.')) : originalName;
-                const filename = `${baseName}已处理${extension}`;
+                const filename = `${baseName}_已处理${extension}`;
                 XLSX.writeFile(newWorkbook, filename);
                 
-                statusDiv.innerHTML = `文件处理完成！<br>` +
-                    `• 使用模板：${templateName}<br>` +
-                    `• 已下载文件：${filename}<br>` +
-                    `• 水卡号：${parsedData.waterCardNumbers.length}条，流水号：${parsedData.serialNumbers.length}条<br>` +
-                    `• 数据已填入模板A列和B列（从A2、B2开始）`;
+                return {
+                    success: true,
+                    filename: filename,
+                    templateSource: templateSource
+                };
                 
             } catch (error) {
-                statusDiv.innerHTML = `使用模板处理失败: ${error.message}`;
+                return {
+                    success: false,
+                    error: error.message
+                };
             }
         }
         
@@ -1319,9 +1456,20 @@
         // 更新处理按钮状态
         function updateProcessButton() {
             const hasFile = excelData !== null;
-            const hasTemplate = document.getElementById('templateSelect').value !== '';
+            const hasTemplate = document.getElementById('templateSelect').value !== '' && loadedTemplates.has('ic卡入库模板.xls');
             const processButton = document.querySelector('#excelTemplateTool .btn-primary');
             processButton.disabled = !(hasFile && hasTemplate);
+            
+            // 更新按钮文本显示当前状态
+            if (processButton.disabled) {
+                if (!hasFile) {
+                    processButton.textContent = '📊 请先上传Excel文件';
+                } else if (!hasTemplate) {
+                    processButton.textContent = '📊 正在加载模板...';
+                }
+            } else {
+                processButton.textContent = '📊 处理Excel文件';
+            }
         }
 
         // 十进制转十六进制函数
@@ -1386,36 +1534,113 @@
             document.getElementById('formattedParams').innerHTML = formattedItems.join('<br>');
         }
 
-        // ICCID相关函数（简化版本）
+        // ICCID解析函数
         function parseIccids() {
             const inputText = document.getElementById('iccidInput').value;
-            document.getElementById('iccidResult').value = '解析功能已简化，请使用完整版本';
+            const resultArray = [];
+            
+            // 处理范围格式：ICCID到ICCID(数量张)
+            const rangePattern = /(\d+[A-Za-z0-9]+)到(\d+[A-Za-z0-9]+)(?:\s*[\(（](\d+)张[\)）])?/g;
+            let match;
+            
+            // 处理范围格式
+            while ((match = rangePattern.exec(inputText)) !== null) {
+                const startIccid = match[1];
+                const endIccid = match[2];
+                const count = match[3] ? parseInt(match[3]) : null;
+                
+                // 提取数字部分
+                const numericStart = extractNumericSuffix(startIccid);
+                const numericEnd = extractNumericSuffix(endIccid);
+                
+                if (numericStart && numericEnd) {
+                    const prefix = startIccid.substring(0, startIccid.length - numericStart.length);
+                    const startNum = parseInt(numericStart);
+                    const endNum = parseInt(numericEnd);
+                    
+                    // 验证范围是否与指定数量匹配
+                    const actualCount = endNum - startNum + 1;
+                    if (count !== null && actualCount !== count) {
+                        console.warn(`警告：指定数量 ${count} 与实际范围 ${actualCount} 不匹配`);
+                    }
+                    
+                    // 生成范围内的所有ICCID
+                    for (let i = startNum; i <= endNum; i++) {
+                        const paddedNum = i.toString().padStart(numericStart.length, '0');
+                        resultArray.push(prefix + paddedNum);
+                    }
+                } else {
+                    console.error('无法提取数字部分:', startIccid, endIccid);
+                }
+            }
+            
+            // 同时处理单行ICCID格式（无论是否已处理范围格式）
+            // 分割输入文本，处理每一行
+            const lines = inputText.split(/[\n\r]+/);
+            
+            lines.forEach(line => {
+                // 跳过包含"到"的行，因为这些行已经在范围处理中处理过了
+                if (line.includes('到')) {
+                    return;
+                }
+                
+                // 清理每行，移除可能的引号和空格
+                const cleanedLine = line.trim().replace(/['""`]/g, '');
+                
+                // 如果是有效的ICCID（至少包含数字和可能的字母，长度大于10）
+                if (/^\d+[A-Za-z0-9]*$/.test(cleanedLine) && cleanedLine.length > 10) {
+                    resultArray.push(cleanedLine);
+                }
+            });
+            
+            // 显示结果，每行一个ICCID
+            document.getElementById('iccidResult').value = resultArray.join('\n');
         }
         
+        // 提取ICCID末尾的数字部分
+        function extractNumericSuffix(iccid) {
+            const match = iccid.match(/(\d+)$/);
+            return match ? match[1] : null;
+        }
+        
+        // 修改ICCID格式函数
         function formatIccids() {
-            alert('格式化功能');
+            const resultText = document.getElementById('iccidResult').value;
+            if (!resultText.trim()) {
+                alert('请先解析ICCID数据');
+                return;
+            }
+            
+            // 将换行分隔的ICCID转换为逗号分隔
+            const iccids = resultText.split('\n').filter(line => line.trim());
+            document.getElementById('iccidResult').value = iccids.join(',');
         }
         
+        // 恢复ICCID格式函数 - 在每个ICCID后添加单引号
         function addQuotesToIccids() {
-            alert('恢复格式功能');
-        }
-        
-        function parseICCID() {
-            alert('解析ICCID功能');
-        }
-
-        // MD5相关函数（简化版本）
-        function decryptMD5() {
-            document.getElementById('md5DecryptOutput').innerHTML = 'MD5解析功能已简化';
-        }
-        
-        function clearMD5Decrypt() {
-            document.getElementById('md5HashInput').value = '';
-            document.getElementById('md5DecryptOutput').innerHTML = '请输入MD5哈希值进行解析';
-        }
-        
-        function copyMD5Result() {
-            alert('复制功能');
+            const resultText = document.getElementById('iccidResult').value;
+            if (!resultText.trim()) {
+                alert('请先解析ICCID数据');
+                return;
+            }
+            
+            // 处理不同格式的ICCID
+            let iccids;
+            if (resultText.includes(',')) {
+                // 逗号分隔的格式
+                iccids = resultText.split(',').filter(item => item.trim());
+                // 添加单引号并重新用逗号连接
+                document.getElementById('iccidResult').value = iccids.map(iccid => 
+                    iccid.trim().endsWith("'") ? iccid.trim() : iccid.trim() + "'"
+                ).join(',');
+            } else {
+                // 换行分隔的格式
+                iccids = resultText.split('\n').filter(line => line.trim());
+                // 添加单引号并保持换行格式
+                document.getElementById('iccidResult').value = iccids.map(iccid => 
+                    iccid.trim().endsWith("'") ? iccid.trim() : iccid.trim() + "'"
+                ).join('\n');
+            }
         }
 
         // 金额水量换算函数
@@ -1624,8 +1849,16 @@
                 }
             });
             
-            // 初始化：加载指定模板
-            loadSpecificTemplate();
+            // 初始化：加载远程模板
+            loadRemoteTemplate().then(() => {
+                console.log('远程模板初始化完成');
+                // 确保按钮状态正确更新
+                updateProcessButton();
+            }).catch(error => {
+                console.error('远程模板初始化失败:', error);
+                // 即使加载失败也要更新按钮状态
+                updateProcessButton();
+            });
             
             // 初始化记事本
             initNotebooks();

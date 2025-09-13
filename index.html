@@ -568,7 +568,8 @@
             <button onclick="showTool('waterPriceTool')">🚰 水单价计算</button>
             <button onclick="showTool('csv89860Tool')">📊 CSV 898620 处理</button>
             <button onclick="showTool('notebookTool')">📝 网络记事1本</button>
-            <button class="active" onclick="showTool('excelTemplateTool')">📋 Excel模板处理</button>
+            <button onclick="showTool('excelTemplateTool')">📋 Excel模板处理</button>
+            <button onclick="showTool('qrGeneratorTool')">🔲 二维码生成器</button>
         </nav>
         
         <!-- Excel模板处理工具模块 -->
@@ -2912,6 +2913,490 @@ ${shareUrl}
             
             // 清空文件输入，允许再次选择同一文件
             event.target.value = '';
+        }
+    </script>
+
+    <!-- 二维码生成器工具模块 -->
+    <section id="qrGeneratorTool" class="calculator" style="display: none;">
+        <h2>🔲 二维码批量生成器</h2>
+        
+        <div class="info-box">
+            <strong>📋 功能说明：</strong><br>
+            1. 使用稳定的二维码API，无跨域限制<br>
+            2. 自动在二维码下方添加IMEI文字，文字大小自适应二维码宽度<br>
+            3. 输出为360x360px正方形PNG图片，便于打印和使用<br>
+            4. 支持批量生成和ZIP打包下载，稳定可靠
+        </div>
+        
+        <div class="form-group">
+            <label for="qrPrefix">二维码前缀：</label>
+            <input type="text" id="qrPrefix" placeholder="例：http://cloud.yuelongxinxi.com/qr/" value="http://cloud.yuelongxinxi.com/qr/">
+        </div>
+        
+        <div class="form-group">
+            <label for="qrImeiList">IMEI列表（一行一个）：</label>
+            <textarea id="qrImeiList" placeholder="请输入IMEI，一行一个，例如：&#10;860256072911545&#10;860256072911546&#10;860256072911547"></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn btn-primary" id="qrGenerateBtn">
+                <span id="qrGenerateBtnText">🔲 生成二维码</span>
+                <span id="qrGenerateBtnLoading" class="loading" style="display: none;"></span>
+            </button>
+            <button class="btn btn-success" id="qrDownloadBtn" disabled>
+                📦 打包下载 (PNG格式)
+            </button>
+        </div>
+        
+        <div class="api-status" id="qrApiStatus">
+            <span class="api-icon">📡</span>
+            <span id="qrApiStatusText">准备生成二维码...</span>
+        </div>
+        
+        <div class="progress-container" id="qrProgressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="qrProgressFill"></div>
+            </div>
+            <div class="progress-text" id="qrProgressText">准备生成...</div>
+        </div>
+        
+        <div class="error-message" id="qrErrorMessage"></div>
+        <div class="success-message" id="qrSuccessMessage"></div>
+        
+        <div class="qr-grid" id="qrGrid"></div>
+    </section>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        class QRGenerator {
+            constructor() {
+                this.generatedBlobs = []; // 存储生成的blob对象
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                document.getElementById('qrGenerateBtn').addEventListener('click', () => this.generateQRCodes());
+                document.getElementById('qrDownloadBtn').addEventListener('click', () => this.downloadZip());
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('qrErrorMessage');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            showSuccess(message) {
+                const successDiv = document.getElementById('qrSuccessMessage');
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+            }
+
+            updateProgress(current, total, text) {
+                const progressContainer = document.getElementById('qrProgressContainer');
+                const progressFill = document.getElementById('qrProgressFill');
+                const progressText = document.getElementById('qrProgressText');
+                
+                progressContainer.style.display = 'block';
+                const percentage = (current / total) * 100;
+                progressFill.style.width = percentage + '%';
+                progressText.textContent = text || `正在生成 ${current}/${total} (${Math.round(percentage)}%)`;
+            }
+
+            hideProgress() {
+                document.getElementById('qrProgressContainer').style.display = 'none';
+            }
+
+            updateApiStatus(message, show = true) {
+                const apiStatus = document.getElementById('qrApiStatus');
+                const apiStatusText = document.getElementById('qrApiStatusText');
+                
+                if (show) {
+                    apiStatus.style.display = 'block';
+                    apiStatusText.textContent = message;
+                } else {
+                    apiStatus.style.display = 'none';
+                }
+            }
+
+            setGenerateButtonState(loading) {
+                const btn = document.getElementById('qrGenerateBtn');
+                const btnText = document.getElementById('qrGenerateBtnText');
+                const btnLoading = document.getElementById('qrGenerateBtnLoading');
+                
+                btn.disabled = loading;
+                btnText.style.display = loading ? 'none' : 'inline';
+                btnLoading.style.display = loading ? 'inline-block' : 'none';
+            }
+
+            // 生成带自适应IMEI文字的二维码（带重试机制）
+            async generateQRCode(text, imei, retryCount = 0) {
+                const encodedText = encodeURIComponent(text);
+                const maxRetries = 2;
+                
+                // 多个备选API，提高成功率
+                const apis = [
+                    `https://api.qrserver.com/v1/create-qr-code/?size=280x280&format=png&data=${encodedText}`,
+                    `https://chart.googleapis.com/chart?chs=280x280&cht=qr&chl=${encodedText}`,
+                    `https://quickchart.io/qr?text=${encodedText}&size=280`
+                ];
+                
+                const currentApi = apis[retryCount % apis.length];
+                console.log(`🔄 ${imei} 尝试API ${retryCount + 1}/${maxRetries + 1}:`, currentApi);
+                
+                try {
+                    // 创建带自适应IMEI文字的二维码图片
+                    return await this.addTextToQRCode(currentApi, imei);
+                } catch (error) {
+                    console.log(`❌ ${imei} API失败 (${retryCount + 1}/${maxRetries + 1}):`, error.message);
+                    
+                    if (retryCount < maxRetries) {
+                        console.log(`🔄 ${imei} 重试中...`);
+                        await new Promise(resolve => setTimeout(resolve, 200)); // 短暂延迟
+                        return await this.generateQRCode(text, imei, retryCount + 1);
+                    } else {
+                        throw new Error(`所有API都失败: ${error.message}`);
+                    }
+                }
+            }
+
+            // 在二维码图片上添加自适应IMEI文字
+            async addTextToQRCode(qrUrl, imei) {
+                console.log(`🖼️ 开始处理: ${imei}`);
+                
+                // 尝试多种方法获取图片
+                const methods = [
+                    // 方法1: 使用代理服务器
+                    async () => {
+                        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(qrUrl)}`);
+                        if (!response.ok) throw new Error(`代理服务器错误: ${response.status}`);
+                        return await response.blob();
+                    },
+                    // 方法2: 使用另一个代理
+                    async () => {
+                        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(qrUrl)}`);
+                        if (!response.ok) throw new Error(`代理服务器错误: ${response.status}`);
+                        return await response.blob();
+                    },
+                    // 方法3: 直接尝试（可能会有跨域问题，但有些浏览器允许）
+                    async () => {
+                        const response = await fetch(qrUrl);
+                        if (!response.ok) throw new Error(`直接请求错误: ${response.status}`);
+                        return await response.blob();
+                    }
+                ];
+                
+                let imageBlob = null;
+                let lastError = null;
+                
+                // 尝试每种方法
+                for (let i = 0; i < methods.length; i++) {
+                    try {
+                        console.log(`🔄 ${imei} 尝试方法 ${i + 1}/${methods.length}`);
+                        imageBlob = await methods[i]();
+                        console.log(`✅ ${imei} 方法 ${i + 1} 成功获取图片`);
+                        break;
+                    } catch (error) {
+                        console.log(`❌ ${imei} 方法 ${i + 1} 失败:`, error.message);
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                if (!imageBlob) {
+                    throw new Error(`所有获取图片的方法都失败: ${lastError?.message}`);
+                }
+                
+                const imageUrl = URL.createObjectURL(imageBlob);
+                
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    
+                    const timeout = setTimeout(() => {
+                        console.log(`⏰ ${imei} 处理超时`);
+                        URL.revokeObjectURL(imageUrl);
+                        reject(new Error('处理超时'));
+                    }, 10000);
+                    
+                    img.onload = () => {
+                        clearTimeout(timeout);
+                        console.log(`✅ ${imei} 图片加载成功`);
+                        
+                        try {
+                            // 创建canvas
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            if (!ctx) {
+                                throw new Error('无法创建Canvas上下文');
+                            }
+                            
+                            // 设置画布尺寸为正方形
+                            const qrSize = 280;
+                            const textHeight = 80;
+                            const totalSize = qrSize + textHeight;
+                            
+                            canvas.width = totalSize;
+                            canvas.height = totalSize;
+                            
+                            // 填充白色背景
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, totalSize, totalSize);
+                            
+                            // 绘制二维码（居中上方）
+                            const qrX = (totalSize - qrSize) / 2;
+                            const qrY = 10;
+                            ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+                            
+                            // 自适应文字大小到二维码宽度
+                            const maxWidth = qrSize - 20;
+                            let fontSize = 50;
+                            const minFontSize = 24;
+                            
+                            // 设置文字样式
+                            ctx.fillStyle = '#333333';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            
+                            // 动态调整字体大小
+                            do {
+                                ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                                const textWidth = ctx.measureText(imei).width;
+                                
+                                if (textWidth <= maxWidth || fontSize <= minFontSize) {
+                                    break;
+                                }
+                                fontSize -= 1;
+                            } while (fontSize > minFontSize);
+                            
+                            fontSize = Math.max(fontSize, minFontSize);
+                            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                            
+                            // 绘制IMEI文字
+                            const textY = qrY + qrSize + textHeight / 2;
+                            ctx.fillText(imei, totalSize / 2, textY);
+                            
+                            console.log(`📏 ${imei} 字体: ${fontSize}px`);
+                            
+                            // 转换为blob
+                            canvas.toBlob((resultBlob) => {
+                                if (resultBlob) {
+                                    const url = URL.createObjectURL(resultBlob);
+                                    this.generatedBlobs.push({ blob: resultBlob, filename: `${imei}.png` });
+                                    console.log(`🎉 ${imei} 处理完成`);
+                                    
+                                    // 清理临时URL
+                                    URL.revokeObjectURL(imageUrl);
+                                    resolve(url);
+                                } else {
+                                    URL.revokeObjectURL(imageUrl);
+                                    reject(new Error('Canvas转换失败'));
+                                }
+                            }, 'image/png');
+                            
+                        } catch (error) {
+                            console.error(`❌ ${imei} Canvas处理失败:`, error);
+                            URL.revokeObjectURL(imageUrl);
+                            reject(error);
+                        }
+                    };
+                    
+                    img.onerror = (error) => {
+                        clearTimeout(timeout);
+                        console.error(`❌ ${imei} 图片加载失败:`, error);
+                        URL.revokeObjectURL(imageUrl);
+                        reject(new Error('图片加载失败'));
+                    };
+                    
+                    img.src = imageUrl;
+                });
+            }
+
+            async generateQRCodes() {
+                const prefix = document.getElementById('qrPrefix').value.trim();
+                const imeiText = document.getElementById('qrImeiList').value.trim();
+                
+                if (!prefix) {
+                    this.showError('请输入二维码前缀');
+                    return;
+                }
+                
+                if (!imeiText) {
+                    this.showError('请输入IMEI列表');
+                    return;
+                }
+
+                const imeiList = imeiText.split('
+').filter(imei => imei.trim()).map(imei => imei.trim());
+                
+                if (imeiList.length === 0) {
+                    this.showError('请输入有效的IMEI列表');
+                    return;
+                }
+
+                this.setGenerateButtonState(true);
+                this.generatedBlobs = [];
+                document.getElementById('qrGrid').innerHTML = '';
+                document.getElementById('qrDownloadBtn').disabled = true;
+                this.updateApiStatus('使用QR-Server.com API生成二维码...');
+
+                let successCount = 0;
+                let failCount = 0;
+
+                for (let i = 0; i < imeiList.length; i++) {
+                    const imei = imeiList[i];
+                    const qrText = prefix + imei;
+                    
+                    this.updateProgress(i + 1, imeiList.length, `正在生成 ${i + 1}/${imeiList.length}: ${imei}`);
+                    
+                    try {
+                        const qrUrl = await this.generateQRCode(qrText, imei);
+                        await this.displayQRCode(qrUrl, imei, qrText);
+                        successCount++;
+                        
+                        // 减少延迟时间，提高生成速度
+                        if (i < imeiList.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                    } catch (error) {
+                        console.error(`生成 ${imei} 的二维码失败:`, error);
+                        failCount++;
+                        this.displayErrorQR(imei, error.message);
+                    }
+                }
+
+                this.hideProgress();
+                this.setGenerateButtonState(false);
+                
+                if (successCount > 0) {
+                    document.getElementById('qrDownloadBtn').disabled = false;
+                    this.updateApiStatus(`✅ 成功生成 ${successCount} 个二维码${failCount > 0 ? `，失败 ${failCount} 个` : ''}`);
+                    this.showSuccess(`成功生成 ${successCount} 个二维码${failCount > 0 ? `，失败 ${failCount} 个` : ''}`);
+                } else {
+                    this.updateApiStatus('❌ 所有二维码生成失败');
+                    this.showError('所有二维码生成失败，请检查网络连接或稍后重试');
+                }
+            }
+
+            async displayQRCode(qrUrl, imei, qrText) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        const qrItem = document.createElement('div');
+                        qrItem.className = 'qr-item';
+                        qrItem.innerHTML = `
+                            <img src="${qrUrl}" alt="QR Code for ${imei}">
+                            <div class="qr-label">${imei}</div>
+                            <div class="qr-label" style="font-size: 0.7em; color: #999; margin-top: 5px;">${qrText}</div>
+                            <div class="qr-label" style="font-size: 0.6em; color: #4facfe; margin-top: 3px;">API: QR-Server.com</div>
+                        `;
+                        
+                        document.getElementById('qrGrid').appendChild(qrItem);
+                        resolve();
+                    };
+                    
+                    img.onerror = () => {
+                        reject(new Error('图片加载失败'));
+                    };
+                    
+                    img.src = qrUrl;
+                });
+            }
+
+            displayErrorQR(imei, errorMsg) {
+                const qrItem = document.createElement('div');
+                qrItem.className = 'qr-item';
+                qrItem.style.background = '#ffe6e6';
+                qrItem.innerHTML = `
+                    <div style="padding: 20px; color: #d63031;">
+                        <div style="font-size: 2em; margin-bottom: 10px;">❌</div>
+                        <div class="qr-label">${imei}</div>
+                        <div style="font-size: 0.8em; margin-top: 5px;">${errorMsg}</div>
+                    </div>
+                `;
+                
+                document.getElementById('qrGrid').appendChild(qrItem);
+            }
+
+            async downloadZip() {
+                if (this.generatedBlobs.length === 0) {
+                    this.showError('没有可下载的二维码');
+                    return;
+                }
+
+                const zip = new JSZip();
+                const downloadBtn = document.getElementById('qrDownloadBtn');
+                const originalText = downloadBtn.textContent;
+                
+                downloadBtn.disabled = true;
+                downloadBtn.innerHTML = '<span class="loading"></span> 正在打包...';
+
+                try {
+                    // 处理生成的图片
+                    for (let i = 0; i < this.generatedBlobs.length; i++) {
+                        const item = this.generatedBlobs[i];
+                        zip.file(item.filename, item.blob);
+                        downloadBtn.textContent = `正在打包 ${i + 1}/${this.generatedBlobs.length}`;
+                    }
+
+                    downloadBtn.textContent = '正在生成压缩包...';
+                    const content = await zip.generateAsync({type: 'blob'});
+                    
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = `二维码_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.zip`;
+                    link.click();
+                    
+                    URL.revokeObjectURL(link.href);
+                    this.showSuccess('二维码打包下载成功！');
+                    
+                } catch (error) {
+                    console.error('打包下载失败:', error);
+                    this.showError('打包下载失败: ' + error.message);
+                } finally {
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = originalText;
+                }
+            }
+        }
+
+        // 初始化二维码生成器
+        let qrGenerator = null;
+        function initQRGenerator() {
+            if (!qrGenerator) {
+                qrGenerator = new QRGenerator();
+            }
+        }
+
+        // 在显示工具时初始化
+        function showTool(toolId) {
+            // 隐藏所有工具
+            document.querySelectorAll('.calculator').forEach(tool => {
+                tool.style.display = 'none';
+            });
+            
+            // 显示选中的工具
+            const selectedTool = document.getElementById(toolId);
+            if (selectedTool) {
+                selectedTool.style.display = 'block';
+                
+                // 如果是二维码生成器，初始化它
+                if (toolId === 'qrGeneratorTool') {
+                    initQRGenerator();
+                }
+            }
+            
+            // 更新按钮激活状态
+            document.querySelectorAll('.tool-switcher button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.tool-switcher button[onclick="showTool('${toolId}')"]`).classList.add('active');
         }
     </script>
 </body>

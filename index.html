@@ -561,13 +561,13 @@
         <nav class="tool-switcher">
             <button onclick="showTool('pulseTool')">🔄 脉冲计算器</button>
             <button onclick="showTool('conversionTool')">🔢 进制转换器</button>
-            <button onclick="showTool('paramParser')">📋 参数解析器</button>
-            <button onclick="showTool('webViewer')">🌐 网页查看器</button>
+            <button onclick="showTool('paramParser')">📋 入库参数解析</button>
+            <button onclick="showTool('webViewer')">🌐 剪贴板</button>
             <button onclick="showTool('iccidTool')">📱 ICCID详情</button>
-            <button onclick="showTool('waterValueTool')">💧 金额水量换算</button>
-            <button onclick="showTool('waterPriceTool')">🚰 水单价计算</button>
-            <button onclick="showTool('csv89860Tool')">📊 CSV 898620 处理</button>
-            <button onclick="showTool('notebookTool')">📝 网络记事1本</button>
+            <button onclick="showTool('waterValueTool')">💧 洗浴单价</button>
+            <button onclick="showTool('waterPriceTool')">🚰 水控单价</button>
+            <button onclick="showTool('csv89860Tool')">📊 CSViccid乱码</button>
+            <button onclick="showTool('notebookTool')">📝 网络记事本</button>
             <button onclick="showTool('excelTemplateTool')">📋 Excel模板处理</button>
             <button onclick="showTool('qrGeneratorTool')">🔲 二维码生成器</button>
             <button onclick="showTool('logAnalysisTool')">📊 日志解析器</button>
@@ -737,7 +737,7 @@
         </section>
 
         <section id="waterValueTool" class="calculator" style="display:none;">
-            <h2>💧 金额水量换算</h2>
+            <h2>💧 洗浴水控 金额水量换算</h2>
             <div class="form-group">
                 <label>金额 (元):</label>
                 <input type="number" id="amount" step="0.01" placeholder="输入金额" oninput="calculateWaterValue()">
@@ -759,7 +759,7 @@
         </section>
 
         <section id="waterPriceTool" class="calculator" style="display:none;">
-            <h2>🚰 水单价计算器</h2>
+            <h2>🚰 共享单价计算器</h2>
             <div class="form-group">
                 <label>水量 (毫升):</label>
                 <input type="number" id="waterVolume2" step="0.01" placeholder="例如：787" oninput="calculateWaterPrice()">
@@ -2993,7 +2993,8 @@ ${shareUrl}
 • 支持指令：心跳(00)、充值(05)、查询(0D)、激活(09)等40+种指令
 • 解析内容：设备状态、流量余额、滤芯寿命、TDS值、时间戳、IC卡信息等
 • 并排显示：左右并排设计，原始数据和解析结果对比显示，便于验证和学习
-• 支持格式：自动过滤空格和连字符，灵活输入原始数据" rows="15" style="font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; resize: vertical;"></textarea>
+• 支持格式：自动过滤空格和连字符，灵活输入原始数据
+⚡ 快捷操作：按回车键自动开始解析" rows="15" style="font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; resize: vertical;" onkeydown="handleLogInputKeydown(event)"></textarea>
                 </div>
                 
                 <div class="button-group">
@@ -3538,6 +3539,26 @@ ${shareUrl}
         function clearLogData() {
             document.getElementById('logInput').value = '';
             document.getElementById('logResult').textContent = '等待输入日志数据...';
+        }
+        
+        // 处理回车键自动解析
+        function handleLogInputKeydown(event) {
+            // 检测回车键（Enter键，keyCode为13）
+            if (event.key === 'Enter' || event.keyCode === 13) {
+                // 阻止默认的换行行为
+                event.preventDefault();
+                
+                // 获取输入框的值
+                const logInput = document.getElementById('logInput').value.trim();
+                
+                // 如果有内容则自动开始解析
+                if (logInput) {
+                    console.log('🔍 检测到回车键，自动开始解析日志');
+                    analyzeLog();
+                } else {
+                    console.log('⚠️ 输入框为空，无法解析');
+                }
+            }
         }
         class QRGenerator {
             constructor() {

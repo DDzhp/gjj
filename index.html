@@ -2018,7 +2018,12 @@
                 }
                 
                 const userChoice = confirm(
-                    `${errorMessage}\n\n可能的解决方案：\n${suggestions.join('\n')}\n\n` +
+                    `${errorMessage}
+
+可能的解决方案：
+${suggestions.join('\n')}
+
+` +
                     '点击“确定”使用本地模式\n' +
                     '点击“取消”重试连接'
                 );
@@ -3231,8 +3236,7 @@ ${shareUrl}
                     return;
                 }
 
-                const imeiList = imeiText.split('
-').filter(imei => imei.trim()).map(imei => imei.trim());
+                const imeiList = imeiText.split('\n').filter(imei => imei.trim()).map(imei => imei.trim());
                 
                 if (imeiList.length === 0) {
                     this.showError('请输入有效的IMEI列表');
@@ -3285,11 +3289,12 @@ ${shareUrl}
 
             async displayQRCode(qrUrl, imei, qrText) {
                 return new Promise((resolve, reject) => {
-                    const img = new Image();
+                    const qrItem = document.createElement('div');
+                    qrItem.className = 'qr-item';
                     
+                    // 创建图片元素并等待加载
+                    const img = new Image();
                     img.onload = () => {
-                        const qrItem = document.createElement('div');
-                        qrItem.className = 'qr-item';
                         qrItem.innerHTML = `
                             <img src="${qrUrl}" alt="QR Code for ${imei}">
                             <div class="qr-label">${imei}</div>
@@ -3302,7 +3307,7 @@ ${shareUrl}
                     };
                     
                     img.onerror = () => {
-                        reject(new Error('图片加载失败'));
+                        reject(new Error('二维码图片加载失败'));
                     };
                     
                     img.src = qrUrl;

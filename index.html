@@ -796,7 +796,11 @@
             document.querySelectorAll('.tool-switcher button').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            // 找到对应的按钮并添加active类
+            const activeButton = document.querySelector(`.tool-switcher button[onclick="showTool('${toolId}')"]`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
         }
 
         // ===== Excel模板处理相关函数 =====
@@ -1718,6 +1722,8 @@
                 updateProcessButton();
             });
 
+            // 默认显示Excel模板处理工具
+            showTool('pulseTool');
         });
         
 

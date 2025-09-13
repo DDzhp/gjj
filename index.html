@@ -2971,36 +2971,49 @@ ${shareUrl}
         
         <div class="qr-grid" id="qrGrid"></div>
     </section>
-
     <!-- 日志解析器工具模块 -->
     <section id="logAnalysisTool" class="calculator" style="display: none;">
         <h2>📊 日志解析器</h2>
-        <div class="form-group">
-            <label for="logInput">原始日志数据：</label>
-            <textarea id="logInput" placeholder="请输入原始日志数据，例如：&#10;861122F20000FF550006005208E8004F003E000F00270005000A000A000A000A000A00000000000000000000005E5D86B4007B&#10;或&#10;861122F20000FF550006005208E8004F003E000F00270005000A000A000A000A000A000000000000005E5D86B4007B" rows="6"></textarea>
-        </div>
         
-        <div class="button-group">
-            <button class="btn btn-primary" onclick="analyzeLog()">
-                🔍 解析日志
-            </button>
-            <button class="btn btn-secondary" onclick="clearLogData()">
-                🗑️ 清空数据
-            </button>
+        <div style="display: flex; gap: 20px; margin-top: 20px;">
+            <!-- 左侧：原始日志输入 -->
+            <div style="flex: 1;">
+                <div class="form-group">
+                    <label for="logInput">📝 原始日志数据：</label>
+                    <textarea id="logInput" placeholder="请输入原始日志数据，例如：&#10;&#10;116位格式：&#10;861122F20000FF550006005208E8004F003E000F00270005000A000A000A000A000A00000000000000000000005E5D86B4007B&#10;&#10;104位格式：&#10;861122F20000FF550006005208E8004F003E000F00270005000A000A000A000A000A000000000000005E5D86B4007B
+📄功能说明：
+1. 支持116位和104位两种格式的日志数据解析
+2. 自动识别设备ID、计费模式、指令类型等信息
+3. 解析设备状态、流量信息、滤芯寿命等参数
+4. 支持多种指令类型（心跳、充值、查询等）
+5. 原始日志和解析结果并排显示，方便对比
+💡 使用提示：
+• 116位日志：完整格式，包含所有滤芯信息和详细参数
+• 104位日志：简化格式，部分参数位置和值不同
+• 支持指令：心跳(00)、充值(05)、查询(0D)、激活(09)等40+种指令
+• 解析内容：设备状态、流量余额、滤芯寿命、TDS值、时间戳、IC卡信息等
+• 并排显示：左右并排设计，原始数据和解析结果对比显示，便于验证和学习
+• 支持格式：自动过滤空格和连字符，灵活输入原始数据" rows="15" style="font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="analyzeLog()">
+                        🔍 解析日志
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearLogData()">
+                        🗑️ 清空数据
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 右侧：解析结果 -->
+            <div style="flex: 1;">
+                <div class="form-group">
+                    <label>📊 解析结果：</label>
+                    <div id="logResult" class="result-area" style="min-height: 380px; white-space: pre-wrap; font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.5; overflow-y: auto; border: 2px solid #e9ecef; border-radius: 8px; padding: 15px; background: #f8f9fa; resize: vertical;">等待输入日志数据...</div>
+                </div>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <label>解析结果：</label>
-            <div id="logResult" class="result-area" style="min-height: 100px; white-space: pre-wrap; font-family: monospace;">等待输入日志数据...</div>
-        </div>    
-        <div class="info-box">
-            <strong>📄 功能说明：</strong><br>
-            1. 支持116位和104位两种格式的日志数据解析<br>
-            2. 自动识别设备ID、计费模式、指令类型等信息<br>
-            3. 解析设备状态、流量信息、滤芯寿命等参数<br>
-            4. 支持多种指令类型（心跳、充值、查询等）
-        </div>
-        
     </section>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -3142,25 +3155,316 @@ ${shareUrl}
             return states[number] || '暂未解析该状态';
         }
         
-        // 其他辅助函数的简化实现
-        function current_flow(s, n) { return s === '06' || s === '0c' || s === 'dd' ? '本次消费总流量：' + n + ' ml' : ''; }
-        function recharge_flow(s, n) { return s === '05' ? '充值流量：' + n + ' L' : s === '55' ? '剩余流量 回执：' + n + ' L' : ''; }
-        function recharge_days(s, n) { return s === '05' ? '充值天数：' + n + ' 天' : s === '55' ? '剩余天数 回执：' + n + ' 天' : ''; }
-        function residual_flow(s, n) { return ['55','0c','dd','09','99'].includes(s) ? '剩余流量：' + n + ' L' : s === '06' ? '本次消费金额：' + (n/100) + '元' : ''; }
-        function residual_days(s, n) { return ['55','0b','bb','09','dd','99'].includes(s) ? '剩余时间：' + n + ' 天' : ''; }
-        function used_flow(s, n) { return ['06','09','99','0c','dd'].includes(s) ? '已用流量：' + n + ' L' : ''; }
-        function used_days(s, n) { return ['09','99','0b','bb'].includes(s) ? '已用天数：' + n : ''; }
-        function pure_tds(s, n) { return s === '0c' || s === 'dd' ? '纯水tds：' + n : ''; }
-        function raw_tds(s, n) { return s === '0c' || s === 'dd' ? '原水tds：' + n : ''; }
-        function one_actual(s, n) { return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯1实时：' + n : ''; }
-        function two_actual(s, n) { 
-            if (['80','90','06','a0'].includes(s)) {
-                const pos = replaceMsg.length == 116 ? [62,70] : [50,58];
-                return '剩余金额：' + (parseInt(replaceMsg.substring(pos[0], pos[1]), 16)/100) + '/元';
+        // 其他辅助函数的完整实现
+        function current_flow(string, number) {
+            switch(string.toLowerCase()) {
+                case '84': return '自动校准的流量：' + number;
+                case '80': return '';
+                case '06': return '本次消费总流量：' + number + ' ml';
+                case '0c': return '本次消费总流量：' + number + ' ml';
+                case 'dd': return '本次消费总流量：' + number + ' ml';
+                default: return '';
             }
-            return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯2实时：' + n : '';
         }
-        function three_actual(s, n) { return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯3实时：' + n : ''; }
+        
+        function recharge_flow(string, number, device_state) {
+            switch(string.toLowerCase()) {
+                case '04': return '冷水流量计脉冲：' + number;
+                case '44': return '冷水流量计脉冲回执：' + number;
+                case 'ee': return '冷水流量计脉冲：' + number;
+                case '80': return '本次允许最大取水量：' + number + ' ml';
+                case '90': return '本次允许最大取水量 回执：' + number + ' ml';
+                case '06': return '本次出热水水量：' + number + ' ml';
+                case 'a0': return '';
+                case '0c': return device_state == 1 ? ('流速：' + number + ' ml/分') : '';
+                case '05': return '充值流量：' + number + ' L';
+                case '55': return '剩余流量 回执：' + number + ' L';
+                case '82': return '节能的时间:' + number;
+                case '92': return '节能的时间 回执:' + number;
+                case '83': return '广告灯开启时间:' + number;
+                case '93': return '广告灯开启时间: 回执' + number;
+                case '5E': return '自动校准的冷水流量计:' + number;
+                default: return '';
+            }
+        }
+        
+        function recharge_days(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '冷水阀时间：' + number + '秒/L';
+                case '44': return '冷水阀时间 回执：' + number + '秒/L';
+                case '80': return '本次取水等待时间：' + number + ' 秒';
+                case '90': return '本次取水等待时间 回执：' + number + ' 秒';
+                case '06': return '本次出冷水水量：' + number + ' ml';
+                case '05': return '充值天数：' + number + ' 天';
+                case '55': return '剩余天数 回执：' + number + ' 天';
+                case '82': return '加热系统启停温差：' + number;
+                case '92': return '加热系统启停温差 回执:' + number;
+                default: return '';
+            }
+        }
+        
+        function residual_flow(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '制水时间：' + number + "分钟/L";
+                case '44': return '制水时间 回执：' + number + "分钟/L";
+                case '80': return '连续出水最大时间：' + number;
+                case '90': return '连续出水最大时间 回执：' + number;
+                case '06': return '本次消费金额：' + number/100 + '元';
+                case '55': return '剩余流量：' + number + ' L';
+                case '0c': return '剩余流量：' + number + ' L';
+                case 'dd': return '剩余流量：' + number + ' L';
+                case '09': return '剩余流量：' + number + ' L';
+                case '99': return '剩余流量 回执：' + number + ' L';
+                case '82': return '浴霸1启动的温度：' + number;
+                case '92': return '浴霸1启动的温度 回执:' + number;
+                case 'a0': return '离线消费金额：' + number/100 + '元';
+                default: return '';
+            }
+        }
+        
+        function residual_days(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '检修时间：' + number;
+                case '44': return '检修时间 回执：' + number;
+                case '80': return '取水暂停时间：' + number;
+                case '90': return '取水暂停时间 回执：' + number;
+                case '06': return '';
+                case 'ee': return '检修时间：' + number;
+                case '55': return '剩余时间：' + number + ' 天';
+                case '0b': return '剩余时间：' + number + ' 天';
+                case 'bb': return '剩余时间 回执：' + number + ' 天';
+                case '09': return '剩余时间：' + number + ' 天';
+                case 'dd': return '剩余时间：' + number + ' 天';
+                case '99': return '剩余时间 回执：' + number + ' 天';
+                case '82': return '浴霸2启动的温度：' + number;
+                case '92': return '浴霸2启动的温度 回执:' + number;
+                default: return '';
+            }
+        }
+        
+        function used_flow(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '加热最高温度值：' + number;
+                case '44': return '加热最高温度值 回执：' + number;
+                case '80': return '出水热水温度值：' + number;
+                case '90': return '出水热水温度值 回执：' + number;
+                case '06': return '已用流量：' + number + ' L';
+                case '09': return '已用流量：' + number + ' L';
+                case '99': return '已用流量： 回执：' + number + ' L';
+                case '0c': return '已用流量：' + number + ' L';
+                case 'dd': return '已用流量：' + number + ' L';
+                case '82': return '浴霸1关闭的温度差：' + number;
+                case '92': return '浴霸1关闭的温度差 回执:' + number;
+                default: return '';
+            }
+        }
+        
+        function used_days(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '设备制冷最低温度值：' + number;
+                case '44': return '设备制冷最低温度值 回执：' + number;
+                case '80': return '';
+                case '06': return '';
+                case '09': return '已用天数：' + number;
+                case '99': return '已用天数 回执：' + number;
+                case '0b': return '已用天数：' + number;
+                case 'bb': return '已用天数 回执：' + number;
+                case '82': return '浴霸2关闭的温度差：' + number;
+                case '92': return '浴霸2关闭的温度差 回执:' + number;
+                default: return '';
+            }
+        }
+        
+        function pure_tds(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '热水费率：' + number*10 + '升/元';
+                case '44': return '热水费率 回执：' + number*10 + '升/元';
+                case '80': return '';
+                case '06': return '';
+                case '0c': return '纯水tds：' + number;
+                case 'dd': return '纯水tds：' + number;
+                default: return '';
+            }
+        }
+        
+        function raw_tds(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '冷水费率：' + number*10 + '升/元';
+                case '44': return '冷水费率 回执：' + number*10 + '升/元';
+                case '80': return '';
+                case '06': return '';
+                case '0c': return '原水tds：' + number;
+                case 'dd': return '原水tds：' + number;
+                default: return '';
+            }
+        }
+        
+        function one_actual(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '屏蔽水路：' + number;
+                case '44': return '屏蔽水路 回执：' + number;
+                case '80': return '';
+                case '06': return '';
+                case 'a0': return '';
+                case '07': return '滤芯1实时：' + number;
+                case '77': return '滤芯1实时 回执：' + number;
+                case '0c': return '滤芯1实时：' + number;
+                case 'dd': return '滤芯1实时：' + number;
+                case '09': return '滤芯1实时：' + number;
+                case '99': return '滤芯1实时 回执：' + number;
+                case '82': return '臭氧工作周期：' + number;
+                case '92': return '臭氧工作周期： 回执:' + number;
+                default: return '';
+            }
+        }
+        
+        function two_actual(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '单次最大用量:' + number + "/ml";
+                case '44': return '单次最大用量 回执:' + number + "/ml";
+                case '80': return '剩余金额：' + parseInt(replaceMsg.length == 116 ? replaceMsg.substring(62,70) : replaceMsg.substring(50,58), 16)/100 + '/元';
+                case '90': return '剩余金额 回执：' + parseInt(replaceMsg.length == 116 ? replaceMsg.substring(62,70) : replaceMsg.substring(50,58), 16)/100 + '/元';
+                case '06': return '剩余金额：' + parseInt(replaceMsg.length == 116 ? replaceMsg.substring(62,70) : replaceMsg.substring(50,58), 16)/100 + '/元';
+                case 'a0': return '剩余金额：' + parseInt(replaceMsg.length == 116 ? replaceMsg.substring(62,70) : replaceMsg.substring(50,58), 16)/100 + '/元';
+                case '07': return '滤芯2实时：' + number;
+                case '77': return '滤芯2实时 回执：' + number;
+                case '0c': return '滤芯2实时：' + number;
+                case 'dd': return '滤芯2实时：' + number;
+                case '09': return '滤芯2实时' + number;
+                case '99': return '滤芯2实时 回执：' + number;
+                case '82': return '臭氧工作周期内的启动时间：' + number;
+                case '92': return '臭氧工作周期内的启动时间： 回执:' + number;
+                default: return '';
+            }
+        }
+        
+        // 添加剩余的完整函数
+        function three_actual(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '热水流量计脉冲数：' + number;
+                case '44': return '热水流量计脉冲数 回执：' + number;
+                case 'ee': return '热水流量计脉冲数：' + number;
+                case '80': return '';
+                case '06': return '';
+                case '07': return '滤芯3实时：' + number;
+                case '77': return '滤芯3实时 回执：' + number;
+                case '0c': return '滤芯3实时：' + number;
+                case 'dd': return '滤芯3实时：' + number;
+                case '09': return '滤芯3实时：' + number;
+                case '99': return '滤芯3实时： 回执：' + number;
+                default: return '';
+            }
+        }
+        
+        function four_actual(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '热水费率金额：' + number + '分';
+                case '44': return '热水费率金额(新)：' + number + '分';
+                case '80': return '';
+                case '06': return '';
+                case '07': return '滤芯4实时：' + number;
+                case '77': return '滤芯4实时 回执：' + number;
+                case '0c': return '滤芯4实时：' + number;
+                case 'dd': return '滤芯4实时：' + number;
+                case '09': return '滤芯4实时' + number;
+                case '99': return '滤芯4实时 回执：' + number;
+                default: return '';
+            }
+        }
+        
+        function five_actual(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '热水费率流量：' + number + 'ml';
+                case '44': return '热水费率流量(新)：' + number + 'ml';
+                case '80': return '';
+                case '06': return '';
+                case 'ee': return '当前信号值 回执：' + number;
+                case '07': return '滤芯5实时：' + number;
+                case '77': return '滤芯5实时 回执：' + number;
+                case '0c': return '滤芯5实时：' + number;
+                case 'dd': return '滤芯5实时：' + number;
+                case '09': return '滤芯5实时：' + number;
+                case '99': return '滤芯5实时： 回执：' + number;
+                default: return '';
+            }
+        }
+        
+        function one_maximum(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return 'iccid：' + number + '（最大放水时间：' + parseInt(number,16) + '）';
+                case '44': return 'iccid：' + number + '（最大放水时间 回执：' + parseInt(number,16) + '）';
+                case '80': return '';
+                case '06': return '';
+                case 'a0': return '';
+                case '07': return '滤芯1最大：' + parseInt(number,16);
+                case '77': return '滤芯1最大 回执：' + parseInt(number,16);
+                case '09': return '滤芯1最大' + parseInt(number,16);
+                case '99': return '滤芯1最大 回执：' + parseInt(number,16);
+                default: return '';
+            }
+        }
+        
+        function two_maximum(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return 'iccid：' + number + '(热水阀时间:' + parseInt(number,16) + '秒/L）';
+                case '44': return 'iccid：' + number + '(热水阀时间 回执:' + parseInt(number,16) + '秒/L）';
+                case '80': return 'IC卡号：' + (replaceMsg.length == 116 ? replaceMsg.substring(82,90) : replaceMsg.substring(70,78));
+                case '90': return 'IC卡号 回执：' + (replaceMsg.length == 116 ? replaceMsg.substring(82,90) : replaceMsg.substring(70,78));
+                case '06': return 'IC卡号：' + (replaceMsg.length == 116 ? replaceMsg.substring(82,90) : replaceMsg.substring(70,78));
+                case 'a0': return 'IC卡号：' + (replaceMsg.length == 116 ? replaceMsg.substring(82,90) : replaceMsg.substring(70,78));
+                case '07': return '滤芯2最大：' + parseInt(number,16);
+                case '77': return '滤芯2最大 回执：' + parseInt(number,16);
+                case '09': return '滤芯2最大' + parseInt(number,16);
+                case '99': return '滤芯2最大 回执：' + parseInt(number,16);
+                default: return '';
+            }
+        }
+        
+        function three_maximum(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '冷水费率金额(新)：' + parseInt(number,16) + '分';
+                case '44': return '冷水费率金额(新)：' + parseInt(number,16) + '分';
+                case '80': return '剩余流量：' + number;
+                case '90': return '剩余流量 回执：' + number;
+                case '06': return '';
+                case '07': return '滤芯3最大：' + parseInt(number,16);
+                case '77': return '滤芯3最大 回执：' + parseInt(number,16);
+                case '09': return '滤芯3最大' + parseInt(number,16);
+                case '99': return '滤芯3最大 回执：' + parseInt(number,16);
+                default: return '';
+            }
+        }
+        
+        function four_maximum(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return 'iccid：' + number;
+                case '44': return '';
+                case '80': return '剩余天数：' + number;
+                case '90': return '剩余天数 回执：' + number;
+                case '06': return '';
+                case '07': return '滤芯4最大：' + parseInt(number,16);
+                case '77': return '滤芯4最大 回执：' + parseInt(number,16);
+                case '09': return '滤芯4最大' + parseInt(number,16);
+                case '99': return '滤芯4最大 回执：' + parseInt(number,16);
+                default: return '';
+            }
+        }
+        
+        function five_maximum(string, number) {
+            switch(string.toLowerCase()) {
+                case '04': return '冷水费率流量(新)：' + parseInt(number,16) + 'ml';
+                case '44': return '冷水费率流量(新)：' + parseInt(number,16) + 'ml';
+                case '80': return '';
+                case '06': return '';
+                case 'ee': return 'ICCID 号:' + (replaceMsg.length == 116 ? replaceMsg.substring(82,102) : replaceMsg.substring(70,90));
+                case '07': return '滤芯5最大：' + parseInt(number,16);
+                case '77': return '滤芯5最大 回执：' + parseInt(number,16);
+                case '09': return '滤芯5最大：' + parseInt(number,16);
+                case '99': return '滤芯5最大 回执：' + parseInt(number,16);
+                default: return '';
+            }
+        }
+
         function four_actual(s, n) { return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯4实时：' + n : ''; }
         function five_actual(s, n) { return s === 'ee' ? '当前信号值 回执：' + n : ['07','77','0c','dd','09','99'].includes(s) ? '滤芯5实时：' + n : ''; }
         function one_maximum(s, n) { return ['07','77','09','99'].includes(s) ? '滤芯1最大：' + parseInt(n, 16) : ''; }
@@ -3197,6 +3501,8 @@ ${shareUrl}
             }
             
             try {
+                console.log('开始解析日志:', logInput); // 调试信息
+                
                 const result = analysis(logInput);
                 
                 if (result && result.error) {
@@ -3219,6 +3525,7 @@ ${shareUrl}
                     output += '\n解析完成 ✓';
                     
                     logResult.textContent = output;
+                    console.log('解析成功:', result); // 调试信息
                 } else {
                     logResult.textContent = '解析失败：无法识别的数据格式';
                 }

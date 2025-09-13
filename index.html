@@ -21,7 +21,7 @@
         
         /* ===== 容器样式 ===== */
         .container {
-            max-width: 1000px;
+            max-width: 1300px;
             margin: 20px auto;
             padding: 20px;
             background: rgba(255, 255, 255, 0.95);
@@ -570,6 +570,7 @@
             <button onclick="showTool('notebookTool')">📝 网络记事1本</button>
             <button onclick="showTool('excelTemplateTool')">📋 Excel模板处理</button>
             <button onclick="showTool('qrGeneratorTool')">🔲 二维码生成器</button>
+            <button onclick="showTool('logAnalysisTool')">📊 日志解析器</button>
         </nav>
         
         <!-- Excel模板处理工具模块 -->
@@ -2971,8 +2972,266 @@ ${shareUrl}
         <div class="qr-grid" id="qrGrid"></div>
     </section>
 
+    <!-- 日志解析器工具模块 -->
+    <section id="logAnalysisTool" class="calculator" style="display: none;">
+        <h2>📊 日志解析器</h2>
+        <div class="form-group">
+            <label for="logInput">原始日志数据：</label>
+            <textarea id="logInput" placeholder="请输入原始日志数据，例如：&#10;861122F20000FF550006005208E8004F003E000F00270005000A000A000A000A000A00000000000000000000005E5D86B4007B&#10;或&#10;861122F20000FF550006005208E8004F003E000F00270005000A000A000A000A000A000000000000005E5D86B4007B" rows="6"></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="analyzeLog()">
+                🔍 解析日志
+            </button>
+            <button class="btn btn-secondary" onclick="clearLogData()">
+                🗑️ 清空数据
+            </button>
+        </div>
+        
+        <div class="form-group">
+            <label>解析结果：</label>
+            <div id="logResult" class="result-area" style="min-height: 100px; white-space: pre-wrap; font-family: monospace;">等待输入日志数据...</div>
+        </div>    
+        <div class="info-box">
+            <strong>📄 功能说明：</strong><br>
+            1. 支持116位和104位两种格式的日志数据解析<br>
+            2. 自动识别设备ID、计费模式、指令类型等信息<br>
+            3. 解析设备状态、流量信息、滤芯寿命等参数<br>
+            4. 支持多种指令类型（心跳、充值、查询等）
+        </div>
+        
+    </section>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
+        // ===== 日志解析功能 logDecode.js =====
+        var replaceMsg; // 全局变量，用于处理后的消息
+        
+        function analysis(msg){
+            console.log(msg,'logDecode ->>> msg');
+            console.log(msg.length,'msg.length');
+
+            replaceMsg = msg.replace(/\s*/g,'').replace(/\-/g,'');
+
+            console.log(replaceMsg,'replace ->>> replaceMsg');
+            console.log(replaceMsg.length,'replaceMsg.length');
+
+            switch(replaceMsg.length){
+                case 116:{
+                    var mode = parseInt(replaceMsg.substring(8,10),16);
+                    var decodeList = {
+                        deviceid:'设备ID：'+parseInt(replaceMsg.substring(0,8),16),
+                        mode:'计费模式：' + (mode==0?'时长':mode==1?'流量':mode==2?'滤芯':mode==3?'买断':mode==4?'套餐':'共享'),
+                        instructions:'指令：' + instructions(replaceMsg.substring(10,12)),
+                        deviceid_state:'设备状态：' + deviceid_state(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(12,14),16)),
+                        current_flow:current_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(14,18),16)),
+                        recharge_flow:recharge_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(18,26),16),replaceMsg.substring(12,14)),
+                        recharge_days:recharge_days(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(26,30),16)),
+                        residual_flow:residual_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(30,38),16)),
+                        residual_days:residual_days(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(38,42),16)),
+                        used_flow:used_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(42,50),16)),
+                        used_days:used_days(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(50,54),16)),
+                        pure_tds:pure_tds(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(54,58),16)),
+                        raw_tds:raw_tds(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(58,62),16)),
+                        one_actual:one_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(62,66),16)),
+                        two_actual:two_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(66,70),16)),
+                        three_actual:three_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(70,74),16)),
+                        four_actual:four_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(74,78),16)),
+                        five_actual:five_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(78,82),16)),
+                        one_maximum:one_maximum(replaceMsg.substring(10,12),replaceMsg.substring(82,86)),
+                        two_maximum:two_maximum(replaceMsg.substring(10,12),replaceMsg.substring(86,90)),
+                        three_maximum:three_maximum(replaceMsg.substring(10,12),replaceMsg.substring(90,94)),
+                        four_maximum:four_maximum(replaceMsg.substring(10,12),replaceMsg.substring(94,98)),
+                        five_maximum:five_maximum(replaceMsg.substring(10,12),replaceMsg.substring(98,102)),
+                        time:time(parseInt(replaceMsg.substring(102,110),16)),
+                        tap:tap(parseInt(replaceMsg.substring(110,112),16)),
+                    };
+                    return decodeList;
+                }
+                case 104:{
+                    var mode = parseInt(replaceMsg.substring(8,10),16);
+                    var decodeList = {
+                        deviceid:'设备ID：'+parseInt(replaceMsg.substring(0,8),16),
+                        mode:'计费模式：' + (mode==0?'时长':mode==1?'流量':mode==2?'滤芯':mode==3?'买断':mode==4?'套餐':'共享'),
+                        instructions:'指令：' + instructions(replaceMsg.substring(10,12)),
+                        deviceid_state:'设备状态：' + deviceid_state(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(12,14),16)),
+                        current_flow:current_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(14,18),16)),
+                        recharge_flow:recharge_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(18,22),16),replaceMsg.substring(12,14)),
+                        recharge_days:recharge_days(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(22,26),16)),
+                        residual_flow:residual_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(26,30),16)),
+                        residual_days:residual_days(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(30,34),16)),
+                        used_flow:used_flow(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(34,38),16)),
+                        used_days:used_days(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(38,42),16)),
+                        pure_tds:pure_tds(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(42,46),16)),
+                        raw_tds:raw_tds(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(46,50),16)),
+                        one_actual:one_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(50,54),16)),
+                        two_actual:two_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(54,58),16)),
+                        three_actual:three_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(58,62),16)),
+                        four_actual:four_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(62,66),16)),
+                        five_actual:five_actual(replaceMsg.substring(10,12),parseInt(replaceMsg.substring(66,70),16)),
+                        one_maximum:one_maximum(replaceMsg.substring(10,12),replaceMsg.substring(70,74)),
+                        two_maximum:two_maximum(replaceMsg.substring(10,12),replaceMsg.substring(74,78)),
+                        three_maximum:three_maximum(replaceMsg.substring(10,12),replaceMsg.substring(78,82)),
+                        four_maximum:four_maximum(replaceMsg.substring(10,12),replaceMsg.substring(82,86)),
+                        five_maximum:five_maximum(replaceMsg.substring(10,12),replaceMsg.substring(86,90)),
+                        time:time(parseInt(replaceMsg.substring(90,98),16)),
+                        tap:tap(parseInt(replaceMsg.substring(98,100),16)),
+                    };
+                    return decodeList;
+                }
+                default:{
+                    return { error: '数据格式暂不支持解析（长度: ' + replaceMsg.length + '）' };
+                }
+            }
+        }
+        
+        function instructions(string){
+            switch(string.toLowerCase()){
+                case '00':{return '心跳数据';}
+                case '01':{return '关机命令';}
+                case '11':{return '关机命令回执';}
+                case '02':{return '开机命令';}
+                case '22':{return '开机命令回执';}
+                case '03':{return '强冲命令';}
+                case '33':{return '强冲命令回执';}
+                case '04':{return 'ID编码/设置机器参数';}
+                case '44':{return 'ID编码回执';}
+                case '05':{return '充值命令';}
+                case '55':{return '充值命令回执';}
+                case '06':{return '用水同步命令';}
+                case '07':{return '滤芯复位';}
+                case '77':{return '滤芯复位回执';}
+                case '08':{return '模式切换';}
+                case '88':{return '模式切换回执';}
+                case '09':{return '激活';}
+                case '99':{return '激活回执';}
+                case '0a':{return '恢复出厂设置';}
+                case 'aa':{return '恢复出厂设置回执';}
+                case '0b':{return '用时同步';}
+                case 'bb':{return '用时同步回执';}
+                case '0c':{return '设备状态变更';}
+                case '0d':{return '查询设备信息';}
+                case 'dd':{return '查询设备信息回执';}
+                case '0e':{return '获取信号，ICCID，机器配置参数';}
+                case 'ee':{return '获取设备信息回执';}
+                case '0f':{return '机器锁定解锁命令';}
+                case 'ff':{return '机器锁定解锁回执';}
+                case '80':{return '机器取水指令';}
+                case '90':{return '机器取水指令回执';}
+                case 'cc':{return '错误包上报';}
+                case 'a0':{return 'Ic卡识别请求指令';}
+                case 'b0':{return 'Ic卡余额同步指令/卡状态切换';}
+                case 'b1':{return 'Ic卡余额同步指令回执';}
+                case '2b':{return '广告机刷新广告指令';}
+                case 'b2':{return '广告机刷新广告回执指令';}
+                case '2a':{return '广告机下载日志指令';}
+                default:{
+                    return '暂未解析该指令';
+                }
+            }
+        }
+        
+        // 简化的辅助函数（主要功能）
+        function deviceid_state(string, number) {
+            const states = {
+                0: '出厂', 1: '正常', 2: '欠费', 3: '制水故障', 4: '关机', 5: '漏水',
+                6: '待激活', 7: '补计', 8: '频发数据', 9: '制水', 10: '冲洗',
+                11: '缺水', 12: '锁定', 14: '本次消费纯水溢出'
+            };
+            return states[number] || '暂未解析该状态';
+        }
+        
+        // 其他辅助函数的简化实现
+        function current_flow(s, n) { return s === '06' || s === '0c' || s === 'dd' ? '本次消费总流量：' + n + ' ml' : ''; }
+        function recharge_flow(s, n) { return s === '05' ? '充值流量：' + n + ' L' : s === '55' ? '剩余流量 回执：' + n + ' L' : ''; }
+        function recharge_days(s, n) { return s === '05' ? '充值天数：' + n + ' 天' : s === '55' ? '剩余天数 回执：' + n + ' 天' : ''; }
+        function residual_flow(s, n) { return ['55','0c','dd','09','99'].includes(s) ? '剩余流量：' + n + ' L' : s === '06' ? '本次消费金额：' + (n/100) + '元' : ''; }
+        function residual_days(s, n) { return ['55','0b','bb','09','dd','99'].includes(s) ? '剩余时间：' + n + ' 天' : ''; }
+        function used_flow(s, n) { return ['06','09','99','0c','dd'].includes(s) ? '已用流量：' + n + ' L' : ''; }
+        function used_days(s, n) { return ['09','99','0b','bb'].includes(s) ? '已用天数：' + n : ''; }
+        function pure_tds(s, n) { return s === '0c' || s === 'dd' ? '纯水tds：' + n : ''; }
+        function raw_tds(s, n) { return s === '0c' || s === 'dd' ? '原水tds：' + n : ''; }
+        function one_actual(s, n) { return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯1实时：' + n : ''; }
+        function two_actual(s, n) { 
+            if (['80','90','06','a0'].includes(s)) {
+                const pos = replaceMsg.length == 116 ? [62,70] : [50,58];
+                return '剩余金额：' + (parseInt(replaceMsg.substring(pos[0], pos[1]), 16)/100) + '/元';
+            }
+            return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯2实时：' + n : '';
+        }
+        function three_actual(s, n) { return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯3实时：' + n : ''; }
+        function four_actual(s, n) { return ['07','77','0c','dd','09','99'].includes(s) ? '滤芯4实时：' + n : ''; }
+        function five_actual(s, n) { return s === 'ee' ? '当前信号值 回执：' + n : ['07','77','0c','dd','09','99'].includes(s) ? '滤芯5实时：' + n : ''; }
+        function one_maximum(s, n) { return ['07','77','09','99'].includes(s) ? '滤芯1最大：' + parseInt(n, 16) : ''; }
+        function two_maximum(s, n) {
+            if (['80','90','06','a0'].includes(s)) {
+                const pos = replaceMsg.length == 116 ? [82,90] : [70,78];
+                return 'IC卡号：' + replaceMsg.substring(pos[0], pos[1]);
+            }
+            return ['07','77','09','99'].includes(s) ? '滤芯2最大：' + parseInt(n, 16) : '';
+        }
+        function three_maximum(s, n) { return ['07','77','09','99'].includes(s) ? '滤芯3最大：' + parseInt(n, 16) : ''; }
+        function four_maximum(s, n) { return ['07','77','09','99'].includes(s) ? '滤芯4最大：' + parseInt(n, 16) : ''; }
+        function five_maximum(s, n) {
+            if (s === 'ee') {
+                const pos = replaceMsg.length == 116 ? [82,102] : [70,90];
+                return 'ICCID 号:' + replaceMsg.substring(pos[0], pos[1]);
+            }
+            return ['07','77','09','99'].includes(s) ? '滤芯5最大：' + parseInt(n, 16) : '';
+        }
+        function time(n) { return '北京时间：' + new Date(n * 1000).toLocaleString(); }
+        function tap(n) { 
+            const types = ['家用机，商务机', '台面机', '管线机', '售水机，校园机，医院机'];
+            return '机器类型：' + (types[n] || '');
+        }
+        
+        // 日志解析界面功能
+        function analyzeLog() {
+            const logInput = document.getElementById('logInput').value.trim();
+            const logResult = document.getElementById('logResult');
+            
+            if (!logInput) {
+                logResult.textContent = '请输入日志数据';
+                return;
+            }
+            
+            try {
+                const result = analysis(logInput);
+                
+                if (result && result.error) {
+                    logResult.textContent = '解析失败：' + result.error;
+                    return;
+                }
+                
+                if (result) {
+                    let output = '📊 日志解析结果：\n';
+                    output += '═'.repeat(50) + '\n\n';
+                    
+                    // 格式化输出结果
+                    for (const [key, value] of Object.entries(result)) {
+                        if (value && value.toString().trim()) {
+                            output += `${value}\n`;
+                        }
+                    }
+                    
+                    output += '\n' + '═'.repeat(50);
+                    output += '\n解析完成 ✓';
+                    
+                    logResult.textContent = output;
+                } else {
+                    logResult.textContent = '解析失败：无法识别的数据格式';
+                }
+            } catch (error) {
+                logResult.textContent = '解析出错：' + error.message;
+                console.error('日志解析错误:', error);
+            }
+        }
+        
+        function clearLogData() {
+            document.getElementById('logInput').value = '';
+            document.getElementById('logResult').textContent = '等待输入日志数据...';
+        }
         class QRGenerator {
             constructor() {
                 this.generatedBlobs = []; // 存储生成的blob对象
@@ -3394,6 +3653,12 @@ ${shareUrl}
                 // 如果是二维码生成器，初始化它
                 if (toolId === 'qrGeneratorTool') {
                     initQRGenerator();
+                }
+                
+                // 如果是日志解析器，可以做一些初始化
+                if (toolId === 'logAnalysisTool') {
+                    // 这里可以添加日志解析器的初始化逻辑
+                    console.log('日志解析器已激活');
                 }
             }
             

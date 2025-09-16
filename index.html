@@ -1079,24 +1079,26 @@
             </div>
         </section>
         
-        <!-- CSV 89860 处理工具模块 -->
+        <!-- CSV/Excel IMEI/ICCID 科学计数法处理工具模块 -->
         <section id="csv89860Tool" class="calculator" style="display:none;">
-                <h2>📊 CSV 89860 处理工具</h2>
+                <h2>📊 CSV/Excel IMEI/ICCID 处理工具</h2>
                 <div class="form-group">
-                    <label>上传CSV文件：</label>
-                    <input type="file" id="csvFileInput" accept=".csv" style="height: 150px; padding: 8px; font-size: 14px;">
+                    <label>上传文件（支持CSV、XLS、XLSX格式）：</label>
+                    <input type="file" id="csvFileInput" accept=".csv,.xls,.xlsx" style="height: 150px; padding: 8px; font-size: 14px;">
                 </div>
                 <button onclick="processCSVFile()" disabled>处理文件</button>
                 <div class="form-group">
                     <label>处理状态：</label>
-                    <div id="csvProcessStatus" style="min-height: 40px;">请选择CSV文件进行处理</div>
+                    <div id="csvProcessStatus" style="min-height: 40px;">请选择文件进行处理</div>
                 </div>
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
                     <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 使用说明：</div>
                     <div style="color: #856404; font-size: 14px;">
-                        • 上传CSV文件后自动在所有"89860"前添加英文单引号<br>
-                        • 处理完成后可下载修改后的文件<br>
-                        • 防止Excel自动将"89860"转换为科学计数法
+                        • 支持CSV、Excel(.xls/.xlsx)格式文件处理<br>
+                        • 自动在所有"89860"开头的值前添加英文单引号<br>
+                        • 自动在所有"86"开头的15位数字(IMEI)前添加英文单引号<br>
+                        • 自动在所有长数字(可能被Excel转为科学计数法)前添加英文单引号<br>
+                        • 处理完成后自动下载修改后的文件
                     </div>
                 </div>
         </section>
@@ -2014,7 +2016,7 @@
             document.getElementById('waterPriceCalculations').innerHTML = results.join('<br>');
         }
 
-        // CSV文件处理相关
+        // CSV/Excel文件处理相关
         document.getElementById('csvFileInput').addEventListener('change', function() {
             const processButton = document.querySelector('#csv89860Tool button');
             if (this.files.length > 0) {
@@ -2022,7 +2024,7 @@
                 document.getElementById('csvProcessStatus').textContent = `已选择文件: ${this.files[0].name}`;
             } else {
                 processButton.disabled = true;
-                document.getElementById('csvProcessStatus').textContent = '请选择CSV文件进行处理';
+                document.getElementById('csvProcessStatus').textContent = '请选择文件进行处理';
             }
         });
         
@@ -2031,22 +2033,82 @@
             const file = fileInput.files[0];
             
             if (!file) {
-                document.getElementById('csvProcessStatus').textContent = '请先选择CSV文件';
+                document.getElementById('csvProcessStatus').textContent = '请先选择文件';
                 return;
             }
             
             document.getElementById('csvProcessStatus').textContent = '正在处理文件...';
             
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            
+            // 根据文件类型选择处理方法
+            if (fileExtension === 'csv') {
+                processCSV(file);
+            } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                processExcel(file);
+            } else {
+                document.getElementById('csvProcessStatus').textContent = '不支持的文件格式，请选择CSV、XLS或XLSX文件';
+            }
+        }
+        
+        // 处理CSV文件
+        function processCSV(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const content = e.target.result;
-                    // 在所有"89860"前添加英文单引号
-                    const pattern = /"89860/g;
-                    const modifiedContent = content.replace(pattern, '"\'89860');
+                    let matchCount = 0;
                     
-                    // 统计处理的数量
-                    const matchCount = (content.match(pattern) || []).length;
+                    // 处理引号中的89860开头的值
+                    let modifiedContent = content;
+                    const pattern89860 = /"89860/g;
+                    const matches89860 = content.match(pattern89860) || [];
+                    modifiedContent = modifiedContent.replace(pattern89860, '"\'89860');
+                    matchCount += matches89860.length;
+                    
+                    // 处理86开头的15位数字(IMEI)
+                    // 先匹配引号中的IMEI
+                    const patternIMEIQuoted = /"86\d{13}"/g;
+                    const matchesIMEIQuoted = content.match(patternIMEIQuoted) || [];
+                    modifiedContent = modifiedContent.replace(patternIMEIQuoted, (match) => {
+                        return `"'${match.substring(1, match.length - 1)}"`;
+                    });
+                    matchCount += matchesIMEIQuoted.length;
+
+                    // 再匹配没有引号的IMEI（通常在CSV中出现）
+                    const patternIMEIUnquoted = /(^|,|\n)86\d{13}($|,|\n)/g;
+                    const matchesIMEIUnquoted = content.match(patternIMEIUnquoted) || [];
+                    modifiedContent = modifiedContent.replace(patternIMEIUnquoted, (match) => {
+                        // 保留分隔符
+                        if (match.startsWith(',') || match.startsWith('\n')) {
+                            const prefix = match[0];
+                            const imei = match.substring(1, match.length - 1);
+                            const suffix = match[match.length - 1];
+                            return `${prefix}"${imei}"${suffix}`;
+                        } else if (match.endsWith(',') || match.endsWith('\n')) {
+                            const prefix = match[0];
+                            const imei = match.substring(1, match.length - 1);
+                            const suffix = match[match.length - 1];
+                            return `${prefix}"${imei}"${suffix}`;
+                        } else {
+                            const imei = match;
+                            return `"${imei}"`;
+                        }
+                    });
+                    matchCount += matchesIMEIUnquoted.length;
+                    
+                    // 处理可能被Excel转为科学计数法的长数字
+                    // 匹配引号中的10位以上纯数字
+                    const patternLongNum = /"\d{10,}"/g;
+                    const matchesLongNum = content.match(patternLongNum) || [];
+                    modifiedContent = modifiedContent.replace(patternLongNum, (match) => {
+                        // 避免重复处理已经添加单引号的值
+                        if (!match.includes("'")) {
+                            return `"'${match.substring(1, match.length - 1)}"`;
+                        }
+                        return match;
+                    });
+                    matchCount += matchesLongNum.length;
                     
                     // 创建下载链接
                     const blob = new Blob(['\ufeff' + modifiedContent], { type: 'text/csv;charset=utf-8;' });
@@ -2066,10 +2128,10 @@
                     link.click();
                     document.body.removeChild(link);
                     
-                    document.getElementById('csvProcessStatus').textContent = `处理完成！共处理了 ${matchCount} 个89860值，文件已下载`;
+                    document.getElementById('csvProcessStatus').textContent = `处理完成！共处理了 ${matchCount} 个需要添加单引号的值，文件已下载`;
                     
                     // 重置文件输入，允许再次选择同一文件
-                    fileInput.value = '';
+                    document.getElementById('csvFileInput').value = '';
                     document.querySelector('#csv89860Tool button').disabled = true;
                 } catch (error) {
                     document.getElementById('csvProcessStatus').textContent = `处理失败: ${error.message}`;
@@ -2082,6 +2144,96 @@
             
             // 读取文件内容
             reader.readAsText(file, 'utf-8');
+        }
+        
+        // 处理Excel文件
+        function processExcel(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    let totalProcessedCount = 0;
+                    
+                    // 处理每个工作表
+                    workbook.SheetNames.forEach(sheetName => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+                        
+                        let sheetProcessedCount = 0;
+                        
+                        // 遍历所有单元格
+                        for (let row = range.s.r; row <= range.e.r; row++) {
+                            for (let col = range.s.c; col <= range.e.c; col++) {
+                                const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                                const cell = worksheet[cellAddress];
+                                
+                                if (cell && cell.v && typeof cell.v === 'string') {
+                                    const originalValue = cell.v;
+                                    let modified = false;
+                                    
+                                    // 检查是否需要添加单引号
+                                    // 去除前后空格后再判断
+                                    const trimmedValue = originalValue.trim();
+                                    if (
+                                        (trimmedValue.startsWith('89860') || 
+                                        (trimmedValue.startsWith('86') && /^86\d{13}$/.test(trimmedValue)) ||
+                                        /^\d{10,}$/.test(trimmedValue)) &&
+                                        !originalValue.startsWith("'")
+                                    ) {
+                                        // 在值前添加单引号，并设置单元格类型为文本
+                                        cell.v = `'${originalValue}`;
+                                        cell.t = 's'; // 设置为字符串类型
+                                        modified = true;
+                                        sheetProcessedCount++;
+                                    }
+                                } else if (cell && typeof cell.v === 'number') {
+                                    // 处理数字类型值
+                                    const originalValue = cell.v.toString();
+                                    
+                                    // 检查是否是长数字（可能被Excel转为科学计数法）
+                                    if (originalValue.length >= 10 && !originalValue.includes('.')) {
+                                        // 转换为字符串并添加单引号
+                                        cell.v = `'${originalValue}`;
+                                        cell.t = 's'; // 设置为字符串类型
+                                        modified = true;
+                                        sheetProcessedCount++;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        totalProcessedCount += sheetProcessedCount;
+                        console.log(`工作表 ${sheetName} 处理了 ${sheetProcessedCount} 个单元格`);
+                    });
+                    
+                    // 生成处理后的文件
+                    const originalName = file.name;
+                    const extension = originalName.lastIndexOf('.') >= 0 ? originalName.slice(originalName.lastIndexOf('.')) : '.xlsx';
+                    const baseName = originalName.lastIndexOf('.') >= 0 ? originalName.slice(0, originalName.lastIndexOf('.')) : originalName;
+                    const downloadName = `${baseName}_processed${extension}`;
+                    
+                    // 下载文件
+                    XLSX.writeFile(workbook, downloadName);
+                    
+                    document.getElementById('csvProcessStatus').textContent = `处理完成！共处理了 ${totalProcessedCount} 个单元格，文件已下载`;
+                    
+                    // 重置文件输入，允许再次选择同一文件
+                    document.getElementById('csvFileInput').value = '';
+                    document.querySelector('#csv89860Tool button').disabled = true;
+                } catch (error) {
+                    document.getElementById('csvProcessStatus').textContent = `处理失败: ${error.message}`;
+                    console.error('Excel处理错误:', error);
+                }
+            };
+            
+            reader.onerror = function() {
+                document.getElementById('csvProcessStatus').textContent = '读取文件失败';
+            };
+            
+            // 读取文件内容
+            reader.readAsArrayBuffer(file);
         }
         
         // 十进制转十六进制函数

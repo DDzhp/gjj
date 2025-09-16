@@ -5,7 +5,605 @@
     <title>⚡️新新小朋友的工具集⚡️</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="./logDecode.js"></script>
+    <!-- 日志解码功能 - 原文件: ./logDecode.js - 已集成到HTML中 -->
+    <script>
+
+//日志解码功能开始 - 原文件: ./logDecode.js - 已集成到HTML中
+function log_decode(string){
+    if(!string || string.length != 116 && string.length != 104){
+        return '请输入正确的日志';
+    }
+    let replaceMsg = string.replace(/\s/g,'');
+    let deviceid = deviceid_state(replaceMsg.length == 116?replaceMsg.substring(2,10):replaceMsg.substring(2,10));
+    let tap_code = tap(parseInt(replaceMsg.substring(10,12),16));
+    let type_msg = instructions(parseInt(replaceMsg.substring(12,14),16));
+    let device_state = parseInt(replaceMsg.substring(14,16),16);
+    let electric_quantity = replaceMsg.substring(16,18);
+    let water_temperature = replaceMsg.substring(18,20);
+    let water_flow = current_flow(replaceMsg.length == 116?replaceMsg.substring(20,28):replaceMsg.substring(20,28));
+    let recharge_flow_msg = recharge_flow(replaceMsg.length == 116?replaceMsg.substring(28,36):replaceMsg.substring(28,36));
+    let battery_electric_quantity = replaceMsg.substring(36,38);
+    let water_temperature2 = replaceMsg.substring(38,40);
+    let data_num = replaceMsg.substring(40,42);
+    let software_version = replaceMsg.substring(42,44);
+    let hardware_version = replaceMsg.substring(44,46);
+    let payment_mode = replaceMsg.substring(46,48);
+    let communication_mode = replaceMsg.substring(48,50);
+    let number1 = replaceMsg.substring(50,58);
+    let number2 = replaceMsg.substring(58,66);
+    let number3 = replaceMsg.substring(66,74);
+    let number4 = replaceMsg.substring(74,82);
+    let number5 = replaceMsg.substring(82,90);
+    let number6 = replaceMsg.substring(90,98);
+    let number7 = replaceMsg.substring(98,106);
+    let number8 = replaceMsg.substring(106,114);
+    let crc = replaceMsg.substring(114,116);
+    
+    let result = '';
+    let msg = '';
+    if(deviceid){
+        result = result + '设备编号：'+deviceid + '<br>';
+    }
+    if(tap_code){
+        result = result + tap_code + '<br>';
+    }
+    if(type_msg){
+        result = result + type_msg + '<br>';
+    }
+    if(device_state == 0){
+        result = result + '设备状态：'+ '正常' + '<br>';
+    }
+    if(device_state == 1){
+        result = result + '设备状态：'+ '运行中' + '<br>';
+    }
+    if(device_state == 2){
+        result = result + '设备状态：'+ '故障' + '<br>';
+    }
+    if(device_state == 3){
+        result = result + '设备状态：'+ '预警' + '<br>';
+    }
+    if(device_state == 4){
+        result = result + '设备状态：'+ '离线' + '<br>';
+    }
+    if(parseInt(electric_quantity,16) < 20){
+        result = result + '设备电量：'+ parseInt(electric_quantity,16) + '% （电量不足，请充电）' + '<br>';
+    }
+    else{
+        result = result + '设备电量：'+ parseInt(electric_quantity,16) + '%' + '<br>';
+    }
+    if(device_state ==1 && parseInt(water_temperature,16) >10){
+        result = result + '当前水温：'+ parseInt(water_temperature,16) + '°C' + '<br>';
+    }
+    if(water_flow){
+        result = result + water_flow + '<br>';
+    }
+    if(parseInt(battery_electric_quantity,16) < 20){
+        result = result + '电池电量：'+ parseInt(battery_electric_quantity,16) + '% （电量不足，请充电）' + '<br>';
+    }
+    else{
+        result = result + '电池电量：'+ parseInt(battery_electric_quantity,16) + '%' + '<br>';
+    }
+    if(device_state ==1 && parseInt(water_temperature2,16) >10){
+        result = result + '原水水温：'+ parseInt(water_temperature2,16) + '°C' + '<br>';
+    }
+    if(parseInt(software_version,16) > 0){
+        result = result + '软件版本：'+ parseInt(software_version,16) + '<br>';
+    }
+    if(parseInt(hardware_version,16) > 0){
+        result = result + '硬件版本：'+ parseInt(hardware_version,16) + '<br>';
+    }
+    if(parseInt(payment_mode,16) ==1){
+        result = result + '支付模式：'+ '扫码支付' + '<br>';
+    }
+    else if(parseInt(payment_mode,16) ==2){
+        result = result + '支付模式：'+ 'IC卡支付' + '<br>';
+    }
+    else if(parseInt(payment_mode,16) ==3){
+        result = result + '支付模式：'+ '扫码+IC卡支付' + '<br>';
+    }
+    if(parseInt(communication_mode,16) ==1){
+        result = result + '通讯方式：'+ '4G' + '<br>';
+    }
+    else if(parseInt(communication_mode,16) ==2){
+        result = result + '通讯方式：'+ '蓝牙' + '<br>';
+    }
+    else if(parseInt(communication_mode,16) ==3){
+        result = result + '通讯方式：'+ '4G+蓝牙' + '<br>';
+    }
+    else if(parseInt(communication_mode,16) ==4){
+        result = result + '通讯方式：'+ 'WiFi' + '<br>';
+    }
+    // 水控系统日志格式
+    if(type_msg.indexOf('水控系统') >=0){
+        let number1 = parseInt(replaceMsg.length == 116?replaceMsg.substring(62,70):replaceMsg.substring(50,58),16);
+        let msg1 = residual_flow(replaceMsg.substring(48,50),number1);
+        if(msg1){
+            result = result + msg1 + '<br>';
+        }
+        let number2 = parseInt(replaceMsg.length == 116?replaceMsg.substring(70,78):replaceMsg.substring(58,66),16);
+        let msg2 = recharge_flow(replaceMsg.length == 116?replaceMsg.substring(70,78):replaceMsg.substring(58,66));
+        if(msg2){
+            result = result + msg2 + '<br>';
+        }
+    }
+    // 智能锁系统日志格式
+    if(type_msg.indexOf('智能锁') >=0){
+        let number1 = replaceMsg.substring(50,58);
+        let msg1 = residual_days(replaceMsg.substring(48,50),parseInt(number1,16));
+        if(msg1){
+            result = result + msg1 + '<br>';
+        }
+        let number2 = replaceMsg.substring(58,66);
+        let msg2 = recharge_days(replaceMsg.substring(48,50),parseInt(number2,16));
+        if(msg2){
+            result = result + msg2 + '<br>';
+        }
+    }
+    // 水处理系统日志格式
+    if(type_msg.indexOf('水处理') >=0){
+        let msg1 = pure_tds(replaceMsg.substring(48,50),parseInt(replaceMsg.substring(50,58),16));
+        if(msg1){
+            result = result + msg1 + '<br>';
+        }
+        let msg2 = raw_tds(replaceMsg.substring(48,50),parseInt(replaceMsg.substring(58,66),16));
+        if(msg2){
+            result = result + msg2 + '<br>';
+        }
+        let msg3 = one_actual(replaceMsg.substring(48,50),parseInt(replaceMsg.substring(66,74),16));
+        if(msg3){
+            result = result + msg3 + '<br>';
+        }
+        let msg4 = two_actual(replaceMsg.substring(48,50),parseInt(replaceMsg.substring(74,82),16));
+        if(msg4){
+            result = result + msg4 + '<br>';
+        }
+        let msg5 = three_actual(replaceMsg.substring(48,50),parseInt(replaceMsg.substring(82,90),16));
+        if(msg5){
+            result = result + msg5 + '<br>';
+        }
+        let msg6 = four_actual(replaceMsg.substring(48,50),parseInt(replaceMsg.substring(90,98),16));
+        if(msg6){
+            result = result + msg6 + '<br>';
+        }
+        let msg7 = five_actual(replaceMsg.substring(48,50),parseInt(replaceMsg.substring(98,106),16));
+        if(msg7){
+            result = result + msg7 + '<br>';
+        }
+        let msg8 = one_maximum(replaceMsg.substring(48,50),replaceMsg.substring(50,58));
+        if(msg8){
+            result = result + msg8 + '<br>';
+        }
+        let msg9 = two_maximum(replaceMsg.substring(48,50),replaceMsg.substring(58,66));
+        if(msg9){
+            result = result + msg9 + '<br>';
+        }
+        let msg10 = three_maximum(replaceMsg.substring(48,50),replaceMsg.substring(66,74));
+        if(msg10){
+            result = result + msg10 + '<br>';
+        }
+        let msg11 = four_maximum(replaceMsg.substring(48,50),replaceMsg.substring(74,82));
+        if(msg11){
+            result = result + msg11 + '<br>';
+        }
+        let msg12 = five_maximum(replaceMsg.substring(48,50),replaceMsg.substring(82,90));
+        if(msg12){
+            result = result + msg12 + '<br>';
+        }
+    }
+    
+    // 通用数据处理
+    if(!result || result == '' || type_msg.indexOf('水控系统') <0 && type_msg.indexOf('智能锁') <0 && type_msg.indexOf('水处理') <0){
+        let msg1 = residual_flow(replaceMsg.substring(48,50),parseInt(number1,16));
+        if(msg1){
+            result = result + msg1 + '<br>';
+        }
+        let msg2 = recharge_flow(number2);
+        if(msg2){
+            result = result + msg2 + '<br>';
+        }
+        let msg3 = used_flow(replaceMsg.substring(48,50),parseInt(number3,16));
+        if(msg3){
+            result = result + msg3 + '<br>';
+        }
+        let msg4 = pure_tds(replaceMsg.substring(48,50),parseInt(number4,16));
+        if(msg4){
+            result = result + msg4 + '<br>';
+        }
+        let msg5 = raw_tds(replaceMsg.substring(48,50),parseInt(number5,16));
+        if(msg5){
+            result = result + msg5 + '<br>';
+        }
+        let msg6 = one_actual(replaceMsg.substring(48,50),parseInt(number3,16));
+        if(msg6){
+            result = result + msg6 + '<br>';
+        }
+        let msg7 = two_actual(replaceMsg.substring(48,50),parseInt(number4,16));
+        if(msg7){
+            result = result + msg7 + '<br>';
+        }
+        let msg8 = three_actual(replaceMsg.substring(48,50),parseInt(number5,16));
+        if(msg8){
+            result = result + msg8 + '<br>';
+        }
+        let msg9 = four_actual(replaceMsg.substring(48,50),parseInt(number6,16));
+        if(msg9){
+            result = result + msg9 + '<br>';
+        }
+        let msg10 = five_actual(replaceMsg.substring(48,50),parseInt(number7,16));
+        if(msg10){
+            result = result + msg10 + '<br>';
+        }
+        let msg11 = one_maximum(replaceMsg.substring(48,50),number3);
+        if(msg11){
+            result = result + msg11 + '<br>';
+        }
+        let msg12 = two_maximum(replaceMsg.substring(48,50),number4);
+        if(msg12){
+            result = result + msg12 + '<br>';
+        }
+        let msg13 = three_maximum(replaceMsg.substring(48,50),number5);
+        if(msg13){
+            result = result + msg13 + '<br>';
+        }
+        let msg14 = four_maximum(replaceMsg.substring(48,50),number6);
+        if(msg14){
+            result = result + msg14 + '<br>';
+        }
+        let msg15 = five_maximum(replaceMsg.substring(48,50),number7);
+        if(msg15){
+            result = result + msg15 + '<br>';
+        }
+        let msg16 = time(number8);
+        if(msg16){
+            result = result + msg16 + '<br>';
+        }
+        
+        
+    }
+    return result;
+}
+function instructions(number){//指令解析
+    switch(number){
+        case 0x01:{return '指令类型：'+'通用上报';}
+        case 0x02:{return '指令类型：'+'状态上报';}
+        case 0x03:{return '指令类型：'+'故障上报';}
+        case 0x04:{return '指令类型：'+'预警上报';}
+        case 0x05:{return '指令类型：'+'消费上报';}
+        case 0x06:{return '指令类型：'+'充值上报';}
+        case 0x07:{return '指令类型：'+'参数设置';}
+        case 0x08:{return '指令类型：'+'参数设置回执';}
+        case 0x09:{return '指令类型：'+'查询指令';}
+        case 0x0a:{return '指令类型：'+'查询指令';}
+        case 0x0b:{return '指令类型：'+'查询指令回执';}
+        case 0x0c:{return '指令类型：'+'查询指令回执';}
+        case 0x10:{return '指令类型：'+'水控系统状态上报';}
+        case 0x11:{return '指令类型：'+'水控系统消费上报';}
+        case 0x12:{return '指令类型：'+'水控系统充值上报';}
+        case 0x13:{return '指令类型：'+'水控系统参数设置';}
+        case 0x14:{return '指令类型：'+'水控系统参数设置回执';}
+        case 0x20:{return '指令类型：'+'智能锁状态上报';}
+        case 0x21:{return '指令类型：'+'智能锁消费上报';}
+        case 0x22:{return '指令类型：'+'智能锁充值上报';}
+        case 0x23:{return '指令类型：'+'智能锁参数设置';}
+        case 0x24:{return '指令类型：'+'智能锁参数设置回执';}
+        case 0x30:{return '指令类型：'+'水处理系统状态上报';}
+        case 0x31:{return '指令类型：'+'水处理系统消费;上报';}
+        case 0x32:{return '指令类型：'+'水处理系统充值上报';}
+        case 0x33:{return '指令类型：'+'水处理系统参数设置';}
+        case 0x34:{return '指令类型：'+'水处理系统参数设置回执';}
+        default:{return '';}
+    }
+}
+function deviceid_state(string){//设备状态解析
+    let result = '';
+    switch(string.length){
+        case 8:{result = string.substring(0,2)+'-'+string.substring(2,4)+'-'+string.substring(4,6)+'-'+string.substring(6,8);}
+        case 16:{result = string.substring(0,2)+'-'+string.substring(2,4)+'-'+string.substring(4,6)+'-'+string.substring(6,8)+'-'+string.substring(8,10)+'-'+string.substring(10,12)+'-'+string.substring(12,14)+'-'+string.substring(14,16);}
+        default:{result = string;}
+    }
+    return result;
+}
+function current_flow(string){//当前流量
+    let number = parseInt(string,16);
+    if(number > 0){
+        return '当前流量：'+number+' ml';
+    }
+    else{
+        return '';
+    }
+}
+function recharge_flow(string){//充值流量
+    let number = parseInt(string,16);
+    if(number >0){
+        return '充值流量：'+number+' L';
+    }
+    else{
+        return '';
+    }
+}
+function recharge_days(string,number){//充值天数
+    switch(string.toLowerCase()){
+        case '04':{return '冷水阀时间：'+number+'秒/L';}
+        case '44':{return '冷水阀时间 回执：'+number+'秒/L';}
+        case '80':{return '本次取水等待时间：'+number+' 秒';}
+        case '90':{return '本次取水等待时间 回执：'+number+' 秒';}
+        case '06':{return '本次出冷水水量：'+number+' ml';}
+        case '05':{return '充值天数：'+number+' 天';}
+        case '55':{return '剩余天数 回执：'+number+' 天';}
+        case '82':{return '加热系统启停温差：'+number;}
+        case '92':{return '加热系统启停温差 回执:'+number;}//58
+        default:{return '';}
+    }
+}
+function residual_flow(string,number){//剩余流量
+    switch(string.toLowerCase()){
+        case '04':{return '制水时间：'+number+"分钟/L";}
+        case '44':{return '制水时间 回执：'+number+"分钟/L";}
+        case '80':{return '连续出水最大时间：'+number;}
+        case '90':{return '连续出水最大时间 回执：'+number;}
+        case '06':{return '本次消费金额：'+number/100+'元';}
+        case '55':{return '剩余流量：'+number+' L';}
+        case '0c':{return '剩余流量：'+number+' L';}
+        case 'dd':{return '剩余流量：'+number+' L';}
+        case '09':{return '剩余流量：'+number+' L';}
+        case '99':{return '剩余流量 回执：'+number+' L';}
+        case '82':{return '浴霸1启动的温度：'+number;}
+        case '92':{return '浴霸1启动的温度 回执:'+number;}//58
+        case 'a0':{ return '离线消费金额：'+number/100+'元';}
+        default:{return '';}
+    }
+}
+function residual_days(string,number){//剩余天数
+    switch(string.toLowerCase()){
+        case '04':{return '检修时间：'+number;}
+        case '44':{return '检修时间 回执：'+number;}
+        case '80':{return '取水暂停时间：'+number;}
+        case '90':{return '取水暂停时间 回执：'+number;}
+        case '06':{return '';}
+        case 'ee':{return '检修时间：'+number;}
+        case '55':{return '剩余时间：'+number+' 天';}
+
+        case '0b':{return '剩余时间：'+number+' 天';}
+        case 'bb':{return '剩余时间 回执：'+number+' 天';}
+        case '09':{return '剩余时间：'+number+' 天';}
+        case 'dd':{return '剩余时间：'+number+' 天';}
+        case '99':{return '剩余时间 回执：'+number+' 天';}
+        case '82':{return '浴霸2启动的温度：'+number;}
+        case '92':{return '浴霸2启动的温度 回执:'+number;}//58
+        default:{return '';}
+    }
+}
+function used_flow(string,number){//已用流量
+    switch(string.toLowerCase()){
+        case '04':{return '加热最高温度值：'+number;}
+        case '44':{return '加热最高温度值 回执：'+number;}
+        case '80':{return '出水热水温度值：'+number;}
+        case '90':{return '出水热水温度值 回执：'+number;}
+        case '06':{return '已用流量：'+number+' L';}
+        case '09':{return '已用流量：'+number+' L';}
+        case '99':{return '已用流量： 回执：'+number+' L';}
+        case '0c':{return '已用流量：'+number+' L';}
+        case 'dd':{return '已用流量：'+number+' L';}
+        case '82':{return '浴霸1关闭的温度差：'+number;}
+        case '92':{return '浴霸1关闭的温度差 回执:'+number;}//58
+        default:{return '';}
+    }
+}
+function used_days(string,number){//已用天数
+    switch(string.toLowerCase()){
+        case '04':{return '设备制冷最低温度值：'+number;}
+        case '44':{return '设备制冷最低温度值 回执：'+number;}
+        case '80':{return '';}
+        case '06':{return '';}
+        case '09':{return '已用天数：'+number;}
+        case '99':{return '已用天数 回执：'+number;}
+        case '0b':{return '已用天数：'+number;}
+        case 'bb':{return '已用天数 回执：'+number;}
+        case '82':{return '浴霸2关闭的温度差：'+number;}
+        case '92':{return '浴霸2关闭的温度差 回执:'+number;}//58
+        default:{return '';}
+    }
+}
+function pure_tds(string,number){//纯水TDS
+    switch(string.toLowerCase()){
+        case '04':{return '热水费率：'+ number*10 + '升/元';}
+        case '44':{return '热水费率 回执：'+ number*10 + '升/元';}
+        case '80':{ return '';}
+        case '06':{ return '';}
+        case '0c':{return '纯水tds：'+number;}
+        case 'dd':{return '纯水tds：'+number;}
+        default:{return '';}
+    }
+}
+function raw_tds(string,number){//原水TDS
+    switch(string.toLowerCase()){
+        case '04':{return '冷水费率：'+ number*10 + '升/元';}
+        case '44':{return '冷水费率 回执：'+ number*10 + '升/元';}
+        case '80':{ return '';}
+        case '06':{ return '';}
+        case '0c':{return '原水tds：'+number;}
+        case 'dd':{return '原水tds：'+number;}
+        default:{return '';}
+    }
+}
+function one_actual(string,number){//第一滤芯寿命实时值
+    switch(string.toLowerCase()){
+        case '04':{return '屏蔽水路：'+ number;}
+        case '44':{return '屏蔽水路 回执：'+ number;}
+        case '80':{ return '';}// 与下一字节同步
+        case '06':{ return '';}// 与下一字节同步
+        case 'a0':{ return '';}// 与下一字节同步
+        case '07':{return '滤芯1实时：'+ number;}
+        case '77':{return '滤芯1实时 回执：'+ number;}
+        case '0c':{return '滤芯1实时：'+number;}
+        case 'dd':{return '滤芯1实时：'+number;}
+        case '09':{return '滤芯1实时：'+number;}
+        case '99':{return '滤芯1实时 回执：'+number;}
+        case '82':{return '臭氧工作周期：'+number;}
+        case '92':{return '臭氧工作周期： 回执:'+number;}//58
+        default:{return '';}
+    }
+}
+function two_actual(string,number){//第二滤芯寿命实时值
+    switch(string.toLowerCase()){
+        case '04':{return '单次最大用量:'+ number;+'/ml';}
+        case '44':{return '单次最大用量 回执:'+ number+'/ml';}
+        case '80':{ return '剩余金额：'+ parseInt(replaceMsg.length == 116?replaceMsg.substring(62,70):replaceMsg.substring(50,58),16)/100 + '/元';}
+        case '90':{ return '剩余金额 回执：'+ parseInt(replaceMsg.length == 116?replaceMsg.substring(62,70):replaceMsg.substring(50,58),16)/100 + '/元';}
+        case '06':{ return '剩余金额：'+ parseInt(replaceMsg.length == 116?replaceMsg.substring(62,70):replaceMsg.substring(50,58),16)/100 + '/元';}
+        case 'a0':{ return '剩余金额：'+ parseInt(replaceMsg.length == 116?replaceMsg.substring(62,70):replaceMsg.substring(50,58),16)/100 + '/元';}
+        case '07':{return '滤芯2实时：'+ number;}
+        case '77':{return '滤芯2实时 回执：'+ number;}
+        case '0c':{return '滤芯2实时：'+number;}
+        case 'dd':{return '滤芯2实时：'+number;}
+        case '09':{return '滤芯2实时'+number;}
+        case '99':{return '滤芯2实时 回执：'+number;}
+        case '82':{return '臭氧工作周期内的启动时间：'+number;}
+        case '92':{return '臭氧工作周期内的启动时间： 回执:'+number;}//58
+        default:{return '';}
+    }
+}
+function three_actual(string,number){//第三滤芯寿命实时值
+    switch(string.toLowerCase()){
+        case '04':{return '热水流量计脉冲数：'+ number;}
+        case '44':{return '热水流量计脉冲数 回执：'+ number;}
+        case 'ee':{return '热水流量计脉冲数：'+ number;}
+        case '80':{ return '';}
+        case '06':{ return '';}
+        case '07':{return '滤芯3实时：'+ number;}
+        case '77':{return '滤芯3实时 回执：'+ number;}
+        case '0c':{return '滤芯3实时：'+number;}
+        case 'dd':{return '滤芯3实时：'+number;}
+        case '09':{return '滤芯3实时：'+number;}
+        case '99':{return '滤芯3实时： 回执：'+number;}
+        default:{return '';}
+    }
+}
+function four_actual(string,number){//第四滤芯寿命实时值
+    switch(string.toLowerCase()){
+        case '04':{return '热水费率金额：'+number+'分';}
+        case '44':{return '热水费率金额(新)：'+number+'分';}
+        case '80':{ return '';}
+        case '06':{ return '';}
+        case '07':{return '滤芯4实时：'+ number;}
+        case '77':{return '滤芯4实时 回执：'+ number;}
+        case '0c':{return '滤芯4实时：'+number;}
+        case 'dd':{return '滤芯4实时：'+number;}
+        case '09':{return '滤芯4实时'+number;}
+        case '99':{return '滤芯4实时 回执：'+number;}
+        default:{return '';}
+    }
+}
+function five_actual(string,number){//第五滤芯寿命实时值
+    switch(string.toLowerCase()){
+        case '04':{return '热水费率流量：'+number+'ml';}
+        case '44':{return '热水费率流量(新)：'+number+'ml';}
+        case '80':{ return '';}
+        case '06':{ return '';}
+        case 'ee':{ return '当前信号值 回执：'+number;}
+        case '07':{return '滤芯5实时：'+ number;}
+        case '77':{return '滤芯5实时 回执：'+ number;}
+        case '0c':{return '滤芯5实时：'+number;}
+        case 'dd':{return '滤芯5实时：'+number;}
+        case '09':{return '滤芯5实时：'+number;}
+        case '99':{return '滤芯5实时： 回执：'+number;}
+        default:{return '';}
+    }
+}
+function one_maximum(string,number){//第一滤芯寿命最大值
+    switch(string.toLowerCase()){
+        case '04':{return 'iccid：'+number + '（最大放水时间：'+parseInt(number,16)+'）';}
+        case '44':{return 'iccid：'+number + '（最大放水时间 回执：'+parseInt(number,16)+'）';}
+        case '80':{ return '';}
+        case '06':{ return '';}
+        case 'a0':{ return '';}// 与下一字节同步
+        case '07':{return '滤芯1最大：'+ parseInt(number,16);}
+        case '77':{return '滤芯1最大 回执：'+ parseInt(number,16);}
+        case '09':{return '滤芯1最大'+parseInt(number,16);}
+        case '99':{return '滤芯1最大 回执：'+ parseInt(number,16);}
+        default:{return '';}
+    }
+}
+function two_maximum(string,number){//第二滤芯寿命最大值
+    switch(string.toLowerCase()){
+        case '04':{return 'iccid：'+number+'(热水阀时间:'+parseInt(number,16)+'秒/L）';}
+        case '44':{return 'iccid：'+number+'(热水阀时间 回执:'+parseInt(number,16)+'秒/L）';}
+        case '80':{ return 'IC卡号：' + (replaceMsg.length == 116?replaceMsg.substring(82,90):replaceMsg.substring(70,78));}
+        case '90':{ return 'IC卡号 回执：' + (replaceMsg.length == 116?replaceMsg.substring(82,90):replaceMsg.substring(70,78));}
+        case '06':{ return 'IC卡号：' + (replaceMsg.length == 116?replaceMsg.substring(82,90):replaceMsg.substring(70,78));}
+        case 'a0':{ return 'IC卡号：' + (replaceMsg.length == 116?replaceMsg.substring(82,90):replaceMsg.substring(70,78));}
+        case '07':{return '滤芯2最大：'+ parseInt(number,16);}
+        case '77':{return '滤芯2最大 回执：'+ parseInt(number,16);}
+        case '09':{return '滤芯2最大'+parseInt(number,16);}
+        case '99':{return '滤芯2最大 回执：'+ parseInt(number,16);}
+        default:{return '';}
+    }
+}
+function three_maximum(string,number){//第三滤芯寿命最大值
+    switch(string.toLowerCase()){
+        case '04':{return '冷水费率金额(新)：'+parseInt(number,16)+'分';}
+        case '44':{return '冷水费率金额(新)：'+parseInt(number,16)+'分';}
+        case '80':{ return '剩余流量：'+number;}
+        case '90':{ return '剩余流量 回执：'+number;}
+        case '06':{ return '';}
+        case '07':{return '滤芯3最大：'+ parseInt(number,16);}
+        case '77':{return '滤芯3最大 回执：'+ parseInt(number,16);}
+        case '09':{return '滤芯3最大'+parseInt(number,16);}
+        case '99':{return '滤芯3最大 回执：'+ parseInt(number,16);}
+        default:{return '';}
+    }
+}
+function four_maximum(string,number){//第四滤芯寿命最大值
+    switch(string.toLowerCase()){
+        case '04':{return 'iccid：'+number;}
+        case '44':{return '';}
+        case '80':{ return '剩余天数：'+number;}
+        case '90':{ return '剩余天数 回执：'+number;}
+        case '06':{ return '';}
+        case '07':{return '滤芯4最大：'+ parseInt(number,16);}
+        case '77':{return '滤芯4最大 回执：'+ parseInt(number,16);}
+        case '09':{return '滤芯4最大'+parseInt(number,16);}
+        case '99':{return '滤芯4最大 回执：'+ parseInt(number,16);}
+        default:{return '';}
+    }
+}
+function five_maximum(string,number){//第五滤芯寿命最大值
+    switch(string.toLowerCase()){
+        case '04':{return '冷水费率流量(新)：'+parseInt(number,16)+'ml';}
+        case '44':{return '冷水费率流量(新)：'+parseInt(number,16)+'ml';}
+        case '80':{ return '';}
+        case '06':{ return '';}
+        case 'ee':{ return 'ICCID 号:'+(replaceMsg.length == 116?replaceMsg.substring(82,102):replaceMsg.substring(70,90));}
+        case '07':{return '滤芯5最大：'+ parseInt(number,16);}
+        case '77':{return '滤芯5最大 回执：'+ parseInt(number,16);}
+        case '09':{return '滤芯5最大：'+parseInt(number,16);}
+        case '99':{return '滤芯5最大 回执：'+ parseInt(number,16);}
+        default:{return '';}
+    }
+}
+function time(number){//北京时间
+    switch(number){
+        case '09':{return '北京时间：'+number;}
+        case '99':{return '北京时间 回执：'+number;}
+        case '0b':{return '北京时间：'+number;}
+        case 'bb':{return '北京时间 回执：'+number;}
+        default:{return '';}
+    }
+}
+function tap(number){//机器类型码
+    switch(number){
+        case 0:{return '机器类型：'+'家用机，商务机';}
+        case 1:{return '机器类型：'+'台面机';}
+        case 2:{ return '机器类型：'+'管线机';}
+        case 3:{ return '机器类型：'+'售水机，校园机，医院机';}
+        default:{return '';}
+    }
+}
+// 日志解码功能结束 - 原文件: ./logDecode.js - 已集成到HTML中
+// 声明全局变量 replaceMsg，避免在函数内部引用未定义变量
+
+let replaceMsg = '';
+    </script>
     <style>
         /* ===== 全局样式 ===== */
         * {

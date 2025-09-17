@@ -1011,6 +1011,16 @@
         <!-- ICCID详情工具模块 -->
         <section id="iccidTool" class="calculator" style="display:none;">
             <h2>ICCID详情工具</h2>
+              <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                    <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 使用说明：</div>
+                    <div style="color: #856404; font-size: 14px;">
+                        • 支持粘贴ICCID区间范围文本例：898604C6062290468489到898604C6062290468491<br>
+                        • 支持单个iccid（一行一个）<br>
+                        • 点击解析数据按钮，会将区间所有iccid范围提取为一列数据。<br>
+                        • 点击修改格式按钮，会删除所有换行。使用英文逗号间隔。<br>
+                        • 在iccid后添加英文单引号，用于防止粘贴至excel自动变科学计数。<br>
+                    </div>
+                </div>
             <div class="form-group">
                 <textarea id="iccidInput" placeholder="粘贴ICCID范围文本... 示例：
 898604C6062290468489到898604C6062290468491(3张)
@@ -1024,9 +1034,9 @@
 " style="width:100%; height:100px; padding:8px; margin-bottom:10px;"></textarea>
             </div>
             <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <button onclick="parseIccids()" style="background: #007bff; color: white; padding: 8px 20px;">解析数据</button>
-                <button onclick="formatIccids()" style="background: #28a745; color: white; padding: 8px 20px;">修改格式</button>
-                <button onclick="addQuotesToIccids()" style="background: #ffc107; color: black; padding: 8px 20px;">恢复格式</button>
+                <button onclick="parseIccids()" style="background: #007bff; color: white; padding: 8px 20px;">🔍 解析数据</button>
+                <button onclick="formatIccids()" style="background: #28a745; color: white; padding: 8px 20px;">📝 修改格式</button>
+                <button onclick="addQuotesToIccids()" style="background: #ffc107; color: black; padding: 8px 20px;">🔄 防止科学计数格式</button>
             </div>
             
             <div class="form-group">
@@ -1850,13 +1860,14 @@
             document.getElementById('formattedParams').innerHTML = formattedHTML;
         }
 
+
         // ICCID解析函数
         function parseIccids() {
             const inputText = document.getElementById('iccidInput').value;
             const resultArray = [];
             
             // 处理范围格式：ICCID到ICCID(数量张)
-            const rangePattern = /(\d+[A-Za-z0-9]+)到(\d+[A-Za-z0-9]+)(?:\s*[\(（](\d+)张[\)）])?/g;
+            const rangePattern = /(\d+[A-Za-z0-9]*)到(\d+[A-Za-z0-9]*)(?:\s*[\(（](\d+)张[\)）])?/g;
             let match;
             
             // 处理范围格式
@@ -1915,8 +1926,15 @@
         
         // 提取ICCID末尾的数字部分
         function extractNumericSuffix(iccid) {
-            const match = iccid.match(/(\d+)$/);
-            return match ? match[1] : null;
+            // 对于纯数字ICCID，需要特殊处理
+            if (/^\d+$/.test(iccid)) {
+                // 如果是纯数字，取最后5位作为变化部分
+                return iccid.slice(-5);
+            } else {
+                // 对于混合字母数字的ICCID，使用原来的逻辑
+                const match = iccid.match(/(\d+)$/);
+                return match ? match[1] : null;
+            }
         }
         
         // 修改ICCID格式函数
@@ -2212,7 +2230,7 @@
                     const originalName = file.name;
                     const extension = originalName.lastIndexOf('.') >= 0 ? originalName.slice(originalName.lastIndexOf('.')) : '.xlsx';
                     const baseName = originalName.lastIndexOf('.') >= 0 ? originalName.slice(0, originalName.lastIndexOf('.')) : originalName;
-                    const downloadName = `${baseName}_processed${extension}`;
+                    const downloadName = `${baseName}_已处理${extension}`;
                     
                     // 下载文件
                     XLSX.writeFile(workbook, downloadName);
@@ -3466,4 +3484,3 @@
     </script>
 </body>
 </html>
-

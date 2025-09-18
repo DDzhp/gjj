@@ -872,6 +872,7 @@
             <button onclick="showTool('conversionTool')">🔢 进制转换器</button>
             <button onclick="showTool('paramParser')">📋 参数解析</button>
             <button onclick="showTool('iccidTool')">📱 ICCID详情</button>
+            <button onclick="showTool('serialNumberTool')">🔢 生成流水号</button>
             <button onclick="showTool('waterValueTool')">💧 洗浴单价</button>
             <button onclick="showTool('waterPriceTool')">🚰 水控单价</button>
             <button onclick="showTool('csv89860Tool')">📊 修复iccid乱码</button>
@@ -1042,6 +1043,52 @@
             <div class="form-group">
                 <label>解析结果：</label>
                 <textarea id="iccidResult" style="width:100%; height:200px; padding:8px;"></textarea>
+            </div>
+        </section>
+
+        <!-- 生成流水号工具模块 -->
+        <section id="serialNumberTool" class="calculator" style="display:none;">
+            <h2>🔢 生成流水号工具</h2>
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 使用说明：</div>
+                <div style="color: #856404; font-size: 14px;">
+                    • 起始流水号为必填项，默认显示当日日期+001<br>
+                    • 数量和结束流水号任选其一填写<br>
+                    • 生成按钮用于根据输入生成对应数量的流水号<br>
+                    • 复制按钮可复制生成的结果<br>
+                    • 修改为后台批量查询格式：将换行分隔转为逗号分隔<br>
+                    • 防止科学计数格式：在每个流水号后添加单引号
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div style="flex:1;">
+                    <label>起始流水号：</label>
+                    <input type="text" id="startSerialNumber" style="width:100%; padding:8px;">
+                </div>
+                <div style="flex:1;">
+                    <label>数量：</label>
+                    <input type="number" id="serialNumberCount" max="20000" style="width:100%; padding:8px;">
+                </div>
+                <div style="flex:1;">
+                    <label>结束流水号：</label>
+                    <input type="text" id="endSerialNumber" style="width:100%; padding:8px;">
+                </div>
+            </div>
+            
+            <!-- 提示信息显示区域 -->
+            <div id="toolMessage" style="padding:10px; margin-bottom:10px; border-radius:5px; background-color: #f8f9fa; display:none;"></div>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button onclick="generateSerialNumbers()" style="background: #007bff; color: white; padding: 8px 20px;">🔍 生成流水号</button>
+                <button onclick="copySerialNumbers()" style="background: #6c757d; color: white; padding: 8px 20px;">📋 复制结果</button>
+                <button onclick="formatSerialNumbers()" style="background: #28a745; color: white; padding: 8px 20px;">📝 修改为后台批量查询格式</button>
+                <button onclick="addQuotesToSerialNumbers()" style="background: #ffc107; color: black; padding: 8px 20px;">🔄 防止科学计数格式</button>
+            </div>
+            
+            <div class="form-group">
+                <label>生成结果：</label>
+                <textarea id="serialNumberResult" style="width:100%; height:200px; padding:8px;"></textarea>
             </div>
         </section>
 
@@ -1725,8 +1772,10 @@
             if (/^\d+$/.test(decimalValue)) {
                 const hex = parseInt(decimalValue).toString(16).toUpperCase();
                 document.getElementById('hexInput').value = hex;
-            } else {
+                showMessage(`已成功转换 ${decimalValue} 为十六进制 ${hex}`, 'success');
+            } else if (decimalValue.trim()) {
                 document.getElementById('hexInput').value = '';
+                showMessage('请输入有效的十进制数字', 'error');
             }
         }
 
@@ -1736,8 +1785,10 @@
             if (/^[0-9A-Fa-f]+$/.test(hexValue)) {
                 const decimal = parseInt(hexValue, 16);
                 document.getElementById('decimalInput').value = decimal;
-            } else {
+                showMessage(`已成功转换十六进制 ${hexValue.toUpperCase()} 为十进制 ${decimal}`, 'success');
+            } else if (hexValue.trim()) {
                 document.getElementById('decimalInput').value = '';
+                showMessage('请输入有效的十六进制数字（0-9, A-F）', 'error');
             }
         }
 
@@ -1747,11 +1798,25 @@
             const systemWater = parseFloat(document.getElementById('systemWater').value);
             const actualWater = parseFloat(document.getElementById('actualWater').value);
             
+            if (isNaN(systemPulses) || isNaN(systemWater) || isNaN(actualWater)) {
+                document.getElementById('actualPulses').value = '';
+                showMessage('请输入有效的数字', 'error');
+                return;
+            }
+            
             if (systemPulses > 0 && systemWater > 0 && actualWater > 0) {
                 const actualPulses = (systemPulses * systemWater) / actualWater;
                 document.getElementById('actualPulses').value = actualPulses.toFixed(2);
+                showMessage('脉冲计算成功', 'success');
             } else {
                 document.getElementById('actualPulses').value = '';
+                if (systemPulses <= 0 || isNaN(systemPulses)) {
+                    showMessage('请输入大于0的系统脉冲数', 'error');
+                } else if (systemWater <= 0 || isNaN(systemWater)) {
+                    showMessage('请输入大于0的系统水量', 'error');
+                } else if (actualWater <= 0 || isNaN(actualWater)) {
+                    showMessage('请输入大于0的实际水量', 'error');
+                }
             }
         }
 
@@ -1866,6 +1931,11 @@
             const inputText = document.getElementById('iccidInput').value;
             const resultArray = [];
             
+            if (!inputText.trim()) {
+                showMessage('请输入ICCID数据', 'error');
+                return;
+            }
+            
             // 处理范围格式：ICCID到ICCID(数量张)
             const rangePattern = /(\d+[A-Za-z0-9]*)到(\d+[A-Za-z0-9]*)(?:\s*[\(（](\d+)张[\)）])?/g;
             let match;
@@ -1922,6 +1992,12 @@
             
             // 显示结果，每行一个ICCID
             document.getElementById('iccidResult').value = resultArray.join('\n');
+            
+            if (resultArray.length > 0) {
+                showMessage(`解析成功，共提取 ${resultArray.length} 个ICCID`, 'success');
+            } else {
+                showMessage('未找到有效的ICCID数据，请检查输入格式', 'error');
+            }
         }
         
         // 提取ICCID末尾的数字部分
@@ -1941,20 +2017,21 @@
         function formatIccids() {
             const resultText = document.getElementById('iccidResult').value;
             if (!resultText.trim()) {
-                alert('请先解析ICCID数据');
+                showMessage('请先解析ICCID数据', 'error');
                 return;
             }
             
             // 将换行分隔的ICCID转换为逗号分隔
             const iccids = resultText.split('\n').filter(line => line.trim());
             document.getElementById('iccidResult').value = iccids.join(',');
+            showMessage('已转换为后台批量查询格式', 'success');
         }
         
         // 恢复ICCID格式函数 - 在每个ICCID后添加单引号
         function addQuotesToIccids() {
             const resultText = document.getElementById('iccidResult').value;
             if (!resultText.trim()) {
-                alert('请先解析ICCID数据');
+                showMessage('请先解析ICCID数据', 'error');
                 return;
             }
             
@@ -1975,6 +2052,8 @@
                     iccid.trim().endsWith("'") ? iccid.trim() : iccid.trim() + "'"
                 ).join('\n');
             }
+            
+            showMessage('已添加单引号，防止科学计数格式', 'success');
         }
 
         // 金额水量换算函数
@@ -3450,6 +3529,23 @@
             }
         }
 
+        // 生成当日日期+001的默认值
+        function getDefaultSerialNumber() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}${month}${day}001`;
+        }
+        
+        // 初始化生成流水号工具
+        function initSerialNumberTool() {
+            document.getElementById('startSerialNumber').value = getDefaultSerialNumber();
+        }
+        
+        // 当前激活的工具ID
+        let currentActiveTool = null;
+        
         // 在显示工具时初始化
         function showTool(toolId) {
             // 隐藏所有工具
@@ -3461,10 +3557,16 @@
             const selectedTool = document.getElementById(toolId);
             if (selectedTool) {
                 selectedTool.style.display = 'block';
+                currentActiveTool = toolId; // 记录当前激活的工具ID
                 
                 // 如果是二维码生成器，初始化它
                 if (toolId === 'qrGeneratorTool') {
                     initQRGenerator();
+                }
+                
+                // 如果是生成流水号工具，初始化它
+                if (toolId === 'serialNumberTool') {
+                    initSerialNumberTool();
                 }
                 
                 // 如果是日志分析器，可以做一些初始化
@@ -3479,6 +3581,211 @@
                 btn.classList.remove('active');
             });
             document.querySelector(`.tool-switcher button[onclick="showTool('${toolId}')"]`).classList.add('active');
+        }
+        
+        // 显示消息提示函数
+        function showMessage(message, type = 'info') {
+            // 查找或创建当前激活工具页面中的提示元素
+            let messageElement;
+            
+            // 如果有当前激活的工具
+            if (currentActiveTool) {
+                const activeToolElement = document.getElementById(currentActiveTool);
+                if (activeToolElement) {
+                    // 先在当前工具页面中查找现有的提示元素
+                    messageElement = activeToolElement.querySelector('.toolMessage');
+                    
+                    // 如果没有找到，创建一个新的提示元素
+                    if (!messageElement) {
+                        messageElement = document.createElement('div');
+                        messageElement.className = 'toolMessage';
+                        messageElement.style.padding = '10px';
+                        messageElement.style.marginBottom = '10px';
+                        messageElement.style.borderRadius = '5px';
+                        messageElement.style.backgroundColor = '#f8f9fa';
+                        messageElement.style.display = 'none';
+                        
+                        // 将新元素插入到工具页面的第一个子元素之前
+                        if (activeToolElement.firstChild) {
+                            activeToolElement.insertBefore(messageElement, activeToolElement.firstChild);
+                        } else {
+                            activeToolElement.appendChild(messageElement);
+                        }
+                    }
+                }
+            }
+            
+            // 如果没有找到或创建成功，回退到全局的提示元素
+            if (!messageElement) {
+                messageElement = document.getElementById('toolMessage') || document.querySelector('.toolMessage');
+                
+                // 如果仍然没有找到，创建一个全局的提示元素
+                if (!messageElement) {
+                    messageElement = document.createElement('div');
+                    messageElement.className = 'toolMessage';
+                    messageElement.id = 'toolMessage';
+                    messageElement.style.padding = '10px';
+                    messageElement.style.marginBottom = '10px';
+                    messageElement.style.borderRadius = '5px';
+                    messageElement.style.backgroundColor = '#f8f9fa';
+                    messageElement.style.display = 'none';
+                    
+                    // 将全局提示元素添加到body
+                    document.body.appendChild(messageElement);
+                }
+            }
+            
+            // 设置消息内容和样式
+            messageElement.textContent = message;
+            
+            // 设置不同类型消息的样式
+            if (type === 'success') {
+                messageElement.style.backgroundColor = '#d4edda';
+                messageElement.style.color = '#155724';
+                messageElement.style.border = '1px solid #c3e6cb';
+            } else if (type === 'error') {
+                messageElement.style.backgroundColor = '#f8d7da';
+                messageElement.style.color = '#721c24';
+                messageElement.style.border = '1px solid #f5c6cb';
+            } else {
+                messageElement.style.backgroundColor = '#d1ecf1';
+                messageElement.style.color = '#0c5460';
+                messageElement.style.border = '1px solid #bee5eb';
+            }
+            
+            messageElement.style.display = 'block';
+            
+            // 10秒后自动隐藏消息
+            setTimeout(() => {
+                if (messageElement && messageElement.style.display === 'block') {
+                    messageElement.style.display = 'none';
+                }
+            }, 10000);
+        }
+        
+        // 生成流水号函数
+        function generateSerialNumbers() {
+            const startSerial = document.getElementById('startSerialNumber').value.trim();
+            const count = parseInt(document.getElementById('serialNumberCount').value.trim()) || 0;
+            const endSerial = document.getElementById('endSerialNumber').value.trim();
+            
+            // 验证输入
+            if (!startSerial) {
+                showMessage('请输入起始流水号', 'error');
+                return;
+            }
+            
+            if (count === 0 && !endSerial) {
+                showMessage('请输入数量或结束流水号', 'error');
+                return;
+            }
+            
+            if (count > 0 && endSerial) {
+                showMessage('数量和结束流水号只能选择一个输入', 'error');
+                return;
+            }
+            
+            const results = [];
+            
+            try {
+                // 尝试提取起始流水号中的数字后缀
+                const numericMatch = startSerial.match(/(\d+)$/);
+                const prefix = startSerial.replace(/\d+$/, '');
+                const startNumber = numericMatch ? parseInt(numericMatch[1]) : 1;
+                
+                // 根据数量生成
+                if (count > 0) {
+                    for (let i = 0; i < count; i++) {
+                        const numberPart = String(startNumber + i).padStart(numericMatch ? numericMatch[1].length : 3, '0');
+                        results.push(prefix + numberPart);
+                    }
+                } 
+                // 根据结束流水号生成
+                else if (endSerial) {
+                    const endNumericMatch = endSerial.match(/(\d+)$/);
+                    if (!endNumericMatch) {
+                        showMessage('结束流水号格式不正确', 'error');
+                        return;
+                    }
+                    
+                    const endNumber = parseInt(endNumericMatch[1]);
+                    if (endNumber < startNumber) {
+                        showMessage('结束流水号必须大于起始流水号', 'error');
+                        return;
+                    }
+                    
+                    for (let i = 0; i <= endNumber - startNumber; i++) {
+                        const numberPart = String(startNumber + i).padStart(numericMatch ? numericMatch[1].length : 3, '0');
+                        results.push(prefix + numberPart);
+                    }
+                }
+                
+                // 显示结果
+                document.getElementById('serialNumberResult').value = results.join('\n');
+                showMessage('流水号生成成功，共生成 ' + results.length + ' 个流水号', 'success');
+                
+            } catch (error) {
+                console.error('生成流水号失败:', error);
+                showMessage('生成流水号失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 复制流水号结果
+        function copySerialNumbers() {
+            const resultText = document.getElementById('serialNumberResult').value;
+            if (!resultText.trim()) {
+                showMessage('请先生成流水号', 'error');
+                return;
+            }
+            
+            navigator.clipboard.writeText(resultText).then(() => {
+                showMessage('复制成功', 'success');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                showMessage('复制失败，请手动复制', 'error');
+            });
+        }
+        
+        // 修改为后台批量查询格式
+        function formatSerialNumbers() {
+            const resultText = document.getElementById('serialNumberResult').value;
+            if (!resultText.trim()) {
+                showMessage('请先生成流水号', 'error');
+                return;
+            }
+            
+            // 将换行分隔的流水号转换为逗号分隔
+            const serialNumbers = resultText.split('\n').filter(line => line.trim());
+            document.getElementById('serialNumberResult').value = serialNumbers.join(',');
+            showMessage('已转换为后台批量查询格式', 'success');
+        }
+        
+        // 防止科学计数格式
+        function addQuotesToSerialNumbers() {
+            const resultText = document.getElementById('serialNumberResult').value;
+            if (!resultText.trim()) {
+                showMessage('请先生成流水号', 'error');
+                return;
+            }
+            
+            // 处理不同格式的流水号
+            let serialNumbers;
+            if (resultText.includes(',')) {
+                // 逗号分隔的格式
+                serialNumbers = resultText.split(',').filter(item => item.trim());
+                // 添加单引号并重新用逗号连接
+                document.getElementById('serialNumberResult').value = serialNumbers.map(serial => 
+                    serial.trim().endsWith("'") ? serial.trim() : serial.trim() + "'"
+                ).join(',');
+            } else {
+                // 换行分隔的格式
+                serialNumbers = resultText.split('\n').filter(line => line.trim());
+                // 添加单引号并保持换行格式
+                document.getElementById('serialNumberResult').value = serialNumbers.map(serial => 
+                    serial.trim().endsWith("'") ? serial.trim() : serial.trim() + "'"
+                ).join('\n');
+            }
+            showMessage('已添加单引号防止科学计数格式', 'success');
         }
         
     </script>

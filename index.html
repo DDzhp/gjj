@@ -873,7 +873,7 @@
         <nav class="tool-switcher">
             <button onclick="showTool('pulseTool')">🔄 脉冲计算器</button>
             <button onclick="showTool('conversionTool')">🔢 进制转换器</button>
-            <button onclick="showTool('paramParser')">📋 参数解析</button>
+            <button onclick="showTool('paramParser')">📋 入库参数解析</button>
             <button onclick="showTool('iccidTool')">📱 ICCID详情</button>
             <button onclick="showTool('excelTemplateTool')">📋 IC卡号处理</button>
             <button onclick="showTool('serialNumberTool')">🔢 生成流水号</button>
@@ -990,7 +990,7 @@
         </section>
         
         <section id="paramParser" class="calculator" style="display:none;">
-            <h2>📋 参数解析工具</h2>
+            <h2>📋 入库参数解析工具</h2>
             <div class="form-group">
                 <label>参数文本：</label>
                 <textarea id="paramInput" placeholder="粘贴参数文本... 示例：
@@ -1824,10 +1824,17 @@
         }
 
 
-        // 参数解析函数（简化版本）
+        // 入库参数解析函数（完善版）
         function parseParams() {
             const inputText = document.getElementById('paramInput').value;
             
+            // 创建结果对象
+            const result = {
+                rawItems: [],
+                formattedItems: [],
+                jsonData: {}
+            };
+        
             // 新增公司名称匹配规则
             const companyMatch = inputText.match(/^([\s\S]*?)\s*跃龙/);
             let processedText = inputText;
@@ -1838,11 +1845,11 @@
             if (companyMatch) {
                 const company = companyMatch[1].trim().replace(/\s+/g, ' ');
                 rawItems.push(`公司=${company}`);
-                formattedItems.push(`公司：${company}`);  // 保持黑色
-                processedText = processedText.replace(companyMatch[0], '');
+                formattedItems.push(`公司：${company}`);
+                processedText = processedText.replace(companyMatch[0], ''); // 移除已匹配内容
             }
         
-            // 优化跃龙类型判断逻辑（在第214-223行）
+            // 优化跃龙类型判断逻辑
             const yuelongTypes = [
                 { pattern: '跃龙新私有', value: '新私有' },
                 { pattern: '跃龙公有售水机', value: '公有售水机' },
@@ -1855,18 +1862,18 @@
             yuelongTypes.forEach(type => {
                 if (inputText.includes(type.pattern)) {
                     rawItems.push(`跃龙类型=${type.value}`);
-                    formattedItems.push(`跃龙类型：${type.value}`);  // 保持黑色
+                    formattedItems.push(`跃龙类型：${type.value}`);
                 }
             });
 
-            // 优化ICCID匹配（第225-231行）
+            // 优化ICCID匹配
             const iccidMatches = [...processedText.matchAll(/(89860[\dA-Za-z]{14,18})/g)];
             const iccids = iccidMatches.map(m => m[0]);
             
             // 只处理第一个ICCID
             if (iccids.length > 0) {
                 rawItems.push(`ICCID开始=${iccids[0]}`);
-                formattedItems.push(`ICCID开始：${iccids[0]}`);  // 保持黑色
+                formattedItems.push(`ICCID开始：${iccids[0]}`);
             }
             // 移除所有ICCID
             iccids.forEach(iccid => {
@@ -1912,21 +1919,101 @@
                 }
             });
         
-            // 显示结果
-            // 注释掉原始参数显示
-            // document.getElementById('rawParams').innerHTML = rawItems.join('<br>');
+            // 显示结果（修改这部分）
+            // 定义优先显示的参数顺序
+            const priorityParams = [
+                { key: '滤芯寿命类型', default: '空' },
+                { key: '脉冲', default: null },
+                { key: '冷水脉冲', default: null },
+                { key: '放水', default: null },
+                { key: '放水时间', default: null },
+                { key: '制水', default: null },
+                { key: '制水时间', default: null },
+                { key: '检修', default: '0' },
+                { key: '检修时间', default: '0' }
+            ];
+        
+            // 检查检修参数的特殊情况
+            const maintenanceItem = formattedItems.find(item => item.startsWith('检修：'));
+            const maintenanceTimeItem = formattedItems.find(item => item.startsWith('检修时间：'));
             
-            // 格式化显示结果，特殊项保持黑色，其他项值显示为红色
-            const formattedHTML = formattedItems.map(item => {
-                const [key, value] = item.split('：');
-                if (key === '公司' || key === '跃龙类型' || key === 'ICCID开始') {
-                    return item;  // 保持原样
+            // 如果检修和检修时间都为0，则只保留检修
+            if (maintenanceItem?.endsWith('：0') && maintenanceTimeItem?.endsWith('：0')) {
+                formattedItems = formattedItems.filter(item => !item.startsWith('检修时间：'));
+            }
+        
+            // 检查互斥参数
+            const hasPulse = formattedItems.some(item => item.startsWith('脉冲：'));
+            const hasWaterDrain = formattedItems.some(item => item.startsWith('放水：'));
+            const hasWaterMake = formattedItems.some(item => item.startsWith('制水：'));
+            const hasMaintenance = formattedItems.some(item => item.startsWith('检修：'));
+        
+            // 过滤掉不需要显示的互斥参数
+            const filteredPriorityParams = priorityParams.filter(param => {
+                if (hasPulse && param.key === '冷水脉冲') return false;
+                if (hasWaterDrain && param.key === '放水时间') return false;
+                if (hasWaterMake && param.key === '制水时间') return false;
+                if (hasMaintenance && param.key === '检修时间') return false;
+                return true;
+            });
+        
+            // 分离优先显示和普通参数
+            const priorityResults = [];
+            const normalResults = [];
+        
+            // 处理优先参数
+            filteredPriorityParams.forEach(param => {
+                const foundItem = formattedItems.find(item => item.startsWith(param.key + '：'));
+                if (foundItem) {
+                    priorityResults.push(foundItem);
+                } else if (param.default !== null) {
+                    priorityResults.push(`${param.key}：${param.default}`);
                 }
-                return `${key}：<span style="color:red">${value}</span>`;
-            }).join('<br>');
+            });
+        
+            // 处理普通参数（过滤掉已显示的优先参数）
+            formattedItems.forEach(item => {
+                const [key] = item.split('：');
+                if (!priorityParams.some(param => param.key === key)) {
+                    normalResults.push(item);
+                }
+            });
+        
+            // 对普通参数按长度排序（从短到长）
+            normalResults.sort((a, b) => {
+                const aLen = a.split('：')[1]?.length || 0;
+                const bLen = b.split('：')[1]?.length || 0;
+                return aLen - bLen;
+            });
+        
+            // 合并结果
+            const finalResults = [...priorityResults, ...normalResults];
             
-            document.getElementById('formattedParams').innerHTML = formattedHTML;
+            
+            // 否则正常显示结果
+            document.getElementById('formattedParams').innerHTML = finalResults.map((item,index) => {
+                const [key, value] = item.split('：');
+                
+                return `${index + 1} - ${key}：<span style="color:red">${value}</span>`;
+            }).filter(item => item !== '').join('<br>');
+            
+            console.log(finalResults,'finalResults')
+            
+            return result.jsonData;
         }
+
+        // 添加一个全局函数供外部调用
+        function getParsedParams() {
+            return parseParams();
+        }
+        // 参数输入框回车事件
+        document.getElementById('paramInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 阻止默认换行行为
+                parseParams();       // 触发入库参数解析
+                this.blur();        // 移除输入框焦点
+            }
+        });
 
 
         // ICCID解析函数
@@ -2575,7 +2662,7 @@
                 
                 // 检查result是否存在并格式化显示结果
                 if (result && typeof result === 'object') {
-                    // 按照参数解析器的样式显示结果
+                    // 按照入库参数解析器的样式显示结果
                     let html = '<div class="param-results"><div class="param-group"><div class="param-column"><h4>解析结果：</h4>';
                     
                     // 遍历result对象的所有属性，只显示非空的value

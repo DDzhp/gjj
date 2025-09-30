@@ -381,7 +381,7 @@
             font-family: 'Courier New', monospace;
             font-size: 0.7em;
             text-align: center;
-            white-space: nowrap;
+            /* white-space: nowrap; */
             min-width: 60px;
             max-width: 120px;
             overflow: hidden;
@@ -892,6 +892,7 @@
             <button onclick="showTool('qrGeneratorTool')">🔲 二维码生成器</button>
             <button onclick="showTool('logAnalysisTool')">📊 日志分析器</button>
             <button onclick="showTool('logAnalysisTool2')">📊 日志解析器</button>
+            <button onclick="showTool('commandTableTool')">📋 命令表</button>
         </nav>
         
         <!-- IC卡号处理工具模块 -->
@@ -3891,5 +3892,283 @@
         }
         
     </script>
+
+    <!-- 命令表工具模块 -->
+    <section id="commandTableTool" class="calculator" style="display:none;">
+        <h2>📋 命令表</h2>
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
+            <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 使用说明：</div>
+            <div style="color: #856404; font-size: 14px;">
+                • 本工具展示设备命令表，包含命令码、名称、内容描述和备注信息<br>
+                <br>
+                • 设备状态说明：00:出厂,01:正常,02:欠费,<span style="color:red;">03:制水故障（平台或手机操作强冲可以清除）</span>,04:关机,<span style="color:red;">05:漏水</span>,06:待激活,<span style="color:red;">07:流量计故障,08:频发数据（上报数据在5分钟内超过20次触发，平台或手机操作强冲可以清除）,</span>09:制水10：冲洗,<span style="color:red;">11：缺水12：锁定（操作后用户无法开机，该功能只开放给后台管理人员）,14：本次消费纯水溢出30：水箱纯水溢出,31：浮球异常,32：加热超时,35：热水温度传感器故障,36：加热管故障,37：原水温度传感器故障,39：放水泵故障,44：热水流量计故障,50：大通量流量计故障,51：小通量流量计故障,52：低液位以下（纯水箱水压不足）,53：消毒中,54：废水管堵塞,55：补水阀（纯水进水阀）故障</span><br>
+                <br>
+                • 内容描述中<span style="color:red;">红色字体</span>代表平台下发数据，<span style="color:black;">黑色字体</span>代表设备上传数据
+            </div>
+        </div>
+        
+        <div class="form-group" style="margin-top: 20px;">
+            <div class="result-content" style="max-height: 600px; overflow-y: auto; border: 2px solid #e1e5e9; border-radius: 10px;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 22px;">
+                    <thead>
+                        <tr>
+                            <th style="background: #d1ecf1; color: #0c5460; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">命令码</th>
+                            <th style="background: #d1ecf1; color: #0c5460; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">名称</th>
+                            <th style="background: #d1ecf1; color: #0c5460; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">内容描述</th>
+                            <th style="background: #d1ecf1; color: #0c5460; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x00</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">心跳包</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;">设备每隔6分钟向平台发送当前设备状态数据，心跳包只有ID号（4字节）</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x01</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">关机命令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送关机命令</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x11</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">关机命令回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送关机回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x02</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">开机命令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送开机命令</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x22</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">开机命令回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送开机回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x03</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">强冲命令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送强制冲洗命令</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x33</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">强冲命令回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送强制冲洗回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x04</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">ID编码/设置机器参数</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">1：设备请求ID编码，带设备信号值和ICCID号</span><br><span style="color:red;">2：平台向设备发送设置设备id，滤芯寿命计算方式，机器使用流量计算方式（有且只能3选1，其他两个位置发0），检修时间，加热最高温度，制冷最低温度，冷水费率，热水费率。</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x44</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">ID编码回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备获取到ID后向平台发送的回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x05</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">充值命令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送充值命令</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x55</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">充值命令回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送充值回执，或者共享模式下，设备忙碌状态回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x06</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">用水同步命令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送用水同步</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x07</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">滤芯复位</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送滤芯复位（当前滤芯寿命实时值=对应滤芯寿命最大值即可复位）</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x77</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">滤芯复位回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送滤芯复位回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x08</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">模式切换</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送模式切换</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x88</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">模式切换回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送模式切换回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x09</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">系统初始化</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送系统初始化</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x99</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">系统初始化回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送系统初始化，更新所有参数后回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x0A</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">恢复出厂设置</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送恢复出厂设置</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xAA</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">恢复出厂设置回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送恢复出厂设置回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x0B</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">用时同步</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送用时同步，用于更新已用时间，剩余时间，当前北京时间</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xBB</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">用时同步回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送用时同步回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x0C</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">设备状态变更</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送变更命令</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x0D</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">查询设备信息</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送查询命令，查询当前设备最新信息</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xDD</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">查询设备信息回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送查询设备信息回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x0E</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">获取信号，ICCID，机器配置参数</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送查询命令，查询当前设备移动信号，ICCID及机器设置参数</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xEE</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">获取设备信息回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送查询设备信息回执，查看设置参数值（滤芯寿命计算方式，流量计算方式，检修时间，加热热水最高温度，制冷冷水最低温度）</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x0F</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">机器锁定解锁命令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送机器锁定命令锁定机器，或解锁机器</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xFF</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">机器锁定解锁回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送机器锁定或解锁命令回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x80</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">机器取水指令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送取水指令，共享模式下有效</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x90</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">机器取水指令回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送取水回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xCC</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">错误包上报</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">当设备收到平台下发数据校验时有错误时上报此命令。</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xA0</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">Ic识别请求指令</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送当前读到的ic卡的信息</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0xD0</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">键盘输入手机号和密码上报</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送用户手机号和密码，用于无卡取水的场景。</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x82</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">设置节能时间，浴霸温度，臭氧工作时间</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送设置,节能启停时间，加热系统启停温差，浴霸启停温度温度，臭氧发生器工作周期</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x92</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">设置节能时间，浴霸温度，臭氧工作时间的回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">平台向设备发送设置,节能启停时间，浴霸启停温度温度，臭氧发生器工作周期回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x83</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">设置广告灯工作时间</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送设置广告灯的工作时间</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x93</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">设置广告灯工作时间</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送设置广告灯的工作时间</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x84</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">启动自动校准流量系数</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:red;">平台向设备发送自动校准流量系数</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x94</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">启动自动校准流量系数回执</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备向平台发送自动校准流量系数回执</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">0x5E</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">自动校准流量系数结束上报</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left; word-wrap: break-word; max-width: 400px;"><span style="color:black;">设备完成自动校准后上报校准完成的流量系数（对应的流量脉冲或者放水秒数），后台更新对应的流量系数</span></td>
+                            <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
 </body>
 </html>

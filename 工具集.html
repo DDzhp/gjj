@@ -2637,6 +2637,7 @@
                 
                 <div class="buttons-section">
                     <button id="analyzeBtn" class="analyze-btn">🚀 分析数据</button>
+                    <button id="parseImeiIccidBtn" class="analyze-btn">🔍 解析imei和iccid</button>
                     <button id="clearLogBtn" class="clear-btn">🗑️ 清空</button>
                 </div>
             </div>
@@ -2647,6 +2648,11 @@
                 <div class="result-content">
                     <!-- 解析结果将在这里动态生成 -->
                 </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="imeiIccidResult">IMEI和ICCID解析结果：</label>
+                <textarea id="imeiIccidResult" class="result-area" rows="10" readonly placeholder="IMEI和ICCID解析结果将显示在这里..."></textarea>
             </div>
         </div>
     </section>
@@ -2664,7 +2670,10 @@
         
         <div class="form-group">
             <label for="fileUpload">上传文件或文件夹：</label>
-            <input type="file" id="fileUpload" multiple webkitdirectory directory accept="image/*"  style="height: 150px; padding: 8px; font-size: 14px;">
+            <div id="dropArea" style="height: 150px; border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; line-height: 110px; cursor: pointer; transition: all 0.3s ease;">
+                <span id="dropText">📁 点击或拖拽图片文件到这里上传</span>
+                <input type="file" id="fileUpload" multiple webkitdirectory directory accept="image/*" style="display: none;">
+            </div>
         </div>
         
         <div class="button-group">
@@ -3971,6 +3980,73 @@
         document.getElementById('clearQrBtn').addEventListener('click', clearQrParser);
         document.getElementById('copyExtractedBtn').addEventListener('click', copyExtractedInfo);
         document.getElementById('formatForBackendBtn').addEventListener('click', formatForBackendQuery);
+        
+        // 拖拽上传相关事件绑定
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileUpload');
+        
+        // 点击上传区域触发文件选择
+        dropArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        // 阻止默认拖拽行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // 拖拽样式变化
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // 处理文件放置
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        // 处理文件选择变化
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                const filesText = this.files.length === 1 ? `已选择 1 个文件` : `已选择 ${this.files.length} 个文件`;
+                document.getElementById('dropText').textContent = filesText;
+            }
+        });
+        
+        // 阻止默认行为的辅助函数
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // 高亮拖拽区域的辅助函数
+        function highlight() {
+            dropArea.style.borderColor = '#667eea';
+            dropArea.style.backgroundColor = 'rgba(102, 126, 234, 0.05)';
+        }
+        
+        // 取消高亮拖拽区域的辅助函数
+        function unhighlight() {
+            dropArea.style.borderColor = '#ccc';
+            dropArea.style.backgroundColor = 'transparent';
+        }
+        
+        // 处理拖拽放置文件的辅助函数
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            // 将拖拽的文件设置到文件输入框
+            fileInput.files = files;
+            
+            // 更新显示文本
+            if (files.length > 0) {
+                const filesText = files.length === 1 ? `已拖拽 1 个文件` : `已拖拽 ${files.length} 个文件`;
+                document.getElementById('dropText').textContent = filesText;
+            }
+        }
     });
     
     // 解析二维码
@@ -4179,6 +4255,135 @@
         statusSection.classList.add(type === 'error' ? 'error' : 'info');
         statusSection.style.display = 'block';
     }
+    
+    // 解析IMEI和ICCID
+    function parseImeiAndIccid() {
+        const logInput = document.getElementById('logInput');
+        const imeiIccidResult = document.getElementById('imeiIccidResult');
+        const statusSection = document.getElementById('statusSection');
+        
+        const inputLines = logInput.value.trim().split('\n');
+        const results = [];
+        
+        if (inputLines.length === 0) {
+            showStatus('请输入日志数据', 'error');
+            return;
+        }
+        
+        // 逐行解析
+        inputLines.forEach(line => {
+            if (line.trim()) {
+                const parsed = extractImeiAndIccid(line.trim());
+                results.push(parsed);
+            } else {
+                results.push(''); // 保留空行
+            }
+        });
+        
+        // 显示结果
+        imeiIccidResult.value = results.join('\n');
+        showStatus(`成功解析 ${inputLines.length} 条数据`, 'info');
+    }
+    
+    // 从单行数据中提取IMEI和ICCID
+    function extractImeiAndIccid(line) {
+        try {
+            // 清理数据，移除所有分隔符和空格
+            const cleanLine = line.replace(/[\s-]/g, '');
+            
+            let imei = '';
+            let iccid = '';
+            
+            // 首先尝试直接查找IMEI和ICCID的特征模式
+            
+            // 查找IMEI（通常是15位数字，前两位是86）
+            const imeiMatch = cleanLine.match(/([8][6]\d{13})/);
+            if (imeiMatch && imeiMatch[1]) {
+                imei = imeiMatch[1];
+            } else {
+                // 尝试通过位置提取IMEI
+                const imeiPositionMatch = cleanLine.match(/0[03]86(\d{13})/);
+                if (imeiPositionMatch && imeiPositionMatch[1]) {
+                    imei = '86' + imeiPositionMatch[1];
+                }
+            }
+            
+            // 查找ICCID（通常是20位字符，前四位是8986）
+            const iccidMatch = cleanLine.match(/(8986\w{16})/);
+            if (iccidMatch && iccidMatch[1]) {
+                iccid = iccidMatch[1];
+            }
+            
+            // 如果通过特征模式没有找到，尝试使用位置方法
+            if (!imei || !iccid) {
+                if (cleanLine.length >= 58) {
+                    // 58字节数据
+                    if (!imei) {
+                        // 尝试从第65-80位提取IMEI（15位）
+                        const potentialImei = cleanLine.substring(64, 79);
+                        if (/\d{15}/.test(potentialImei)) {
+                            imei = potentialImei;
+                        }
+                    }
+                    if (!iccid) {
+                        // 尝试从第83-102位提取ICCID（20位）
+                        iccid = cleanLine.substring(82, 102);
+                    }
+                } else if (cleanLine.length >= 52) {
+                    // 52字节数据
+                    if (!imei) {
+                        // 尝试从第53-67位提取IMEI（15位）
+                        const potentialImei = cleanLine.substring(52, 67);
+                        if (/\d{15}/.test(potentialImei)) {
+                            imei = potentialImei;
+                        }
+                    }
+                    if (!iccid) {
+                        // 尝试从IMEI后面查找ICCID
+                        const potentialIccidStart = cleanLine.indexOf('8986');
+                        if (potentialIccidStart !== -1) {
+                            iccid = cleanLine.substring(potentialIccidStart, potentialIccidStart + 20);
+                        }
+                    }
+                }
+            }
+            
+            // 确保IMEI是15位数字
+            if (imei) {
+                // 移除可能的非数字字符
+                imei = imei.replace(/[^\d]/g, '');
+                // 截取前15位
+                if (imei.length > 15) {
+                    imei = imei.substring(0, 15);
+                }
+            }
+            
+            // 确保ICCID是20位字符
+            if (iccid) {
+                // 截取前20位
+                if (iccid.length > 20) {
+                    iccid = iccid.substring(0, 20);
+                }
+            }
+            
+            // 验证提取结果
+            if (!imei && !iccid) {
+                return '未能提取到IMEI和ICCID';
+            } else if (!imei) {
+                return `,${iccid}`;
+            } else if (!iccid) {
+                return `${imei},`;
+            }
+            
+            // 返回IMEI和ICCID，用英文逗号分隔
+            return `${imei},${iccid}`;
+        } catch (error) {
+            return `解析失败: ${error.message}`;
+        }
+    }
+    
+    // 绑定解析IMEI和ICCID按钮事件
+    document.getElementById('parseImeiIccidBtn').addEventListener('click', parseImeiAndIccid);
     
     </script>
 </body>

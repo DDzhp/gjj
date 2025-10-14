@@ -9,6 +9,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="./logDecode.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         /* ===== 全局样式 ===== */
         * {
@@ -892,6 +893,7 @@
             <button onclick="showTool('qrGeneratorTool')">🔲 二维码生成器</button>
             <button onclick="showTool('logAnalysisTool')">📊 日志分析器</button>
             <button onclick="showTool('logAnalysisTool2')">📊 日志解析器</button>
+        <button onclick="showTool('qrParserTool')">🔍 解析二维码</button>
         </nav>
         
         <!-- IC卡号处理工具模块 -->
@@ -2648,7 +2650,56 @@
             </div>
         </div>
     </section>
-       <section id="logAnalysisTool2" class="calculator" style="display: none;">
+       <section id="qrParserTool" class="calculator" style="display: none;">
+        <h2>🔍 二维码解析工具</h2>
+        
+        <div class="info-box">
+            <strong>📋 功能说明：</strong><br>
+            1. 支持上传文件夹或单个图片文件<br>
+            2. 自动提取文件夹中的图片文件<br>
+            3. 解析所有图片中的二维码内容<br>
+            4. 显示所有解析结果<br>
+            5. 可提取二维码内容中的15位以内数字后缀
+        </div>
+        
+        <div class="form-group">
+            <label for="fileUpload">上传文件或文件夹：</label>
+            <input type="file" id="fileUpload" multiple webkitdirectory directory accept="image/*"  style="height: 150px; padding: 8px; font-size: 14px;">
+        </div>
+        
+        <div class="button-group">
+            <button class="btn btn-primary" id="parseQrBtn">
+                🔍 开始解析二维码
+            </button>
+            <button class="btn btn-success" id="extractInfoBtn" disabled>
+                📋 提取信息
+            </button>
+            <button class="btn btn-info" id="copyExtractedBtn" disabled>
+                📋 复制结果
+            </button>
+            <button class="btn btn-secondary" id="formatForBackendBtn" disabled>
+                📝 修改为后台批量查询格式
+            </button>
+            
+            <button class="btn btn-danger" id="clearQrBtn">
+                🗑️ 清空
+            </button>
+        </div>
+        
+        <div class="status-section" id="qrParserStatus" style="display: none;"></div>
+        
+        <div class="form-group">
+            <label for="qrResults">二维码解析结果：</label>
+            <textarea id="qrResults" class="result-area" rows="15" readonly placeholder="解析结果将显示在这里..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="extractedInfo">提取的信息：</label>
+            <textarea id="extractedInfo" class="result-area" rows="8" readonly placeholder="提取的15位以内数字将显示在这里..."></textarea>
+        </div>
+    </section>
+    
+    <section id="logAnalysisTool2" class="calculator" style="display: none;">
         <h2>📊 日志解析器</h2>
         
         <div class="log-analysis-tool">
@@ -3910,6 +3961,225 @@
             showMessage('已添加单引号防止科学计数格式', 'success');
         }
         
+    // ===== 二维码解析工具相关函数 =====
+    
+    // 初始化二维码解析工具
+    document.addEventListener('DOMContentLoaded', function() {
+        // 绑定事件监听器
+        document.getElementById('parseQrBtn').addEventListener('click', parseQrCodes);
+        document.getElementById('extractInfoBtn').addEventListener('click', extractInfoFromQrResults);
+        document.getElementById('clearQrBtn').addEventListener('click', clearQrParser);
+        document.getElementById('copyExtractedBtn').addEventListener('click', copyExtractedInfo);
+        document.getElementById('formatForBackendBtn').addEventListener('click', formatForBackendQuery);
+    });
+    
+    // 解析二维码
+    function parseQrCodes() {
+        const fileInput = document.getElementById('fileUpload');
+        const files = fileInput.files;
+        const qrResults = document.getElementById('qrResults');
+        const statusSection = document.getElementById('qrParserStatus');
+        const extractInfoBtn = document.getElementById('extractInfoBtn');
+        
+        // 清空之前的结果
+        qrResults.value = '';
+        document.getElementById('extractedInfo').value = '';
+        extractInfoBtn.disabled = true;
+        
+        // 检查是否有文件被选择
+        if (files.length === 0) {
+            showQrParserStatus('请先选择文件或文件夹', 'error');
+            return;
+        }
+        
+        showQrParserStatus('正在解析二维码，请稍候...', 'info');
+        
+        // 过滤出图片文件
+        const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+        
+        if (imageFiles.length === 0) {
+            showQrParserStatus('未找到图片文件', 'error');
+            return;
+        }
+        
+        showQrParserStatus(`找到 ${imageFiles.length} 个图片文件，正在解析...`, 'info');
+        
+        let results = [];
+        let processedCount = 0;
+        
+        // 依次解析每个图片文件
+        imageFiles.forEach(file => {
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const img = new Image();
+                
+                img.onload = function() {
+                    // 创建Canvas并绘制图片
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 获取图像数据
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    // 使用jsQR解析二维码
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    // 记录结果
+                    if (code) {
+                        results.push(`文件名: ${file.name}\n二维码内容: ${code.data}\n`);
+                    } else {
+                        results.push(`文件名: ${file.name}\n未找到二维码\n`);
+                    }
+                    
+                    processedCount++;
+                    
+                    // 更新状态
+                    showQrParserStatus(`已解析 ${processedCount}/${imageFiles.length} 个文件`, 'info');
+                    
+                    // 所有文件都处理完毕
+                    if (processedCount === imageFiles.length) {
+                        // 显示结果
+                        qrResults.value = results.join('------------------------\n');
+                        
+                        // 启用提取信息按钮
+                        extractInfoBtn.disabled = false;
+                        
+                        showQrParserStatus(`解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                    }
+                };
+                
+                img.onerror = function() {
+                    results.push(`文件名: ${file.name}\n图片加载失败\n`);
+                    processedCount++;
+                    
+                    if (processedCount === imageFiles.length) {
+                        qrResults.value = results.join('------------------------\n');
+                        extractInfoBtn.disabled = false;
+                        showQrParserStatus(`解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                    }
+                };
+                
+                img.src = event.target.result;
+            };
+            
+            reader.onerror = function() {
+                results.push(`文件名: ${file.name}\n文件读取失败\n`);
+                processedCount++;
+                
+                if (processedCount === imageFiles.length) {
+                    qrResults.value = results.join('------------------------\n');
+                    extractInfoBtn.disabled = false;
+                    showQrParserStatus(`解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // 从二维码结果中提取信息
+    function extractInfoFromQrResults() {
+        const qrResults = document.getElementById('qrResults').value;
+        const extractedInfo = document.getElementById('extractedInfo');
+        const statusSection = document.getElementById('qrParserStatus');
+        
+        if (!qrResults.trim()) {
+            showQrParserStatus('请先解析二维码', 'error');
+            return;
+        }
+        
+        // 使用正则表达式提取15位以内的数字
+        const lines = qrResults.split('\n');
+        const extractedNumbers = [];
+        
+        lines.forEach(line => {
+            if (line.startsWith('二维码内容:')) {
+                const content = line.replace('二维码内容:', '').trim();
+                // 提取末尾的15位以内数字
+                const match = content.match(/(\d{1,15})$/);
+                if (match) {
+                    extractedNumbers.push(match[1]);
+                }
+            }
+        });
+        
+        if (extractedNumbers.length > 0) {
+            extractedInfo.value = extractedNumbers.join('\n');
+            showQrParserStatus(`成功提取 ${extractedNumbers.length} 个有效信息`, 'info');
+            // 启用复制结果和修改格式按钮
+            document.getElementById('copyExtractedBtn').disabled = false;
+            document.getElementById('formatForBackendBtn').disabled = false;
+        } else {
+            extractedInfo.value = '未找到符合条件的15位以内数字';
+            showQrParserStatus('未找到符合条件的信息', 'info');
+            // 禁用按钮
+            document.getElementById('copyExtractedBtn').disabled = true;
+            document.getElementById('formatForBackendBtn').disabled = true;
+        }
+    }
+    
+    // 清空二维码解析器
+    function clearQrParser() {
+        document.getElementById('fileUpload').value = '';
+        document.getElementById('qrResults').value = '';
+        document.getElementById('extractedInfo').value = '';
+        document.getElementById('extractInfoBtn').disabled = true;
+        document.getElementById('copyExtractedBtn').disabled = true;
+        document.getElementById('formatForBackendBtn').disabled = true;
+        document.getElementById('qrParserStatus').style.display = 'none';
+    }
+    
+    // 复制提取的信息
+    function copyExtractedInfo() {
+        const extractedInfo = document.getElementById('extractedInfo');
+        
+        if (extractedInfo.value.trim()) {
+            extractedInfo.select();
+            document.execCommand('copy');
+            
+            // 显示复制成功的提示
+            showQrParserStatus('结果已复制到剪贴板', 'info');
+        } else {
+            showQrParserStatus('没有可复制的信息', 'error');
+        }
+    }
+    
+    // 修改为后台批量查询格式
+    function formatForBackendQuery() {
+        const extractedInfo = document.getElementById('extractedInfo');
+        
+        if (extractedInfo.value.trim()) {
+            // 将换行分隔转换为逗号分隔
+            const commaSeparated = extractedInfo.value.split('\n').filter(line => line.trim()).join(',');
+            
+            // 复制到剪贴板
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = commaSeparated;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+            
+            // 显示修改成功的提示
+            showQrParserStatus('已转换为后台批量查询格式并复制到剪贴板', 'info');
+        } else {
+            showQrParserStatus('没有可转换的信息', 'error');
+        }
+    }
+    
+    // 显示二维码解析器状态信息
+    function showQrParserStatus(message, type) {
+        const statusSection = document.getElementById('qrParserStatus');
+        statusSection.textContent = message;
+        statusSection.className = 'status-section';
+        statusSection.classList.add(type === 'error' ? 'error' : 'info');
+        statusSection.style.display = 'block';
+    }
+    
     </script>
 </body>
 </html>

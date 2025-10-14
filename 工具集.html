@@ -1106,9 +1106,6 @@
 
         <section id="waterValueTool" class="calculator" style="display:none;">
             <h2>💧 洗浴水控 金额水量换算</h2>
-            <div class="button-group">
-                <button id="clearWaterPriceBtn" class="btn-danger">🗑️ 清空数据</button>
-            </div>
             <div class="form-group">
                 <label>金额 (元):</label>
                 <input type="number" id="amount" step="0.01" placeholder="输入金额" oninput="calculateWaterValue()">
@@ -1130,10 +1127,7 @@
         </section>
 
         <section id="waterPriceTool" class="calculator" style="display:none;">
-            <h2>🚰 水控单价</h2>
-            <div class="button-group">
-                <button id="clearWaterPriceBtn" class="btn-danger">🗑️ 清空数据</button>
-            </div>
+            <h2>🚰 共享单价计算器</h2>
             <div class="form-group">
                 <label>水量 (毫升):</label>
                 <input type="number" id="waterVolume2" step="0.01" placeholder="例如：787" oninput="calculateWaterPrice()">
@@ -1152,8 +1146,6 @@
                     <div id="waterPriceCalculations">请输入任意两个参数进行计算</div>
                 </div>
             </div>
-            
-
         </section>
         
         <!-- CSV/Excel IMEI/ICCID 科学计数法处理工具模块 -->
@@ -2192,7 +2184,6 @@
         }
 
         // 水单价计算函数
-        // 水控单价计算函数
         function calculateWaterPrice() {
             const waterVolume = parseFloat(document.getElementById('waterVolume2').value) || 0;
             const amount = parseFloat(document.getElementById('amount2').value) || 0;
@@ -2220,17 +2211,6 @@
             
             document.getElementById('waterPriceCalculations').innerHTML = results.join('<br>');
         }
-        
-        // 清空水控单价数据函数
-        function clearWaterPriceData() {
-            document.getElementById('waterVolume2').value = '';
-            document.getElementById('amount2').value = '';
-            document.getElementById('pricePerLiter').value = '';
-            document.getElementById('waterPriceCalculations').innerHTML = '请输入任意两个参数进行计算';
-        }
-        
-        // 绑定清空数据按钮事件
-        document.getElementById('clearWaterPriceBtn').addEventListener('click', clearWaterPriceData);
 
         // CSV/Excel文件处理相关
         document.getElementById('csvFileInput').addEventListener('change', function() {

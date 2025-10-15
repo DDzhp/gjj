@@ -10,7 +10,28 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="./logDecode.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- Tesseract.js - 用于文字识别 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <!-- OCRAD.js - 轻量级OCR库（备用1） -->
+    <script src="https://cdn.jsdelivr.net/npm/ocrad.js@0.0.1/ocrad.js"></script>
+    <!-- canvas-ocr - 轻量级OCR库（备用2） -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-ocr@0.1.4/build/canvas-ocr.min.js"></script>
     <style>
+        /* ===== CSS变量定义 ===== */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --danger-gradient: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            --bg-color: #ffffff;
+            --bg-opacity: 0.95;
+            --container-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         /* ===== 全局样式 ===== */
         * {
             box-sizing: border-box;
@@ -18,10 +39,34 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             margin: 0;
             padding: 0;
             min-height: 100vh;
+        }
+
+        /* ===== 移动端菜单按钮 ===== */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+
+        .mobile-menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
         
         /* ===== 容器样式 ===== */
@@ -652,15 +697,11 @@
             .container {
                 margin: 10px;
                 padding: 15px;
+                margin-top: 70px; /* 为固定的移动端菜单按钮留出空间 */
             }
             
             .tool-switcher {
-                gap: 5px;
-            }
-            
-            .tool-switcher button {
-                padding: 10px 15px;
-                font-size: 12px;
+                display: none; /* 在移动端隐藏桌面导航 */
             }
             
             .calculator {
@@ -677,6 +718,104 @@
             
             h1 {
                 font-size: 2em;
+                margin-top: 20px;
+            }
+        }
+        
+        /* ===== 移动端菜单样式 ===== */
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .mobile-menu-content {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        .close-menu-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+        
+        .close-menu-btn:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .mobile-tool-switcher {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 40px;
+        }
+        
+        .mobile-tool-switcher button {
+            padding: 15px 20px;
+            border: none;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 16px;
+            transition: var(--transition);
+            text-align: left;
+        }
+        
+        .mobile-tool-switcher button:hover {
+            transform: translateX(5px);
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
             }
         }
         
@@ -896,6 +1035,31 @@
         <button onclick="showTool('qrParserTool')">🔍 解析二维码</button>
         </nav>
         
+        <!-- 移动端菜单按钮 -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
+
+        <!-- 移动端菜单容器 -->
+        <div id="mobileMenu" class="mobile-menu" style="display: none;">
+            <div class="mobile-menu-content">
+                <button class="close-menu-btn" onclick="toggleMobileMenu()">✕</button>
+                <div class="mobile-tool-switcher">
+                    <button onclick="showTool('pulseTool'); toggleMobileMenu();">🔄 脉冲计算器</button>
+                    <button onclick="showTool('conversionTool'); toggleMobileMenu();">🔢 进制转换器</button>
+                    <button onclick="showTool('paramParser'); toggleMobileMenu();">📋 入库参数解析</button>
+                    <button onclick="showTool('iccidTool'); toggleMobileMenu();">📱 ICCID详情</button>
+                    <button onclick="showTool('excelTemplateTool'); toggleMobileMenu();">📋 IC卡号处理</button>
+                    <button onclick="showTool('serialNumberTool'); toggleMobileMenu();">🔢 生成流水号</button>
+                    <button onclick="showTool('waterValueTool'); toggleMobileMenu();">💧 洗浴单价</button>
+                    <button onclick="showTool('waterPriceTool'); toggleMobileMenu();">🚰 水控单价</button>
+                    <button onclick="showTool('csv89860Tool'); toggleMobileMenu();">📊 修复iccid乱码</button>
+                    <button onclick="showTool('qrGeneratorTool'); toggleMobileMenu();">🔲 二维码生成器</button>
+                    <button onclick="showTool('logAnalysisTool'); toggleMobileMenu();">📊 日志分析器</button>
+                    <button onclick="showTool('logAnalysisTool2'); toggleMobileMenu();">📊 日志解析器</button>
+                    <button onclick="showTool('qrParserTool'); toggleMobileMenu();">🔍 解析二维码</button>
+                </div>
+            </div>
+        </div>
+
         <!-- IC卡号处理工具模块 -->
         <section id="excelTemplateTool" class="calculator">
             <h2>📋 IC卡号处理</h2>
@@ -968,7 +1132,7 @@
             <h2>🔄 脉冲参数计算器</h2>
             <div class="form-group">
                 <label>系统设置脉冲数：</label>
-                <input type="number" id="systemPulses" min="0" step="1" placeholder="请输入正整数">
+                <input type="number" id="systemPulses" min="0" step="1" placeholder="请输入正整数" >
             </div>
             
             <div class="form-group">
@@ -2664,8 +2828,9 @@
             1. 支持上传文件夹或单个图片文件<br>
             2. 自动提取文件夹中的图片文件<br>
             3. 解析所有图片中的二维码内容<br>
-            4. 显示所有解析结果<br>
-            5. 可提取二维码内容中的15位以内数字后缀
+            4. 识别图片中的文字内容<br>
+            5. 显示所有解析结果<br>
+            6. 可提取二维码内容中的15位以内数字后缀
         </div>
         
         <div class="form-group">
@@ -2679,6 +2844,9 @@
         <div class="button-group">
             <button class="btn btn-primary" id="parseQrBtn">
                 🔍 开始解析二维码
+            </button>
+            <button class="btn btn-primary" id="textRecognitionBtn">
+                🔤 文字识别
             </button>
             <button class="btn btn-success" id="extractInfoBtn" disabled>
                 📋 提取信息
@@ -2697,6 +2865,11 @@
         
         <div class="status-section" id="qrParserStatus" style="display: none;"></div>
         
+        <!-- 图片预览区域 -->
+        <div id="imagePreviewArea" style="margin: 20px 0;">
+            <!-- 图片预览将在这里动态生成 -->
+        </div>
+        
         <div class="form-group">
             <label for="qrResults">二维码解析结果：</label>
             <textarea id="qrResults" class="result-area" rows="15" readonly placeholder="解析结果将显示在这里..."></textarea>
@@ -2706,6 +2879,43 @@
             <label for="extractedInfo">提取的信息：</label>
             <textarea id="extractedInfo" class="result-area" rows="8" readonly placeholder="提取的15位以内数字将显示在这里..."></textarea>
         </div>
+        
+        <style>
+            #imagePreviewArea {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 15px;
+            }
+            
+            .image-preview-item {
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 10px;
+                background-color: #f9f9f9;
+            }
+            
+            .preview-image {
+                max-width: 100%;
+                max-height: 200px;
+                object-fit: contain;
+                margin-bottom: 10px;
+                border-radius: 3px;
+            }
+            
+            .image-results {
+                font-size: 14px;
+                line-height: 1.6;
+            }
+            
+            .qr-info {
+                color: #165DFF;
+                font-weight: 500;
+            }
+            
+            .text-info {
+                color: #36CFC9;
+            }
+        </style>
     </section>
     
     <section id="logAnalysisTool2" class="calculator" style="display: none;">
@@ -3727,6 +3937,23 @@
         
         // 当前激活的工具ID
         let currentActiveTool = null;
+        let mobileMenuOpen = false;
+        
+        // 切换移动端菜单显示状态
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            
+            if (mobileMenuOpen) {
+                mobileMenu.style.display = 'none';
+                mobileMenuBtn.textContent = '☰';
+            } else {
+                mobileMenu.style.display = 'block';
+                mobileMenuBtn.textContent = '✕';
+            }
+            
+            mobileMenuOpen = !mobileMenuOpen;
+        }
         
         // 在显示工具时初始化
         function showTool(toolId) {
@@ -3752,18 +3979,54 @@
                 }
                 
                 // 如果是日志分析器，可以做一些初始化
-            if (toolId === 'logAnalysisTool') {
-                // 这里可以添加日志分析器的初始化逻辑
-                console.log('日志分析器已激活');
-            }
+                if (toolId === 'logAnalysisTool') {
+                    // 这里可以添加日志分析器的初始化逻辑
+                    console.log('日志分析器已激活');
+                }
             }
             
             // 更新按钮激活状态
             document.querySelectorAll('.tool-switcher button').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector(`.tool-switcher button[onclick="showTool('${toolId}')"]`).classList.add('active');
+            const activeBtn = document.querySelector(`.tool-switcher button[onclick="showTool('${toolId}')"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+            
+            // 在移动端设备上，切换工具后关闭菜单
+            if (window.innerWidth < 768 && mobileMenuOpen) {
+                toggleMobileMenu();
+            }
         }
+        
+        // 响应窗口大小变化
+        function handleResize() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const toolSwitcher = document.querySelector('.tool-switcher');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            // 在小屏幕设备上显示移动端菜单按钮，隐藏桌面端工具导航
+            if (window.innerWidth < 768) {
+                mobileMenuBtn.style.display = 'block';
+                toolSwitcher.style.display = 'none';
+                mobileMenu.style.display = mobileMenuOpen ? 'block' : 'none';
+            } else {
+                // 在大屏幕设备上隐藏移动端菜单按钮，显示桌面端工具导航
+                mobileMenuBtn.style.display = 'none';
+                toolSwitcher.style.display = 'flex';
+                mobileMenu.style.display = 'none';
+                mobileMenuOpen = false;
+            }
+        }
+        
+        // 绑定窗口大小变化事件
+        window.addEventListener('resize', handleResize);
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            handleResize();
+        });
         
         // 显示消息提示函数
         function showMessage(message, type = 'info') {
@@ -3972,10 +4235,14 @@
         
     // ===== 二维码解析工具相关函数 =====
     
+    // 存储解析结果的对象
+    let imageParseResults = {};
+    
     // 初始化二维码解析工具
     document.addEventListener('DOMContentLoaded', function() {
         // 绑定事件监听器
         document.getElementById('parseQrBtn').addEventListener('click', parseQrCodes);
+        document.getElementById('textRecognitionBtn').addEventListener('click', recognizeTextFromImages);
         document.getElementById('extractInfoBtn').addEventListener('click', extractInfoFromQrResults);
         document.getElementById('clearQrBtn').addEventListener('click', clearQrParser);
         document.getElementById('copyExtractedBtn').addEventListener('click', copyExtractedInfo);
@@ -4056,11 +4323,14 @@
         const qrResults = document.getElementById('qrResults');
         const statusSection = document.getElementById('qrParserStatus');
         const extractInfoBtn = document.getElementById('extractInfoBtn');
+        const previewArea = document.getElementById('imagePreviewArea');
         
         // 清空之前的结果
         qrResults.value = '';
         document.getElementById('extractedInfo').value = '';
+        previewArea.innerHTML = '';
         extractInfoBtn.disabled = true;
+        imageParseResults = {};
         
         // 检查是否有文件被选择
         if (files.length === 0) {
@@ -4089,6 +4359,7 @@
             
             reader.onload = function(event) {
                 const img = new Image();
+                const imgSrc = event.target.result;
                 
                 img.onload = function() {
                     // 创建Canvas并绘制图片
@@ -4098,19 +4369,38 @@
                     canvas.height = img.height;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
+                    // 初始化该图片的解析结果对象
+                    const fileId = file.name + '_' + Date.now();
+                    imageParseResults[fileId] = {
+                        fileName: file.name,
+                        qrContent: '',
+                        textContent: ''
+                    };
+                    
                     // 获取图像数据
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     
                     // 使用jsQR解析二维码
                     const code = jsQR(imageData.data, imageData.width, imageData.height);
                     
-                    // 记录结果
+                    // 准备文件结果
+                    let fileResult = `文件名: ${file.name}`;
+                    let qrContent = '';
                     if (code) {
-                        results.push(`文件名: ${file.name}\n二维码内容: ${code.data}\n`);
+                        fileResult += `\n二维码内容: ${code.data}`;
+                        qrContent = code.data;
                     } else {
-                        results.push(`文件名: ${file.name}\n未找到二维码\n`);
+                        fileResult += `\n未找到二维码`;
+                        qrContent = '未找到二维码';
                     }
                     
+                    // 保存二维码解析结果
+                    imageParseResults[fileId].qrContent = qrContent;
+                    
+                    // 创建图片预览元素
+                    createImagePreview(fileId, imgSrc, imageParseResults[fileId]);
+                    
+                    results.push(fileResult);
                     processedCount++;
                     
                     // 更新状态
@@ -4119,37 +4409,59 @@
                     // 所有文件都处理完毕
                     if (processedCount === imageFiles.length) {
                         // 显示结果
-                        qrResults.value = results.join('------------------------\n');
+                        qrResults.value = results.join('\n------------------------\n');
                         
                         // 启用提取信息按钮
                         extractInfoBtn.disabled = false;
                         
-                        showQrParserStatus(`解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                        showQrParserStatus(`二维码解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
                     }
                 };
                 
                 img.onerror = function() {
-                    results.push(`文件名: ${file.name}\n图片加载失败\n`);
+                    // 初始化该图片的解析结果对象
+                    const fileId = file.name + '_' + Date.now();
+                    imageParseResults[fileId] = {
+                        fileName: file.name,
+                        qrContent: '图片加载失败',
+                        textContent: ''
+                    };
+                    
+                    // 创建图片预览元素（只有文件名，没有图片）
+                    createImagePreview(fileId, '', imageParseResults[fileId]);
+                    
+                    results.push(`文件名: ${file.name}\n图片加载失败`);
                     processedCount++;
                     
                     if (processedCount === imageFiles.length) {
-                        qrResults.value = results.join('------------------------\n');
+                        qrResults.value = results.join('\n------------------------\n');
                         extractInfoBtn.disabled = false;
-                        showQrParserStatus(`解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                        showQrParserStatus(`二维码解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
                     }
                 };
                 
-                img.src = event.target.result;
+                img.src = imgSrc;
             };
             
             reader.onerror = function() {
-                results.push(`文件名: ${file.name}\n文件读取失败\n`);
+                // 初始化该图片的解析结果对象
+                const fileId = file.name + '_' + Date.now();
+                imageParseResults[fileId] = {
+                    fileName: file.name,
+                    qrContent: '文件读取失败',
+                    textContent: ''
+                };
+                
+                // 创建图片预览元素（只有文件名，没有图片）
+                createImagePreview(fileId, '', imageParseResults[fileId]);
+                
+                results.push(`文件名: ${file.name}\n文件读取失败`);
                 processedCount++;
                 
                 if (processedCount === imageFiles.length) {
-                    qrResults.value = results.join('------------------------\n');
+                    qrResults.value = results.join('\n------------------------\n');
                     extractInfoBtn.disabled = false;
-                    showQrParserStatus(`解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                    showQrParserStatus(`二维码解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
                 }
             };
             
@@ -4157,31 +4469,426 @@
         });
     }
     
-    // 从二维码结果中提取信息
+    // 从图片中识别文字
+    function recognizeTextFromImages() {
+        const fileInput = document.getElementById('fileUpload');
+        const files = fileInput.files;
+        const statusSection = document.getElementById('qrParserStatus');
+        
+        // 检查是否有文件被选择
+        if (files.length === 0) {
+            showQrParserStatus('请先选择文件或文件夹', 'error');
+            return;
+        }
+        
+        showQrParserStatus('正在进行文字识别，请稍候...', 'info');
+        
+        // 过滤出图片文件
+        const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+        
+        if (imageFiles.length === 0) {
+            showQrParserStatus('未找到图片文件', 'error');
+            return;
+        }
+        
+        let processedCount = 0;
+        
+        // 依次对每个图片进行文字识别
+        imageFiles.forEach(file => {
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const img = new Image();
+                
+                img.onload = function() {
+                    // 创建Canvas并绘制图片
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 查找对应的文件ID
+                    let fileId = null;
+                    for (const id in imageParseResults) {
+                        if (imageParseResults[id].fileName === file.name) {
+                            fileId = id;
+                            break;
+                        }
+                    }
+                    
+                    // 如果没找到，创建一个新的ID
+                    if (!fileId) {
+                        fileId = file.name + '_' + Date.now();
+                        imageParseResults[fileId] = {
+                            fileName: file.name,
+                            qrContent: '',
+                            textContent: ''
+                        };
+                    }
+                    
+                    // 进行文字识别
+                    recognizeTextFromCanvas(canvas, file.name).then(textResult => {
+                        const textContent = textResult && textResult.trim() ? textResult.trim() : '未识别到文字';
+                        
+                        // 保存文字识别结果
+                        imageParseResults[fileId].textContent = textContent;
+                        
+                        // 更新预览区域的文字识别结果
+                        updateImagePreviewResults(fileId, imageParseResults[fileId]);
+                        
+                        processedCount++;
+                        
+                        // 更新状态
+                        showQrParserStatus(`已处理 ${processedCount}/${imageFiles.length} 个文件`, 'info');
+                        
+                        // 所有文件识别完成
+                        if (processedCount === imageFiles.length) {
+                            showQrParserStatus('文字识别完成', 'success');
+                            
+                            // 更新大的输出框
+                            updateQrResultsTextarea();
+                        }
+                    }).catch(error => {
+                        // 更健壮的错误处理
+                        let errorMessage = '未知错误';
+                        if (error) {
+                            if (error.message) {
+                                errorMessage = error.message;
+                            } else if (typeof error === 'string') {
+                                errorMessage = error;
+                            } else {
+                                errorMessage = JSON.stringify(error);
+                            }
+                        }
+                        
+                        // 保存错误结果
+                        if (imageParseResults[fileId]) {
+                            imageParseResults[fileId].textContent = '识别错误: ' + errorMessage;
+                            updateImagePreviewResults(fileId, imageParseResults[fileId]);
+                        }
+                        
+                        processedCount++;
+                        
+                        // 更新状态
+                        showQrParserStatus(`已处理 ${processedCount}/${imageFiles.length} 个文件`, 'info');
+                        
+                        // 所有文件识别完成
+                        if (processedCount === imageFiles.length) {
+                            showQrParserStatus('文字识别完成', 'success');
+                            
+                            // 更新大的输出框
+                            updateQrResultsTextarea();
+                        }
+                    });
+                };
+                
+                img.onerror = function() {
+                    // 查找对应的文件ID
+                    let fileId = null;
+                    for (const id in imageParseResults) {
+                        if (imageParseResults[id].fileName === file.name) {
+                            fileId = id;
+                            break;
+                        }
+                    }
+                    
+                    // 保存错误结果
+                    if (imageParseResults[fileId]) {
+                        imageParseResults[fileId].textContent = '图片加载失败';
+                        updateImagePreviewResults(fileId, imageParseResults[fileId]);
+                    }
+                    
+                    processedCount++;
+                    
+                    if (processedCount === imageFiles.length) {
+                        showQrParserStatus('文字识别完成', 'success');
+                        updateQrResultsTextarea();
+                    }
+                };
+                
+                img.src = event.target.result;
+            };
+            
+            reader.onerror = function() {
+                // 查找对应的文件ID
+                let fileId = null;
+                for (const id in imageParseResults) {
+                    if (imageParseResults[id].fileName === file.name) {
+                        fileId = id;
+                        break;
+                    }
+                }
+                
+                // 保存错误结果
+                if (imageParseResults[fileId]) {
+                    imageParseResults[fileId].textContent = '文件读取失败';
+                    updateImagePreviewResults(fileId, imageParseResults[fileId]);
+                }
+                
+                processedCount++;
+                
+                if (processedCount === imageFiles.length) {
+                    showQrParserStatus('文字识别完成', 'success');
+                    updateQrResultsTextarea();
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // 创建图片预览元素
+    function createImagePreview(fileId, imgSrc, results) {
+        const previewArea = document.getElementById('imagePreviewArea');
+        
+        const previewItem = document.createElement('div');
+        previewItem.className = 'image-preview-item';
+        previewItem.dataset.fileId = fileId;
+        
+        if (imgSrc) {
+            const img = document.createElement('img');
+            img.className = 'preview-image';
+            img.src = imgSrc;
+            img.alt = results.fileName;
+            previewItem.appendChild(img);
+        }
+        
+        const fileName = document.createElement('div');
+        fileName.style.fontWeight = 'bold';
+        fileName.style.marginBottom = '5px';
+        fileName.textContent = results.fileName;
+        previewItem.appendChild(fileName);
+        
+        const imageResults = document.createElement('div');
+        imageResults.className = 'image-results';
+        
+        const qrInfo = document.createElement('div');
+        qrInfo.className = 'qr-info';
+        qrInfo.textContent = `二维码信息: ${results.qrContent}`;
+        
+        const textInfo = document.createElement('div');
+        textInfo.className = 'text-info';
+        textInfo.textContent = `文字信息: ${results.textContent || '未进行文字识别'}`;
+        
+        imageResults.appendChild(qrInfo);
+        imageResults.appendChild(textInfo);
+        
+        previewItem.appendChild(imageResults);
+        
+        previewArea.appendChild(previewItem);
+    }
+    
+    // 更新图片预览的结果显示
+    function updateImagePreviewResults(fileId, results) {
+        const previewItem = document.querySelector(`.image-preview-item[data-file-id="${fileId}"]`);
+        if (previewItem) {
+            const qrInfo = previewItem.querySelector('.qr-info');
+            const textInfo = previewItem.querySelector('.text-info');
+            
+            if (qrInfo) {
+                qrInfo.textContent = `二维码信息: ${results.qrContent}`;
+            }
+            
+            if (textInfo) {
+                textInfo.textContent = `文字信息: ${results.textContent}`;
+            }
+        }
+    }
+    
+    // 更新二维码解析结果文本框
+    function updateQrResultsTextarea() {
+        const qrResults = document.getElementById('qrResults');
+        let results = [];
+        
+        for (const fileId in imageParseResults) {
+            const result = imageParseResults[fileId];
+            let resultText = `文件名: ${result.fileName}`;
+            
+            if (result.qrContent) {
+                if (result.qrContent === '未找到二维码') {
+                    resultText += `\n未找到二维码`;
+                } else {
+                    resultText += `\n二维码内容: ${result.qrContent}`;
+                }
+            }
+            
+            if (result.textContent && result.textContent !== '未进行文字识别') {
+                if (result.textContent === '未识别到文字') {
+                    resultText += `\n未识别到文字`;
+                } else {
+                    resultText += `\n识别文字: ${result.textContent}`;
+                }
+            }
+            
+            results.push(resultText);
+        }
+        
+        qrResults.value = results.join('\n------------------------\n');
+    }
+    
+    // 主OCR接口 - 使用Tesseract.js并配置为只识别数字
+    async function primaryOCR(canvas, fileName) {
+        try {
+            const worker = await Tesseract.createWorker('eng');
+            try {
+                // 配置Tesseract只识别数字
+                await worker.setParameters({
+                    tessedit_char_whitelist: '0123456789',
+                    tessedit_pageseg_mode: 6
+                });
+                const result = await worker.recognize(canvas);
+                return result.data.text;
+            } finally {
+                await worker.terminate();
+            }
+        } catch (error) {
+            console.error(`主OCR接口（Tesseract）识别失败:`, error);
+            throw new Error(`主接口失败: ${error.message || '未知错误'}`);
+        }
+    }
+
+    // 备用OCR接口1 - 使用OCRAD.js只识别数字
+    function fallbackOCR1(canvas, fileName) {
+        try {
+            // OCRAD识别
+            const text = OCRAD(canvas);
+            // 过滤只保留数字
+            return text.replace(/[^0-9]/g, '');
+        } catch (error) {
+            console.error(`备用OCR接口1（OCRAD.js）识别失败:`, error);
+            throw new Error(`备用接口1失败: ${error.message || '未知错误'}`);
+        }
+    }
+
+    // 备用OCR接口2 - 使用canvas-ocr只识别数字
+    function fallbackOCR2(canvas, fileName) {
+        try {
+            const ocr = new CanvasOCR();
+            // 设置只识别数字
+            ocr.setOptions({
+                lang: 'en',
+                charWhitelist: '0123456789'
+            });
+            // 由于canvas-ocr可能是同步的，这里用Promise包装
+            return new Promise((resolve, reject) => {
+                try {
+                    const text = ocr.recognize(canvas);
+                    resolve(text);
+                } catch (err) {
+                    reject(new Error(`备用接口2失败: ${err.message || '未知错误'}`));
+                }
+            });
+        } catch (error) {
+            console.error(`备用OCR接口2（canvas-ocr）识别失败:`, error);
+            throw new Error(`备用接口2失败: ${error.message || '未知错误'}`);
+        }
+    }
+
+    // 从Canvas中识别文字（主备接口机制）
+    async function recognizeTextFromCanvas(canvas, fileName) {
+        let allErrors = [];
+        let timeoutId;
+        
+        // 设置15秒全局超时
+        const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error('文字识别超时，请尝试分辨率较低的图片')), 15000);
+        });
+        
+        try {
+            // 尝试主接口
+            try {
+                const textResult = await Promise.race([primaryOCR(canvas, fileName), timeoutPromise]);
+                if (textResult && textResult.trim()) {
+                    return textResult;
+                } else {
+                    throw new Error('主接口未识别到有效内容');
+                }
+            } catch (primaryError) {
+                allErrors.push(primaryError.message);
+                console.log(`主接口失败，尝试备用接口1...`);
+                
+                // 尝试备用接口1
+                try {
+                    const textResult = await Promise.race([fallbackOCR1(canvas, fileName), timeoutPromise]);
+                    if (textResult && textResult.trim()) {
+                        return textResult;
+                    } else {
+                        throw new Error('备用接口1未识别到有效内容');
+                    }
+                } catch (fallback1Error) {
+                    allErrors.push(fallback1Error.message);
+                    console.log(`备用接口1失败，尝试备用接口2...`);
+                    
+                    // 尝试备用接口2
+                    try {
+                        const textResult = await Promise.race([fallbackOCR2(canvas, fileName), timeoutPromise]);
+                        if (textResult && textResult.trim()) {
+                            return textResult;
+                        } else {
+                            throw new Error('备用接口2未识别到有效内容');
+                        }
+                    } catch (fallback2Error) {
+                        allErrors.push(fallback2Error.message);
+                        console.log(`所有OCR接口均失败`);
+                        // 所有接口都失败，抛出综合错误
+                        throw new Error(`所有OCR接口失败: ${allErrors.join(', ')}`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`文件 ${fileName} 文字识别最终失败:`, error);
+            throw error;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+    
+    // 从二维码结果中提取信息（包括文字识别结果）
     function extractInfoFromQrResults() {
-        const qrResults = document.getElementById('qrResults').value;
         const extractedInfo = document.getElementById('extractedInfo');
         const statusSection = document.getElementById('qrParserStatus');
         
-        if (!qrResults.trim()) {
+        if (Object.keys(imageParseResults).length === 0) {
             showQrParserStatus('请先解析二维码', 'error');
             return;
         }
         
         // 使用正则表达式提取15位以内的数字
-        const lines = qrResults.split('\n');
         const extractedNumbers = [];
         
-        lines.forEach(line => {
-            if (line.startsWith('二维码内容:')) {
-                const content = line.replace('二维码内容:', '').trim();
-                // 提取末尾的15位以内数字
-                const match = content.match(/(\d{1,15})$/);
-                if (match) {
-                    extractedNumbers.push(match[1]);
-                }
+        // 按文件处理结果
+        for (const fileId in imageParseResults) {
+            const result = imageParseResults[fileId];
+            let currentFileContent = '';
+            
+            if (result.qrContent && result.qrContent !== '未找到二维码' && result.qrContent !== '图片加载失败' && result.qrContent !== '文件读取失败') {
+                currentFileContent += result.qrContent + ' ';
             }
-        });
+            
+            if (result.textContent && result.textContent !== '未进行文字识别' && result.textContent !== '未识别到文字' && !result.textContent.startsWith('识别错误:')) {
+                currentFileContent += result.textContent + ' ';
+            }
+            
+            if (currentFileContent) {
+                extractNumbersFromContent(currentFileContent, extractedNumbers, result.fileName);
+            }
+        }
+    }
+    
+    // 从内容中提取数字
+    function extractNumbersFromContent(content, extractedNumbers, fileName) {
+        // 提取所有1-15位的连续数字
+        const matches = content.match(/\d{1,15}/g);
+        if (matches) {
+            // 去重并添加到结果数组
+            const uniqueNumbers = [...new Set(matches)];
+            uniqueNumbers.forEach(number => {
+                if (!extractedNumbers.includes(number)) {
+                    extractedNumbers.push(number);
+                }
+            });
+        }
         
         if (extractedNumbers.length > 0) {
             extractedInfo.value = extractedNumbers.join('\n');
@@ -4203,10 +4910,13 @@
         document.getElementById('fileUpload').value = '';
         document.getElementById('qrResults').value = '';
         document.getElementById('extractedInfo').value = '';
+        document.getElementById('imagePreviewArea').innerHTML = '';
         document.getElementById('extractInfoBtn').disabled = true;
         document.getElementById('copyExtractedBtn').disabled = true;
         document.getElementById('formatForBackendBtn').disabled = true;
         document.getElementById('qrParserStatus').style.display = 'none';
+        document.getElementById('dropText').textContent = '📁 点击或拖拽图片文件到这里上传';
+        imageParseResults = {};
     }
     
     // 复制提取的信息
@@ -4387,5 +5097,4 @@
     
     </script>
 </body>
-</html>
-
+</html>@

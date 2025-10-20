@@ -1273,7 +1273,7 @@
         <section id="waterValueTool" class="calculator" style="display:none;">
             <h2>💧 洗浴水控 金额水量换算</h2>
             <div class="button-group">
-                <button id="clearWaterPriceBtn" class="btn-danger">🗑️ 清空数据</button>
+                <button id="clearWaterValueBtn" class="btn-danger">🗑️ 清空数据</button>
             </div>
             <div class="form-group">
                 <label>金额 (元):</label>
@@ -2358,6 +2358,17 @@
         }
 
         // 水单价计算函数
+        // 清空洗浴水控数据函数
+        function clearWaterValueData() {
+            document.getElementById('amount').value = '';
+            document.getElementById('waterVolume').value = '';
+            document.getElementById('pricePerMl').value = '';
+            document.getElementById('waterCalculations').innerHTML = '请输入任意两个参数进行计算';
+        }
+
+        // 绑定洗浴水控清空按钮事件
+        document.getElementById('clearWaterValueBtn').addEventListener('click', clearWaterValueData);
+
         // 水控单价计算函数
         function calculateWaterPrice() {
             const waterVolume = parseFloat(document.getElementById('waterVolume2').value) || 0;
@@ -5097,4 +5108,4 @@
     
     </script>
 </body>
-</html>@
+</html>

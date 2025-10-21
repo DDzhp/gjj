@@ -148,6 +148,20 @@
             .mobile-menu-btn {
                 display: block !important;
             }
+            
+            /* 移动端整体文字缩小20% */
+            body {
+                font-size: 80%;
+            }
+            
+            /* 调整弹窗内元素字体大小 */
+            #toolModal h3 {
+                font-size: 16px;
+            }
+            
+            #toolModal button[data-tool-id] {
+                font-size: 12.8px;
+            }
         }
 
         /* ===== 移动端菜单按钮 ===== */
@@ -5636,10 +5650,17 @@
                                     if (toolId && typeof window.showTool === 'function') {
                                         window.showTool(toolId);
                                         
-                                        // 如果按钮在弹窗内，关闭弹窗
-                                        if (elements.toolModal && elements.toolModal.contains(this)) {
-                                            window.toggleToolModal();
-                                        }
+                                        // 强制关闭工具列表弹窗，无论按钮位置
+                                        setTimeout(function() {
+                                            try {
+                                                const toolModal = document.getElementById('toolModal');
+                                                if (toolModal && toolModal.style.display === 'flex') {
+                                                    window.toggleToolModal();
+                                                }
+                                            } catch (closeErr) {
+                                                console.error('关闭弹窗出错:', closeErr.message);
+                                            }
+                                        }, 100); // 短暂延迟确保工具切换完成后再关闭弹窗
                                     }
                                 } catch (err) {
                                     console.error('工具按钮点击出错:', err.message);

@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚡️工具集⚡️</title>
     <!-- 网站图标 -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -47,30 +49,238 @@
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            font-size: 16px;
+        }
+        
+        /* ===== 响应式设计 ===== */
+        @media (max-width: 768px) {
+            body {
+                font-size: 18px;
+                padding-bottom: 20px;
+            }
+            
+            .container {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 15px !important;
+                max-width: none !important;
+            }
+            
+            /* 调整输入框和按钮大小 */
+            input, button, textarea, select {
+                font-size: 18px !important;
+                padding: 15px !important;
+                min-height: 52px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            
+            /* 调整表格单元格字体大小 */
+            table {
+                width: 100% !important;
+                font-size: 16px !important;
+            }
+            
+            td, th {
+                font-size: 16px !important;
+                padding: 10px !important;
+                word-break: break-all !important;
+            }
+            
+            /* 调整标题大小 */
+            h1, h2, h3, h4, h5, h6 {
+                font-size: 1.5rem !important;
+                margin: 15px 0 !important;
+                line-height: 1.3 !important;
+            }
+            
+            /* 确保内容不超出屏幕 */
+            .card {
+                padding: 15px !important;
+                margin: 10px 0 !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            
+            /* 调整工具列表弹窗 */
+            #toolModal > div {
+                width: 100% !important;
+                max-width: none !important;
+                margin: 70px 0 0 0 !important;
+                padding: 25px 20px !important;
+                font-size: 18px !important;
+                border-radius: 20px 0 0 0 !important;
+                max-height: calc(100vh - 70px) !important;
+            }
+            
+            /* 弹窗按钮触摸效果 */
+            #toolModal button[data-tool-id]:active {
+                background: var(--primary-gradient) !important;
+                color: white !important;
+                transform: scale(0.98);
+            }
+            
+            /* 调整结果展示区域 */
+            #result, #parsedParams, .result-container {
+                font-size: 16px !important;
+                padding: 15px !important;
+                overflow-x: auto !important;
+            }
+            
+            /* 隐藏桌面端工具导航 */
+            #mainToolSwitcher {
+                display: none !important;
+            }
+            
+            #toggleToolsBtn {
+                display: none !important;
+            }
+            
+            /* 调整右上角工具按钮位置 */
+            #topToolSwitchBtn {
+                right: 70px !important;
+                top: 12px !important;
+                font-size: 13px !important;
+                padding: 8px 12px !important;
+            }
+            
+            /* 调整移动端菜单按钮 */
+            .mobile-menu-btn {
+                display: block !important;
+            }
         }
 
         /* ===== 移动端菜单按钮 ===== */
         .mobile-menu-btn {
             display: none;
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 15px;
+            right: 15px;
             z-index: 1000;
             background: var(--primary-gradient);
             color: white;
             border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
+            border-radius: 12px;
+            width: 56px;
+            height: 56px;
+            font-size: 28px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
             transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .mobile-menu-btn:hover {
+        .mobile-menu-btn:hover, .mobile-menu-btn:active {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* ===== 移动端菜单样式 ===== */
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        
+        .mobile-menu-content {
+            background: white;
+            border-radius: 20px;
+            padding: 35px 25px 25px;
+            width: 92%;
+            max-width: 380px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            animation: menuSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes menuSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .close-menu-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+        
+        .close-menu-btn:hover, .close-menu-btn:active {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mobile-tool-switcher {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 15px;
+        }
+        
+        .mobile-tool-switcher button {
+            padding: 18px 20px;
+            text-align: left;
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #e9ecef;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .mobile-tool-switcher button:hover, .mobile-tool-switcher button:active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px) translateX(3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
         }
         
         /* ===== 容器样式 ===== */
@@ -1055,6 +1265,30 @@
         
         <!-- 移动端菜单按钮 -->
         <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
+        
+        <script>
+        // 移动端菜单切换函数
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenu.style.display === 'flex') {
+                mobileMenu.style.display = 'none';
+            } else {
+                mobileMenu.style.display = 'flex';
+            }
+        }
+        
+        // 点击页面其他地方关闭移动菜单
+        document.addEventListener('click', function(event) {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            
+            if (mobileMenu.style.display === 'flex' && 
+                !mobileMenu.contains(event.target) && 
+                event.target !== mobileMenuBtn) {
+                mobileMenu.style.display = 'none';
+            }
+        });
+        </script>
 
         <!-- 移动端菜单容器 -->
         <div id="mobileMenu" class="mobile-menu" style="display: none;">
@@ -1079,26 +1313,26 @@
         </div>
         
         <!-- 工具列表弹窗 -->
-        <div id="toolModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: flex-end; align-items: flex-start;">
-            <div style="background: white; border-radius: 15px; padding: 25px; width: 90%; max-width: 350px; max-height: 70vh; overflow-y: auto; margin: 60px 20px 0 0;">
+        <div id="toolModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: flex-end; align-items: flex-start; backdrop-filter: blur(4px);">
+            <div style="background: white; border-radius: 20px 0 20px 20px; padding: 30px 25px 25px; width: 95%; max-width: 400px; max-height: 85vh; overflow-y: auto; margin: 70px 0 0 0; box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3); animation: slideInRight 0.3s ease-out;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>🛠️ 工具列表</h3>
-                    <button id="closeToolModalBtn" style="background: none; border: none; font-size: 24px; cursor: pointer;">✕</button>
+                    <h3 style="font-size: 20px; font-weight: 600; margin: 0; color: var(--text-primary);">🛠️ 工具列表</h3>
+                    <button id="closeToolModalBtn" style="background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">✕</button>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button data-tool-id="pulseTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">🔄 脉冲计算器</button>
-                    <button data-tool-id="conversionTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">🔢 进制转换器</button>
-                    <button data-tool-id="paramParser" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">📋 入库参数解析</button>
-                    <button data-tool-id="iccidTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">📱 ICCID详情</button>
-                    <button data-tool-id="excelTemplateTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">📋 IC卡号处理</button>
-                    <button data-tool-id="serialNumberTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">🔢 生成流水号</button>
-                    <button data-tool-id="waterValueTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">💧 洗浴单价</button>
-                    <button data-tool-id="waterPriceTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">🚰 水控单价</button>
-                    <button data-tool-id="csv89860Tool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">📊 修复iccid乱码</button>
-                    <button data-tool-id="qrGeneratorTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">🔲 二维码生成器</button>
-                    <button data-tool-id="logAnalysisTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">📊 日志分析器</button>
-                    <button data-tool-id="logAnalysisTool2" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">📊 日志解析器</button>
-                    <button data-tool-id="qrParserTool" style="padding: 12px 20px; text-align: left; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer;">🔍 解析二维码</button>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button data-tool-id="pulseTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🔄 脉冲计算器</button>
+                    <button data-tool-id="conversionTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🔢 进制转换器</button>
+                    <button data-tool-id="paramParser" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📋 入库参数解析</button>
+                    <button data-tool-id="iccidTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📱 ICCID详情</button>
+                    <button data-tool-id="excelTemplateTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📋 IC卡号处理</button>
+                    <button data-tool-id="serialNumberTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🔢 生成流水号</button>
+                    <button data-tool-id="waterValueTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">💧 洗浴单价</button>
+                    <button data-tool-id="waterPriceTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🚰 水控单价</button>
+                    <button data-tool-id="csv89860Tool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📊 修复iccid乱码</button>
+                    <button data-tool-id="qrGeneratorTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🔲 二维码生成器</button>
+                    <button data-tool-id="logAnalysisTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📊 日志分析器</button>
+                    <button data-tool-id="logAnalysisTool2" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📊 日志解析器</button>
+                    <button data-tool-id="qrParserTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🔍 解析二维码</button>
                 </div>
             </div>
         </div>

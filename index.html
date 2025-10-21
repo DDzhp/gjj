@@ -6,16 +6,20 @@
     <!-- 网站图标 -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="./logDecode.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script> -->
+    <script src="js/xlsx.full.min.js"></script>
+    <script src="js/logDecode.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script> -->
+    <script src="js/jsQR.min.js"></script>
     <!-- Tesseract.js - 用于文字识别 -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script> -->
+    <script src="js/tesseract.min.js"></script>
     <!-- OCRAD.js - 轻量级OCR库（备用1） -->
-    <script src="https://cdn.jsdelivr.net/npm/ocrad.js@0.0.1/ocrad.js"></script>
-    <!-- canvas-ocr - 轻量级OCR库（备用2） -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-ocr@0.1.4/build/canvas-ocr.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/ocrad.js@0.0.1/ocrad.js"></script> -->
+    <script src="js/ocrad.js"></script>
+
     <style>
         /* ===== CSS变量定义 ===== */
         :root {
@@ -1008,9 +1012,8 @@
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: center; align-items: center;">
             <h1 style="font-family:arial;margin-right: 10px;color:#007bff;">⚡️YL工具集⚡️</h1>
-            <button id="toolPopupBtn" onclick="toggleToolPopup()" style="padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🔧 工具切换</button>
         </div>
 
         <!-- 教程目录部分 -->
@@ -1023,6 +1026,8 @@
                 <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=62&sign=9aa417293f0f3753fad23457f5fb6973"style="font-family:margin-left: 10px;arial;color:black;">公众号教程目录</a>
                 <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=134&sign=ef12fc1f6bd4d2491f3db21ab5cd3e3f"style="font-family:margin-left: 10px;arial;color:black;">硬件产品备忘录</a>
             </div>
+                <button id="toolPopupBtn" onclick="toggleToolPopup()" style="padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;float:right;">🔧 工具切换</button>
+
         </div>
 
         <div style="position: relative;">
@@ -1448,16 +1453,60 @@
                 // 获取按钮的位置
                 const btnRect = toolPopupBtn.getBoundingClientRect();
                 
-                // 设置弹窗位置在按钮旁边（左侧）
-                toolPopup.style.position = 'absolute';
-                toolPopup.style.left = (btnRect.left - 280 - 10) + 'px'; // 弹窗宽度 + 间距
-                toolPopup.style.top = btnRect.top + 'px';
+                // 设置弹窗位置在按钮上方
+                toolPopup.style.position = 'fixed';
+                toolPopup.style.right = (window.innerWidth - btnRect.right + 10) + 'px'; // 从右侧定位
+                toolPopup.style.top = (btnRect.top - 10) + 'px'; // 与按钮顶部对齐
+                
+                // 获取弹窗内容元素并添加美化样式
+                const popupContent = toolPopup.querySelector('div');
+                popupContent.style.position = 'relative';
+                popupContent.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.15)';
+                popupContent.style.borderRadius = '8px';
+                
+                // 添加向下的箭头指示器
+                let arrow = document.getElementById('popupArrow');
+                if (!arrow) {
+                    arrow = document.createElement('div');
+                    arrow.id = 'popupArrow';
+                    arrow.style.position = 'absolute';
+                    arrow.style.bottom = '-8px';
+                    arrow.style.right = '30px';
+                    arrow.style.width = '0';
+                    arrow.style.height = '0';
+                    arrow.style.borderLeft = '8px solid transparent';
+                    arrow.style.borderRight = '8px solid transparent';
+                    arrow.style.borderTop = '8px solid white';
+                    popupContent.appendChild(arrow);
+                }
+                
+                // 确保弹窗在视口内
+                if (parseInt(toolPopup.style.top) < 0) {
+                    toolPopup.style.top = '10px';
+                }
                 
                 toolPopup.style.display = 'block';
+                
+                // 添加点击外部关闭弹窗的事件
+                document.addEventListener('click', closePopupOnClickOutside);
             } else {
                 toolPopup.style.display = 'none';
+                document.removeEventListener('click', closePopupOnClickOutside);
             }
         }
+        
+        // 点击外部关闭弹窗
+        function closePopupOnClickOutside(event) {
+            const toolPopup = document.getElementById('toolPopup');
+            const toolPopupBtn = document.getElementById('toolPopupBtn');
+            
+            if (toolPopup.style.display === 'block' && 
+                !toolPopup.contains(event.target) && 
+                event.target !== toolPopupBtn) {
+                toolPopup.style.display = 'none';
+                document.removeEventListener('click', closePopupOnClickOutside);
+            }
+          }
         
         // 点击弹窗外部关闭弹窗
         document.addEventListener('click', function(event) {

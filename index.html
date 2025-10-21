@@ -1008,32 +1008,47 @@
 </head>
 <body>
     <div class="container">
-        <h1 style="font-family:arial;margin-right: 10px;color:#007bff;">⚡️YL工具集⚡️</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="font-family:arial;margin-right: 10px;color:#007bff;">⚡️YL工具集⚡️</h1>
+            <button id="toolPopupBtn" onclick="toggleToolPopup()" style="padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🔧 工具切换</button>
+        </div>
 
-        <a>教程目录：</a>
-        <a href="http://docx.yuelongxinxi.com/login.html"style="font-family:arial;margin-right: 10px;color:black;">登录;</a>
+        <!-- 教程目录部分 -->
+        <div style="margin: 10px 0;">
+            <span>教程目录：</span>
+            <button id="toggleDocsBtn" onclick="toggleDocumentation()" style="padding: 2px 8px; margin-left: 10px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 12px; color: black;">▼</button>
+            <div id="docsContainer" style="display: none; margin-top: 5px;">
+                <a href="http://docx.yuelongxinxi.com/login.html"style="font-family:arial;margin-right: 10px;color:black;">登录;</a>
+                <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=63&sign=e21406567970f804d6aef89bd77d6c19"style="font-family:arial;margin-right: 10px;color:black;">平台教程目录;</a>
+                <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=62&sign=9aa417293f0f3753fad23457f5fb6973"style="font-family:margin-left: 10px;arial;color:black;">公众号教程目录</a>
+                <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=134&sign=ef12fc1f6bd4d2491f3db21ab5cd3e3f"style="font-family:margin-left: 10px;arial;color:black;">硬件产品备忘录</a>
+            </div>
+        </div>
 
-        <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=63&sign=e21406567970f804d6aef89bd77d6c19"style="font-family:arial;margin-right: 10px;color:black;">平台教程目录;</a>
-
-        <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=62&sign=9aa417293f0f3753fad23457f5fb6973"style="font-family:margin-left: 10px;arial;color:black;">公众号教程目录</a>
-        
-        <a href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=134&sign=ef12fc1f6bd4d2491f3db21ab5cd3e3f"style="font-family:margin-left: 10px;arial;color:black;">硬件产品备忘录</a>
-
-        <nav class="tool-switcher">
-            <button onclick="showTool('pulseTool')">🔄 脉冲计算器</button>
-            <button onclick="showTool('conversionTool')">🔢 进制转换器</button>
-            <button onclick="showTool('paramParser')">📋 入库参数解析</button>
-            <button onclick="showTool('iccidTool')">📱 ICCID详情</button>
-            <button onclick="showTool('excelTemplateTool')">📋 IC卡号处理</button>
-            <button onclick="showTool('serialNumberTool')">🔢 生成流水号</button>
-            <button onclick="showTool('waterValueTool')">💧 洗浴单价</button>
-            <button onclick="showTool('waterPriceTool')">🚰 水控单价</button>
-            <button onclick="showTool('csv89860Tool')">📊 修复iccid乱码</button>
-            <button onclick="showTool('qrGeneratorTool')">🔲 二维码生成器</button>
-            <button onclick="showTool('logAnalysisTool')">📊 日志分析器</button>
-            <button onclick="showTool('logAnalysisTool2')">📊 日志解析器</button>
-        <button onclick="showTool('qrParserTool')">🔍 解析二维码</button>
-        </nav>
+        <div style="position: relative;">
+            <nav class="tool-switcher" id="mainToolSwitcher">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div>
+                        <button onclick="showTool('pulseTool')">🔄 脉冲计算器</button>
+                        <button onclick="showTool('excelTemplateTool')">📋 IC卡号处理</button>
+                    </div>
+                    <button id="toggleToolsBtn" onclick="toggleToolSwitcher()" style="padding: 5px 10px; background-color: #6c757d; color: black; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">▶ 展开</button>
+                </div>
+                <div id="additionalTools" style="display: none; margin-top: 10px;">
+                    <button onclick="showTool('conversionTool')">🔢 进制转换器</button>
+                    <button onclick="showTool('paramParser')">📋 入库参数解析</button>
+                    <button onclick="showTool('iccidTool')">📱 ICCID详情</button>
+                    <button onclick="showTool('serialNumberTool')">🔢 生成流水号</button>
+                    <button onclick="showTool('waterValueTool')">💧 洗浴单价</button>
+                    <button onclick="showTool('waterPriceTool')">🚰 水控单价</button>
+                    <button onclick="showTool('csv89860Tool')">📊 修复iccid乱码</button>
+                    <button onclick="showTool('qrGeneratorTool')">🔲 二维码生成器</button>
+                    <button onclick="showTool('logAnalysisTool')">📊 日志分析器</button>
+                    <button onclick="showTool('logAnalysisTool2')">📊 日志解析器</button>
+                    <button onclick="showTool('qrParserTool')">🔍 解析二维码</button>
+                </div>
+            </nav>
+        </div>
         
         <!-- 移动端菜单按钮 -->
         <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
@@ -1059,6 +1074,31 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 工具切换弹窗 -->
+        <div id="toolPopup" style="display: none; position: absolute; z-index: 1000;">
+            <div style="background-color: white; padding: 15px; border-radius: 8px; width: 280px; max-height: 60vh; overflow-y: auto; border: 1px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">选择工具</h3>
+                    <button onclick="toggleToolPopup()" style="background: none; border: none; font-size: 18px; cursor: pointer;">✕</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button onclick="showTool('pulseTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">🔄 脉冲计算器</button>
+                    <button onclick="showTool('conversionTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">🔢 进制转换器</button>
+                    <button onclick="showTool('paramParser'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">📋 入库参数解析</button>
+                    <button onclick="showTool('iccidTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">📱 ICCID详情</button>
+                    <button onclick="showTool('excelTemplateTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">📋 IC卡号处理</button>
+                    <button onclick="showTool('serialNumberTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">🔢 生成流水号</button>
+                    <button onclick="showTool('waterValueTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">💧 洗浴单价</button>
+                    <button onclick="showTool('waterPriceTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">🚰 水控单价</button>
+                    <button onclick="showTool('csv89860Tool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">📊 修复iccid乱码</button>
+                    <button onclick="showTool('qrGeneratorTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">🔲 二维码生成器</button>
+                    <button onclick="showTool('logAnalysisTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">📊 日志分析器</button>
+                    <button onclick="showTool('logAnalysisTool2'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">📊 日志解析器</button>
+                    <button onclick="showTool('qrParserTool'); toggleToolPopup();" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; cursor: pointer;">🔍 解析二维码</button>
+                </div>
+            </div>
+        </div>
 
         <!-- IC卡号处理工具模块 -->
         <section id="excelTemplateTool" class="calculator">
@@ -1073,7 +1113,7 @@
                 <select id="templateSelect">
                     <option value="ic卡入库模板.xls" selected>ic卡入库模板.xls</option>
                 </select>
-                <div id="templateStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px;">🔄 正在加载远程模板...</div>
+                <div id="templateStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px;">📋 模板将在点击处理按钮后加载</div>
             </div>
             <div class="button-group">
                 <button onclick="processExcelFile()" class="btn-primary" disabled>📊 处理Excel文件</button>
@@ -1355,15 +1395,88 @@
         let uploadedFileName = '';
         let templateWorkbook = null;
         let loadedTemplates = new Map(); // 存储已加载的模板文件
+        let isTemplateLoading = false; // 标记模板是否正在加载中
+        
+        // 初始化函数
+        window.onload = function() {
+            // 绑定Excel文件上传事件
+            document.getElementById('excelFileInput').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    readExcelFile(file);
+                }
+            });
+            
+            // 默认显示脉冲计算器工具
+            showTool('pulseTool');
+        };
+        
+        // 切换工具切换器的收起/展开状态
+        function toggleToolSwitcher() {
+            const additionalTools = document.getElementById('additionalTools');
+            const toggleBtn = document.getElementById('toggleToolsBtn');
+            
+            if (additionalTools.style.display === 'none') {
+                additionalTools.style.display = 'block';
+                toggleBtn.textContent = '▼ 收起';
+            } else {
+                additionalTools.style.display = 'none';
+                toggleBtn.textContent = '▶ 展开';
+            }
+        }
+        
+        // 切换教程目录的收起/展开状态
+        function toggleDocumentation() {
+            const docsContainer = document.getElementById('docsContainer');
+            const toggleBtn = document.getElementById('toggleDocsBtn');
+            
+            if (docsContainer.style.display === 'none') {
+                docsContainer.style.display = 'block';
+                toggleBtn.textContent = '▼';
+            } else {
+                docsContainer.style.display = 'none';
+                toggleBtn.textContent = '▶';
+            }
+        }
+        
+        // 切换工具切换弹窗
+        function toggleToolPopup() {
+            const toolPopup = document.getElementById('toolPopup');
+            const toolPopupBtn = document.getElementById('toolPopupBtn');
+            
+            if (toolPopup.style.display === 'none') {
+                // 获取按钮的位置
+                const btnRect = toolPopupBtn.getBoundingClientRect();
+                
+                // 设置弹窗位置在按钮旁边（左侧）
+                toolPopup.style.position = 'absolute';
+                toolPopup.style.left = (btnRect.left - 280 - 10) + 'px'; // 弹窗宽度 + 间距
+                toolPopup.style.top = btnRect.top + 'px';
+                
+                toolPopup.style.display = 'block';
+            } else {
+                toolPopup.style.display = 'none';
+            }
+        }
+        
+        // 点击弹窗外部关闭弹窗
+        document.addEventListener('click', function(event) {
+            const toolPopup = document.getElementById('toolPopup');
+            const toolPopupBtn = document.getElementById('toolPopupBtn');
+            
+            if (toolPopup.style.display === 'block' && !toolPopup.contains(event.target) && event.target !== toolPopupBtn) {
+                toggleToolPopup();
+            }
+        });
         
         // 远程模板配置（多重备用方案）
         const remoteTemplateConfig = {
             // 🔗 主方案使用GitHub Raw，更稳定可靠
-            templateUrl: 'https://w.tcloud.yuelongxinxi.com/tpl/iccard/ic_water.xls',
+            templateUrl: 'https://gitee.com/zhanghuiping6096/gjj/raw/main/ic%E5%8D%A1%E5%85%A5%E5%BA%93%E6%A8%A1%E6%9D%BF.xls',
             templateName: 'ic_water.xls',
             // 多个备用URL（按优先级排序）
             fallbackUrls: [
-                'https://w.tcloud.yuelongxinxi.com/tpl/iccard/ic_water.xls',  // YL x.t服务器
+                'https://gitee.com/zhanghuiping6096/gjj/raw/main/ic%E5%8D%A1%E5%85%A5%E5%BA%93%E6%A8%A1%E6%9D%BF.xls',  // gitee pages
                 'https://raw.githubusercontent.com/DDzhp/ICkamuban/main/ic卡入库模板.xls',  // Gitee Pages
                 'https://cdn.jsdelivr.net/gh/DDzhp/ICkamuban/ic卡入库模板.xls',  // jsDelivr CDN
                 'https://your-username.coding.net/p/your-project/d/your-repo/git/raw/master/ic卡入库模板.xls'  // Coding.net
@@ -1747,18 +1860,35 @@
         async function processExcelFile() {
             const statusDiv = document.getElementById('excelProcessStatus');
             const templateName = document.getElementById('templateSelect').value;
+            const templateStatusDiv = document.getElementById('templateStatus');
             
             if (!excelData || !templateName) {
                 statusDiv.innerHTML = '请确保已上传文件并选择模板';
                 return;
             }
             
-            if (!loadedTemplates.has(templateName)) {
-                statusDiv.innerHTML = '选中的模板文件不存在，请重新加载模板';
-                return;
-            }
-            
             try {
+                // 检查模板是否已加载，如果没有则加载模板
+                if (!loadedTemplates.has(templateName) && !isTemplateLoading) {
+                    statusDiv.innerHTML = '🔄 正在加载模板文件...';
+                    templateStatusDiv.innerHTML = '🔄 正在加载远程模板...';
+                    isTemplateLoading = true;
+                    
+                    // 加载模板
+                    await loadRemoteTemplate();
+                    
+                    // 检查模板是否加载成功
+                    if (!loadedTemplates.has(templateName)) {
+                        statusDiv.innerHTML = '❌ 模板加载失败，请稍后重试';
+                        templateStatusDiv.innerHTML = '📋 模板加载失败，请点击处理按钮重新尝试';
+                        isTemplateLoading = false;
+                        return;
+                    }
+                    
+                    isTemplateLoading = false;
+                    templateStatusDiv.innerHTML = '✅ 模板加载成功';
+                }
+                
                 statusDiv.innerHTML = '🔄 正在使用模板处理数据...';
                 
                 // 获取模板工作簿和来源信息
@@ -1917,6 +2047,7 @@
             parsedData = { waterCardNumbers: [], serialNumbers: [] };
             uploadedFileName = '';
             templateWorkbook = null;
+            isTemplateLoading = false;
             document.getElementById('excelFileInput').value = '';
             document.getElementById('templateSelect').value = '';
             document.getElementById('templateFileInput').value = '';
@@ -1936,19 +2067,18 @@
         // 更新处理按钮状态
         function updateProcessButton() {
             const hasFile = excelData !== null;
-            const hasTemplate = document.getElementById('templateSelect').value !== '' && loadedTemplates.has('ic卡入库模板.xls');
+            const templateName = document.getElementById('templateSelect').value;
+            const hasTemplate = templateName !== '' && loadedTemplates.has(templateName);
             const processButton = document.querySelector('#excelTemplateTool .btn-primary');
-            processButton.disabled = !(hasFile && hasTemplate);
+            
+            // 只有上传了文件就可以点击处理按钮（模板将在点击后加载）
+            processButton.disabled = !hasFile;
             
             // 更新按钮文本显示当前状态
             if (processButton.disabled) {
-                if (!hasFile) {
-                    processButton.textContent = '📊 请先上传Excel文件';
-                } else if (!hasTemplate) {
-                    processButton.textContent = '📊 正在加载模板...';
-                }
+                processButton.textContent = '📊 请先上传Excel文件';
             } else {
-                processButton.textContent = '📊 处理Excel文件';
+                processButton.textContent = hasTemplate ? '📊 处理Excel文件' : '📊 处理并加载模板';
             }
         }
 

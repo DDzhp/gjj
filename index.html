@@ -5471,141 +5471,232 @@
                 toolModal: null
             };
             
-            // DOM元素初始化
+            /**
+             * DOM元素初始化函数
+             * 负责获取并缓存页面中所有需要操作的DOM元素引用
+             * 这些元素引用存储在全局elements对象中供其他函数使用
+             */
             function initElements() {
+                // 获取教程目录切换按钮
                 elements.toggleTutorialBtn = document.getElementById('toggleTutorialBtn');
+                // 获取工具导航栏切换按钮
                 elements.toggleToolsBtn = document.getElementById('toggleToolsBtn');
+                // 获取右上角工具列表按钮
                 elements.topToolSwitchBtn = document.getElementById('topToolSwitchBtn');
+                // 获取教程目录容器
                 elements.tutorialsContainer = document.getElementById('tutorialsContainer');
+                // 获取主工具切换器
                 elements.toolSwitcher = document.getElementById('mainToolSwitcher');
+                // 获取工具列表弹窗
                 elements.toolModal = document.getElementById('toolModal');
             }
             
-            // 教程目录收起/展开函数
+            /**
+             * 教程目录收起/展开函数
+             * 切换教程目录的显示状态，并更新切换按钮的文本
+             */
             window.toggleTutorials = function() {
                 try {
+                    // 解构获取需要的元素引用
                     const { tutorialsContainer, toggleTutorialBtn } = elements;
-                    if (!tutorialsContainer || !toggleTutorialBtn) return;
                     
+                    // 检查元素是否有效，无效则直接返回
+                    if (!isValidElement(tutorialsContainer) || !isValidElement(toggleTutorialBtn)) return;
+                    
+                    // 判断当前目录是否隐藏
                     const isHidden = tutorialsContainer.style.display === 'none';
+                    
+                    // 切换目录显示状态：如果隐藏则显示(block)，否则隐藏(none)
                     tutorialsContainer.style.display = isHidden ? 'block' : 'none';
+                    
+                    // 更新按钮文本：显示向上箭头表示已展开，向下箭头表示已收起
                     toggleTutorialBtn.textContent = isHidden ? '▲' : '▼';
                 } catch (err) {
-                    console.error('切换教程目录出错:', err.message);
+                    // 统一错误处理
+                    handleError('切换教程目录', err);
                 }
             };
             
-            // 工具导航栏收起/展开函数
+            /**
+             * 辅助函数：检查DOM元素是否有效
+             * @param {HTMLElement} element - 需要检查的DOM元素
+             * @returns {boolean} - 如果元素存在且为DOM元素节点，则返回true，否则返回false
+             */
+            function isValidElement(element) {
+                // 检查元素是否存在且节点类型为1(Element节点)
+                return element && element.nodeType === 1;
+            }
+            
+            /**
+             * 辅助函数：统一错误处理
+             * 提供标准化的错误记录机制，方便调试和错误追踪
+             * @param {string} operation - 错误发生的操作描述
+             * @param {Error} error - 捕获到的错误对象
+             */
+            function handleError(operation, error) {
+                console.error(`${operation}出错:`, error.message);
+            }
+            
+            /**
+             * 更新工具按钮可见性的公共函数
+             * 根据显示模式控制工具按钮的显示/隐藏状态
+             * @param {NodeList|Array} buttons - 工具按钮集合
+             * @param {boolean} shouldShowAll - 是否显示所有按钮，默认为false（仅显示常用工具）
+             */
+            function updateToolButtonsVisibility(buttons, shouldShowAll = false) {
+                // 遍历所有按钮
+                buttons.forEach(btn => {
+                    // 检查按钮元素是否有效
+                    if (isValidElement(btn)) {
+                        // 如果设置为显示全部，则直接显示所有按钮
+                        if (shouldShowAll) {
+                            btn.style.display = 'inline-block';
+                            return;
+                        }
+                        
+                        // 获取按钮文本内容（防止文本为空的情况）
+                        const btnText = btn.textContent || '';
+                        // 判断按钮是否为当前激活状态
+                        const isActive = btn.classList.contains('active');
+                        // 定义常用工具类型判断
+                        const isIcCardTool = btnText.includes('IC卡号处理');
+                        const isPulseTool = btnText.includes('脉冲计算器');
+                        // 同时检查大小写版本
+                        const isIccidTool = btnText.includes('iccid详情') || btnText.includes('ICCID详情');
+                        const isSerialTool = btnText.includes('生成流水号');
+                        const isQRTool = btnText.includes('解析二维码');
+                        const isQRGeneratorTool = btnText.includes('二维码生成器') || btnText.includes('二维码生成');
+                        
+                        // 设置按钮显示状态：如果是激活态或属于常用工具则显示（空字符串重置为默认显示），否则隐藏
+                        btn.style.display = (isActive || isIcCardTool || isPulseTool || 
+                                          isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool) ? '' : 'none';
+                    }
+                });
+            }
+            
+            /**
+             * 工具导航栏收起/展开函数
+             * 切换工具导航栏的展开/收起状态，并相应地更新按钮显示和文本内容
+             */
             window.toggleTools = function() {
                 try {
+                    // 解构获取需要的元素引用
                     const { toolSwitcher, toggleToolsBtn } = elements;
-                    if (!toolSwitcher || !toggleToolsBtn) return;
+                    
+                    // 使用统一的元素有效性检查
+                    if (!isValidElement(toolSwitcher) || !isValidElement(toggleToolsBtn)) return;
                     
                     const allButtons = toolSwitcher.querySelectorAll('button');
                     // 先获取当前状态的反向（要切换到的目标状态）
                     const targetExpanded = !appState.toolsExpanded;
                     
                     if (!targetExpanded) { // 如果目标状态是收起
-                        // 收起状态：只保留当前激活的工具、IC卡号处理工具和脉冲计算器
-                        allButtons.forEach(btn => {
-                            // 安全地检查按钮类型
-                            if (btn && btn.nodeType === 1) {
-                                const btnText = btn.textContent || '';
-                                const isActive = btn.classList.contains('active');
-                                const isIcCardTool = btnText.includes('IC卡号处理');
-                                const isPulseTool = btnText.includes('脉冲计算器');
-                                // 同时检查大小写版本
-                                const isIccidTool = btnText.includes('iccid详情') || btnText.includes('ICCID详情');
-                                const isSerialTool = btnText.includes('生成流水号');
-                                const isQRTool = btnText.includes('解析二维码');
-                                const isQRGeneratorTool = btnText.includes('二维码生成器') || btnText.includes('二维码生成');
-                                btn.style.display = (isActive || isIcCardTool || isPulseTool || isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool) ? '' : 'none';
-                            }
-                        });
+                        // 收起状态：只显示常用工具
+                        updateToolButtonsVisibility(allButtons, false);
                         toggleToolsBtn.textContent = '查看更多▼▲';
                     } else { // 如果目标状态是展开
                         // 展开状态：显示所有工具
-                        allButtons.forEach(btn => {
-                            if (btn && btn.nodeType === 1) {
-                                btn.style.display = 'inline-block';
-                            }
-                        });
+                        updateToolButtonsVisibility(allButtons, true);
                         toggleToolsBtn.textContent = '收起▲▼';
                     }
                     
                     // 先更新UI，再更新状态变量
                     appState.toolsExpanded = targetExpanded;
                 } catch (err) {
-                    console.error('切换工具栏出错:', err.message);
+                    // 使用统一的错误处理机制记录切换过程中发生的错误
+                    handleError('切换工具栏', err);
                 }
             };
             
-            // 添加点击工具导航栏空白区域切换菜单展开/收起状态的功能
+            /**
+             * 添加点击工具导航栏空白区域切换菜单展开/收起状态的功能
+             * 为工具导航栏添加点击事件监听，当用户点击导航栏本身（而非其中的按钮元素）时切换展开/收起状态
+             */
             function setupToolSwitcherClickHandler() {
                 try {
+                    // 获取工具导航栏元素引用
                     const { toolSwitcher } = elements;
-                    if (!toolSwitcher) return;
                     
+                    // 使用统一的元素有效性检查
+                    if (!isValidElement(toolSwitcher)) return;
+                    
+                    // 为工具导航栏添加点击事件监听器
                     toolSwitcher.addEventListener('click', function(event) {
-                        // 判断点击的是否是空白区域（不是按钮元素）
-                        if (event.target === toolSwitcher) {
-                            // 如果点击的是导航栏本身，则切换菜单展开/收起状态
+                        // 安全检查事件对象并判断点击目标是否是导航栏本身（即空白区域）
+                        if (event && event.target === toolSwitcher) {
+                            // 如果点击的是导航栏本身而非按钮，则调用toggleTools函数切换菜单展开/收起状态
                             window.toggleTools();
                         }
                     });
                 } catch (err) {
-                    console.error('设置工具导航栏点击处理器出错:', err.message);
+                    // 使用统一的错误处理机制记录事件绑定过程中发生的错误
+                    handleError('设置工具导航栏点击处理器', err);
                 }
             }
             
-            // 工具列表弹窗函数
+            /**
+             * 工具列表弹窗函数
+             * 切换工具列表弹窗的显示/隐藏状态，并相应地控制页面滚动行为
+             */
             window.toggleToolModal = function() {
                 try {
+                    // 获取工具弹窗元素引用
                     const modal = elements.toolModal;
-                    if (!modal) return;
                     
+                    // 使用统一的元素有效性检查
+                    if (!isValidElement(modal)) return;
+                    
+                    // 判断弹窗当前是否为打开状态（使用flex布局表示打开）
                     const isOpen = modal.style.display === 'flex';
+                    
+                    // 切换弹窗显示状态：如果已打开则隐藏(none)，否则显示(flex)
                     modal.style.display = isOpen ? 'none' : 'flex';
                     
-                    // 添加或移除body的overflow限制，防止背景滚动
+                    // 控制页面滚动：弹窗打开时禁止页面滚动，关闭时恢复滚动
                     document.body.style.overflow = isOpen ? '' : 'hidden';
                     
-                    // 添加或移除滚动禁止类名
-                    if (isOpen) {
-                        document.body.classList.remove('modal-open');
-                    } else {
-                        document.body.classList.add('modal-open');
-                    }
+                    // 添加或移除body的modal-open类名，用于样式控制
+                    document.body.classList.toggle('modal-open', !isOpen);
                 } catch (err) {
-                    console.error('切换工具弹窗出错:', err.message);
+                    // 使用统一的错误处理机制记录弹窗切换过程中的错误
+                    handleError('切换工具弹窗', err);
                 }
             };
             
-            // 扩展showTool函数，记录当前激活的工具
+            /**
+             * 扩展showTool函数，增加记录当前激活工具和更新按钮状态功能
+             * 采用函数包装模式，保留原始功能的同时增加额外的工具状态管理能力
+             */
             function enhanceShowTool() {
                 try {
+                    // 首先检查原始showTool函数是否存在
                     if (typeof window.showTool === 'function') {
+                        // 保存原始showTool函数引用，以便后续调用
                         const originalShowTool = window.showTool;
                         
+                        // 重写window.showTool函数
                         window.showTool = function(toolId) {
                             try {
-                                // 记录当前工具
+                                // 记录当前激活的工具ID到应用状态
                                 appState.currentActiveTool = toolId;
                                 
-                                // 调用原始函数
+                                // 调用原始函数，保留原有功能
                                 originalShowTool.apply(this, arguments);
                                 
                                 // 更新所有工具按钮的active状态
                                 const allButtons = document.querySelectorAll('.tool-switcher button');
+                                // 安全检查按钮集合
                                 if (allButtons && allButtons.length > 0) {
+                                    // 遍历每个按钮
                                     allButtons.forEach(btn => {
-                                        if (btn && btn.nodeType === 1) {
+                                        // 检查按钮元素是否有效
+                                        if (isValidElement(btn)) {
                                             try {
-                                                // 从按钮文本识别工具ID
+                                                // 获取按钮文本内容
                                                 const btnText = btn.textContent || '';
                                                 let shouldActivate = false;
                                                 
-                                                // 工具名称到ID的映射
+                                                // 工具名称到ID的映射表，用于根据按钮文本识别对应的工具ID
                                                 const toolMapping = {
                                                     '脉冲计算器': 'pulseTool',
                                                     '进制转换器': 'conversionTool',
@@ -5622,7 +5713,7 @@
                                                     '解析二维码': 'qrParserTool'
                                                 };
                                                 
-                                                // 检查按钮文本是否包含对应工具名称
+                                                // 遍历映射表，检查按钮文本是否包含对应工具名称，且ID匹配
                                                 for (const [name, id] of Object.entries(toolMapping)) {
                                                     if (btnText.includes(name) && id === toolId) {
                                                         shouldActivate = true;
@@ -5630,13 +5721,11 @@
                                                     }
                                                 }
                                                 
-                                                if (shouldActivate) {
-                                                    btn.classList.add('active');
-                                                } else {
-                                                    btn.classList.remove('active');
-                                                }
+                                                // 使用toggle方法根据shouldActivate值添加或移除active类
+                                                btn.classList.toggle('active', shouldActivate);
                                             } catch (btnErr) {
-                                                // 静默处理单个按钮的错误，不影响其他按钮
+                                                // 静默处理单个按钮的错误，不影响其他按钮更新
+                                                handleError('工具按钮状态更新', btnErr, true);
                                             }
                                         }
                                     });
@@ -5645,7 +5734,7 @@
                                 // 保持当前的展开/收起状态，无需额外操作
                             } catch (err) {
                                 console.error('执行showTool出错:', err.message);
-                                // 即使出错也尝试调用原始函数
+                                // 即使出错也尝试调用原始函数，确保基本功能正常
                                 originalShowTool.apply(this, arguments);
                             }
                         };
@@ -5655,77 +5744,83 @@
                 }
             }
             
-            // 绑定事件监听器
+            /**
+             * 绑定事件监听器
+             * 为所有交互元素添加统一的事件监听处理，包括按钮点击、弹窗交互、键盘事件和错误处理等
+             */
             function bindEvents() {
                 try {
-                    // 教程目录按钮
+                    // 教程目录按钮绑定事件
                     if (elements.toggleTutorialBtn) {
+                        // 移除内联onclick属性，改为使用标准的事件监听器
                         elements.toggleTutorialBtn.removeAttribute('onclick');
                         elements.toggleTutorialBtn.addEventListener('click', window.toggleTutorials);
                     }
                     
-                    // 工具导航按钮
+                    // 工具导航按钮绑定事件
                     if (elements.toggleToolsBtn) {
                         elements.toggleToolsBtn.removeAttribute('onclick');
                         elements.toggleToolsBtn.addEventListener('click', window.toggleTools);
                     }
                     
-                    // 教程目录按钮
-                    if (elements.toggleTutorialBtn) {
-                        elements.toggleTutorialBtn.removeAttribute('onclick');
-                        elements.toggleTutorialBtn.addEventListener('click', window.toggleTutorials);
-                    }
-                    
-                    // 右上角工具列表按钮
+                    // 右上角工具列表按钮绑定事件
                     if (elements.topToolSwitchBtn) {
                         elements.topToolSwitchBtn.removeAttribute('onclick');
                         elements.topToolSwitchBtn.addEventListener('click', window.toggleToolModal);
                     }
                     
-                    // 弹窗点击外部关闭
+                    // 弹窗点击外部区域关闭功能
                     if (elements.toolModal) {
                         elements.toolModal.addEventListener('click', function(e) {
+                            // 仅当点击目标是弹窗本身而非其子元素时才关闭弹窗
                             if (e && e.target === elements.toolModal) {
                                 window.toggleToolModal();
                             }
                         });
                     }
                     
-                    // 弹窗关闭按钮
+                    // 弹窗关闭按钮绑定事件
                     const closeModalBtn = document.getElementById('closeToolModalBtn');
                     if (closeModalBtn) {
                         closeModalBtn.addEventListener('click', window.toggleToolModal);
                     }
                     
-                    // ESC键关闭弹窗
+                    // ESC键关闭弹窗功能 - 添加全局键盘事件监听器
                     document.addEventListener('keydown', function(e) {
+                        // 检查事件对象是否有效，是否为Escape键，且弹窗是否处于打开状态
                         if (e && e.key === 'Escape' && elements.toolModal && elements.toolModal.style.display === 'flex') {
                             window.toggleToolModal();
                         }
                     });
                     
-                    // 添加全局错误处理
+                    // 添加全局错误处理 - 捕获页面中的JavaScript错误
                     window.addEventListener('error', function(event) {
-                        console.error('全局错误:', event.message, '位于:', event.filename, '第', event.lineno, '行');
+                        handleError(`全局错误: ${event.message} 位于: ${event.filename} 第 ${event.lineno} 行`, new Error(event.message));
                     });
                     
-                    // 添加Promise错误处理
+                    // 添加Promise错误处理 - 捕获未处理的Promise拒绝
                     window.addEventListener('unhandledrejection', function(event) {
-                        console.error('未处理的Promise错误:', event.reason);
+                        handleError('未处理的Promise错误', new Error(String(event.reason)));
                     });
                     
-                    // 为所有工具按钮添加统一的事件处理
+                    // 为所有带data-tool-id属性的工具按钮添加统一的点击事件处理
                     const allToolButtons = document.querySelectorAll('button[data-tool-id]');
                     if (allToolButtons && allToolButtons.length > 0) {
+                        // 遍历所有工具按钮
                         allToolButtons.forEach(btn => {
-                            if (btn && btn.nodeType === 1) {
+                            // 检查按钮元素是否有效
+                            if (isValidElement(btn)) {
                                 btn.addEventListener('click', function() {
                                     try {
+                                        // 获取按钮对应的工具ID
                                         const toolId = this.getAttribute('data-tool-id');
+                                        
+                                        // 安全检查：工具ID存在且showTool函数可用
                                         if (toolId && typeof window.showTool === 'function') {
+                                            // 调用showTool函数切换到指定工具
                                             window.showTool(toolId);
                                             
-                                            // 强制关闭工具列表弹窗，无论按钮位置
+                                            // 强制关闭工具列表弹窗，确保用户体验一致性
                                             setTimeout(function() {
                                                 try {
                                                     const toolModal = document.getElementById('toolModal');
@@ -5733,87 +5828,97 @@
                                                         window.toggleToolModal();
                                                     }
                                                 } catch (closeErr) {
-                                                    console.error('关闭弹窗出错:', closeErr.message);
+                                                    handleError('关闭弹窗', closeErr);
                                                 }
                                             }, 100); // 短暂延迟确保工具切换完成后再关闭弹窗
                                         }
                                     } catch (err) {
-                                        console.error('工具按钮点击出错:', err.message);
+                                        handleError('工具按钮点击', err);
                                     }
                                 });
                             }
                         });
                     }
                 } catch (err) {
-                    console.error('绑定事件监听器出错:', err.message);
+                    // 统一错误处理
+                    handleError('绑定事件监听器', err);
                 }
             }
             
-            // 初始化应用
+            /**
+             * 初始化应用程序
+             * 负责设置应用程序的初始状态、绑定事件监听器和增强现有功能
+             * 使用try-catch结构确保初始化过程中的错误能够被捕获和处理
+             */
             function initApp() {
                 try {
-                    if (appState.initialized) return; // 防止重复初始化
+                    // 防止重复初始化检查
+                    if (appState.initialized) return;
                     
-                    // 初始化元素引用
+                    // 初始化DOM元素引用，方便后续操作
                     initElements();
                     
                     // 初始化教程目录为收起状态
-                    if (elements.tutorialsContainer) {
+                    if (isValidElement(elements.tutorialsContainer)) {
                         elements.tutorialsContainer.style.display = 'none';
                     }
-                    if (elements.toggleTutorialBtn) {
+                    // 更新教程切换按钮文本为收起状态
+                    if (isValidElement(elements.toggleTutorialBtn)) {
                         elements.toggleTutorialBtn.textContent = '▼';
                     }
                     
-                    // 绑定事件
+                    // 绑定所有交互元素的事件监听器
                     bindEvents();
                     
-                    // 增强showTool函数
+                    // 增强原生showTool函数，添加工具状态管理功能
                     enhanceShowTool();
                     
-                    // 设置工具导航栏空白区域点击处理器
+                    // 设置工具导航栏空白区域的点击事件处理器
                     setupToolSwitcherClickHandler();
                     
-                    // 强制应用工具导航栏收起状态的样式
+                    // 使用setTimeout延迟执行，确保DOM完全加载后再应用初始样式
                     setTimeout(() => {
-                        const { toolSwitcher, toggleToolsBtn } = elements;
-                        if (toolSwitcher && toggleToolsBtn) {
-                            // 初始化时确保状态变量为false（收起状态）
-                            appState.toolsExpanded = false;
+                        try {
+                            const { toolSwitcher, toggleToolsBtn } = elements;
+                            // 检查必要元素是否存在
+                            if (isValidElement(toolSwitcher) && isValidElement(toggleToolsBtn)) {
+                                // 初始化时确保工具导航栏状态为收起
+                                appState.toolsExpanded = false;
                             
-                            const allButtons = toolSwitcher.querySelectorAll('button');
-                            if (allButtons && allButtons.length > 0) {
-                                allButtons.forEach(btn => {
-                                    if (btn && btn.nodeType === 1) {
-                                        const btnText = btn.textContent || '';
-                                        const isActive = btn.classList.contains('active');
-                                        const isIcCardTool = btnText.includes('IC卡号处理');
-                                        const isPulseTool = btnText.includes('脉冲计算器');
-                                        // 同时检查大小写版本
-                                        const isIccidTool = btnText.includes('iccid详情') || btnText.includes('ICCID详情');
-                                        const isSerialTool = btnText.includes('生成流水号');
-                                        const isQRTool = btnText.includes('解析二维码');
-                                        const isQRGeneratorTool = btnText.includes('二维码生成器') || btnText.includes('二维码生成');
-
-                                        btn.style.display = (isActive || isIcCardTool || isPulseTool || isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool) ? '' : 'none';
-                                    }
-                                });
+                                // 获取所有工具按钮
+                                const allButtons = toolSwitcher.querySelectorAll('button');
+                                // 应用初始状态下的按钮可见性控制
+                                updateToolButtonsVisibility(allButtons);
+                                // 设置切换按钮的初始文本
                                 toggleToolsBtn.textContent = '查看更多▼▲';
                             }
+                        } catch (timeoutErr) {
+                            // 捕获并处理初始化样式应用过程中的错误
+                            handleError('工具导航栏初始化超时', timeoutErr);
                         }
                     }, 200);
                     
+                    // 标记应用已完成初始化，防止重复执行
                     appState.initialized = true;
                 } catch (err) {
-                    console.error('初始化应用出错:', err.message);
+                    // 统一错误处理，确保初始化过程中的异常不会影响整个应用
+                    handleError('初始化应用', err);
                 }
             }
             
-            // 页面加载完成后初始化
+            /**
+             * 页面加载完成后自动初始化应用
+             * 检查当前文档加载状态：
+             * - 如果文档仍在加载中(loading状态)，则注册DOMContentLoaded事件监听器
+             * - 如果文档已经加载完成，则使用setTimeout在下一个事件循环中初始化应用
+             * 这种方式确保无论在脚本执行时文档处于何种状态，都能正确初始化应用
+             */
             if (document.readyState === 'loading') {
+                // 文档正在加载中，等待DOM完全解析和构建后再初始化
                 document.addEventListener('DOMContentLoaded', initApp);
             } else {
-                // 已经加载完成，直接初始化
+                // 文档已经加载完成，使用setTimeout确保在当前执行栈清空后再初始化
+                // 这是一种常见的异步初始化模式，可以避免阻塞UI渲染
                 setTimeout(initApp, 0);
             }
         })();

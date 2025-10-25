@@ -355,7 +355,8 @@
             }
             
             /* ===== 工具导航栏样式 ===== */
-    .tool-switcher button:not(.active):not([data-tool-id='excelTemplateTool']):not([data-tool-id='pulseTool']) {
+    /* 使用大小写不敏感的方式处理工具ID选择 */
+    .tool-switcher button:not(.active):not([data-tool-id='excelTemplateTool']):not([data-tool-id='pulseTool']):not([data-tool-id*='iccid']):not([data-tool-id*='ICCID']):not([data-tool-id*='serial']):not([data-tool-id*='qr']):not([data-tool-id*='二维码生成']) {
         display: none;
     }
             .tool-switcher {
@@ -1306,7 +1307,7 @@
 
             <!-- 工具切换区域（带收起/展开功能） -->
             <div style="position: relative;">
-                <button id="toggleToolsBtn" style="position: absolute; right: 10px; top: 10px; padding: 4px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 15px; cursor: pointer; z-index: 10;">▶</button>
+                <button id="toggleToolsBtn" style="position: absolute; right: 10px; top: 10px; padding: 4px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 15px; cursor: pointer; z-index: 10;"></button>
                 <nav class="tool-switcher" id="mainToolSwitcher">
                 <button data-tool-id="pulseTool">🔄 脉冲计算器</button>
                 <button data-tool-id="conversionTool">🔢 进制转换器</button>
@@ -5501,9 +5502,10 @@
                     if (!toolSwitcher || !toggleToolsBtn) return;
                     
                     const allButtons = toolSwitcher.querySelectorAll('button');
-                    const isExpanded = appState.toolsExpanded;
+                    // 先获取当前状态的反向（要切换到的目标状态）
+                    const targetExpanded = !appState.toolsExpanded;
                     
-                    if (isExpanded) {
+                    if (!targetExpanded) { // 如果目标状态是收起
                         // 收起状态：只保留当前激活的工具、IC卡号处理工具和脉冲计算器
                         allButtons.forEach(btn => {
                             // 安全地检查按钮类型
@@ -5512,22 +5514,27 @@
                                 const isActive = btn.classList.contains('active');
                                 const isIcCardTool = btnText.includes('IC卡号处理');
                                 const isPulseTool = btnText.includes('脉冲计算器');
-                                
-                                btn.style.display = (isActive || isIcCardTool || isPulseTool) ? '' : 'none';
+                                // 同时检查大小写版本
+                                const isIccidTool = btnText.includes('iccid详情') || btnText.includes('ICCID详情');
+                                const isSerialTool = btnText.includes('生成流水号');
+                                const isQRTool = btnText.includes('解析二维码');
+                                const isQRGeneratorTool = btnText.includes('二维码生成器') || btnText.includes('二维码生成');
+                                btn.style.display = (isActive || isIcCardTool || isPulseTool || isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool) ? '' : 'none';
                             }
                         });
-                        toggleToolsBtn.textContent = '▶';
-                    } else {
+                        toggleToolsBtn.textContent = '查看更多▼▲';
+                    } else { // 如果目标状态是展开
                         // 展开状态：显示所有工具
                         allButtons.forEach(btn => {
                             if (btn && btn.nodeType === 1) {
                                 btn.style.display = 'inline-block';
                             }
                         });
-                        toggleToolsBtn.textContent = '▼';
+                        toggleToolsBtn.textContent = '收起▲▼';
                     }
                     
-                    appState.toolsExpanded = !isExpanded;
+                    // 先更新UI，再更新状态变量
+                    appState.toolsExpanded = targetExpanded;
                 } catch (err) {
                     console.error('切换工具栏出错:', err.message);
                 }
@@ -5771,6 +5778,9 @@
                     setTimeout(() => {
                         const { toolSwitcher, toggleToolsBtn } = elements;
                         if (toolSwitcher && toggleToolsBtn) {
+                            // 初始化时确保状态变量为false（收起状态）
+                            appState.toolsExpanded = false;
+                            
                             const allButtons = toolSwitcher.querySelectorAll('button');
                             if (allButtons && allButtons.length > 0) {
                                 allButtons.forEach(btn => {
@@ -5779,11 +5789,16 @@
                                         const isActive = btn.classList.contains('active');
                                         const isIcCardTool = btnText.includes('IC卡号处理');
                                         const isPulseTool = btnText.includes('脉冲计算器');
-                                        
-                                        btn.style.display = (isActive || isIcCardTool || isPulseTool) ? '' : 'none';
+                                        // 同时检查大小写版本
+                                        const isIccidTool = btnText.includes('iccid详情') || btnText.includes('ICCID详情');
+                                        const isSerialTool = btnText.includes('生成流水号');
+                                        const isQRTool = btnText.includes('解析二维码');
+                                        const isQRGeneratorTool = btnText.includes('二维码生成器') || btnText.includes('二维码生成');
+
+                                        btn.style.display = (isActive || isIcCardTool || isPulseTool || isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool) ? '' : 'none';
                                     }
                                 });
-                                toggleToolsBtn.textContent = '▶';
+                                toggleToolsBtn.textContent = '查看更多▼▲';
                             }
                         }
                     }, 200);

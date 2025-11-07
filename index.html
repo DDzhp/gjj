@@ -5434,16 +5434,16 @@
                 }
                 
                 // 验证提取结果
-                if (!imei && !iccid) {
-                    return '未能提取到IMEI和ICCID';
-                } else if (!imei) {
-                    return `,${iccid}`;
-                } else if (!iccid) {
-                    return `${imei},`;
-                }
-                
-                // 返回IMEI和ICCID，用英文逗号分隔
-                return `${imei},${iccid}`;
+            if (!imei && !iccid) {
+                return '未能提取到IMEI和ICCID';
+            } else if (!imei) {
+                return `，${iccid}`;
+            } else if (!iccid) {
+                return `${imei}，`;
+            }
+            
+            // 返回IMEI和ICCID，用中文逗号分隔
+            return `${imei}，${iccid}`;
             } catch (error) {
                 return `解析失败: ${error.message}`;
             }

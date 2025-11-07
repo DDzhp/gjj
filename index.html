@@ -5437,13 +5437,13 @@
             if (!imei && !iccid) {
                 return '未能提取到IMEI和ICCID';
             } else if (!imei) {
-                return `，${iccid}`;
+                return `-${iccid}`;
             } else if (!iccid) {
-                return `${imei}，`;
+                return `${imei}-`;
             }
             
-            // 返回IMEI和ICCID，用中文逗号分隔
-            return `${imei}，${iccid}`;
+            // 返回IMEI和ICCID，用连字符分隔
+            return `${imei}-${iccid}`;
             } catch (error) {
                 return `解析失败: ${error.message}`;
             }

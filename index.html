@@ -2598,12 +2598,28 @@
                         return;
                     }
                     
-                    // 清理每行，移除可能的引号和空格
-                    const cleanedLine = line.trim().replace(/['""`]/g, '');
+                    // 首先尝试匹配 'ICCID（数量张）' 或 'ICCID(数量张)' 格式
+                    const singleIccidWithCountPattern = /([A-Za-z0-9]+)\s*[\(（]\s*(\d+)\s*张[\)）]/;
+                    const singleMatch = line.match(singleIccidWithCountPattern);
                     
-                    // 如果是有效的ICCID（至少包含数字和可能的字母，长度大于10）
-                    if (/^\d+[A-Za-z0-9]*$/.test(cleanedLine) && cleanedLine.length > 10) {
-                        resultArray.push(cleanedLine);
+                    if (singleMatch) {
+                        // 提取ICCID部分
+                        const iccid = singleMatch[1].trim();
+                        // 提取数量部分（这里我们不使用数量，只提取ICCID）
+                        const count = singleMatch[2];
+                        
+                        // 验证ICCID的有效性
+                        if (iccid.length > 10) {
+                            resultArray.push(iccid);
+                        }
+                    } else {
+                        // 清理每行，移除可能的引号和空格
+                        const cleanedLine = line.trim().replace(/['""`]/g, '');
+                        
+                        // 如果是有效的ICCID（至少包含数字和可能的字母，长度大于10）
+                        if (/^[A-Za-z0-9]+$/.test(cleanedLine) && cleanedLine.length > 10) {
+                            resultArray.push(cleanedLine);
+                        }
                     }
                 });
                 

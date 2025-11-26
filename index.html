@@ -2041,7 +2041,10 @@
                                 waterCards.push(row[waterCardCol].toString());
                             }
                             if (serialCol >= 0 && row[serialCol]) {
-                                serials.push(row[serialCol].toString());
+                                // 清理流水号，移除"NO."前缀
+                                const rawSerial = row[serialCol].toString();
+                                const cleanedSerial = rawSerial.replace(/^NO\./i, '').trim();
+                                serials.push(cleanedSerial);
                             }
                         }
                     }
@@ -2165,9 +2168,11 @@
                                 sheetData[rowIndex][0] = parsedData.waterCardNumbers[i];
                             }
                             
-                            // 填入B列（流水号）
+                            // 填入B列（流水号），再次清理"NO."前缀确保数据干净
                             if (parsedData.serialNumbers[i]) {
-                                sheetData[rowIndex][1] = parsedData.serialNumbers[i];
+                                const rawSerial = parsedData.serialNumbers[i].toString();
+                                const cleanedSerial = rawSerial.replace(/^NO\./i, '').trim();
+                                sheetData[rowIndex][1] = cleanedSerial;
                             }
                         }
                         
@@ -2226,9 +2231,12 @@
                     // 添加数据行
                     const maxRows = Math.max(parsedData.waterCardNumbers.length, parsedData.serialNumbers.length);
                     for (let i = 0; i < maxRows; i++) {
+                        // 清理流水号，移除"NO."前缀
+                        const rawSerial = parsedData.serialNumbers[i] || '';
+                        const cleanedSerial = rawSerial.toString().replace(/^NO\./i, '').trim();
                         wsData.push([
                             parsedData.waterCardNumbers[i] || '',
-                            parsedData.serialNumbers[i] || ''
+                            cleanedSerial
                         ]);
                     }
                     

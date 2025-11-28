@@ -181,6 +181,10 @@
                 <label for="countdownTime">倒计时秒数：</label>
                 <input type="number" id="countdownTime" min="1" value="6">
             </div>
+            <div class="setting-item">
+                <label>倒计时次数：</label>
+                <div id="countdownCount" style="font-size: 1.5rem; font-weight: bold; color: #667eea;">0</div>
+            </div>
         </div>
         
         <div class="countdown-display" id="countdownDisplay">6</div>
@@ -202,17 +206,19 @@
     <script>
         // 全局变量
         let countdownInterval = null;
-        let currentTime = 7;
-        let initialTime = 7;
+        let currentTime = 6;
+        let initialTime = 6;
         let isRunning = false;
         let isPaused = false;
         let autoRestart = true;
+        let countdownCount = 0;
         
         // DOM元素
         const countdownDisplay = document.getElementById('countdownDisplay');
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const countdownTimeInput = document.getElementById('countdownTime');
+        const countdownCountElement = document.getElementById('countdownCount');
         const status = document.getElementById('status');
         const notificationSound = document.getElementById('notificationSound');
         
@@ -273,6 +279,11 @@
             runCountdown();
         }
         
+        // 更新倒计时次数显示
+        function updateCountdownCount() {
+            countdownCountElement.textContent = countdownCount;
+        }
+        
         // 运行倒计时
         function runCountdown() {
             countdownInterval = setInterval(() => {
@@ -282,6 +293,10 @@
                 if (currentTime <= 0) {
                     clearInterval(countdownInterval);
                     playSound();
+                    
+                    // 增加倒计时次数
+                    countdownCount++;
+                    updateCountdownCount();
                     
                     // 自动重新开始
                     if (autoRestart) {
@@ -327,6 +342,10 @@
             isRunning = false;
             isPaused = false;
             clearInterval(countdownInterval);
+            
+            // 清空倒计时次数
+            countdownCount = 0;
+            updateCountdownCount();
             
             // 更新按钮状态
             startBtn.textContent = '▶️ 开始';

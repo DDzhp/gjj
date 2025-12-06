@@ -3175,11 +3175,11 @@
                     '制水时间：': document.getElementById('waterTime').value.trim(),
                     '阀2放水时间[冷、小]：': document.getElementById('valve2Time').value.trim(),
                     '阀1放水时间[罐装、大、热]：': document.getElementById('valve1Time').value.trim(),
-                    '检修时间：': document.getElementById('maintainTime').value.trim(),
-                    '大/1通道/热水费率：': document.getElementById('rate1Hot').value.trim(),
-                    '小/2通道/冷水费率：': document.getElementById('rate2Cold').value.trim(),
-                    '大/1通道/热水费率元/升：': document.getElementById('rate1HotPerLiter').value.trim(),
-                    '小/2通道/冷水费率元/升：': document.getElementById('rate2ColdPerLiter').value.trim(),
+                    '检修 时间：': document.getElementById('maintainTime').value.trim(),
+                    '大/1通道/热水老费率：': document.getElementById('rate1Hot').value.trim(),
+                    '小/2通道/冷水老费率：': document.getElementById('rate2Cold').value.trim(),
+                    '大/1通道/热水费率：': document.getElementById('rate1HotPerLiter').value.trim(),
+                    '小/2通道/冷水费率：': document.getElementById('rate2ColdPerLiter').value.trim(),
                     '单次限制流量/箱3：': document.getElementById('singleLimitFlow').value.trim(),
                     '浮球-派士：': document.getElementById('floatBall').value.trim(),
                     '单次限制时间：': document.getElementById('singleLimitTime').value.trim(),
@@ -3571,23 +3571,23 @@
                         <input type="text" id="valve1Time">
                     </div>
                     <div class="input-wrapper">
-                        <label for="maintainTime" style="color: red;">检修时间:</label>
+                        <label for="maintainTime" style="color: red;">检修 时间：</label>
                         <input type="text" id="maintainTime">
                     </div>
                     <div class="input-wrapper">
-                        <label for="rate1Hot">大/1通道/热水费率:</label>
+                        <label for="rate1Hot">大/1通道/热水老费率:</label>
                         <input type="text" id="rate1Hot">
                     </div>
                     <div class="input-wrapper">
-                        <label for="rate2Cold">小/2通道/冷水费率:</label>
+                        <label for="rate2Cold">小/2通道/冷水老费率:</label>
                         <input type="text" id="rate2Cold">
                     </div>
                     <div class="input-wrapper">
-                        <label for="rate1HotPerLiter">大/1通道/热水费率元/升:</label>
+                        <label for="rate1HotPerLiter">大/1通道/热水费率：</label>
                         <input type="text" id="rate1HotPerLiter">
                     </div>
                     <div class="input-wrapper">
-                        <label for="rate2ColdPerLiter">小/2通道/冷水费率元/升:</label>
+                        <label for="rate2ColdPerLiter">小/2通道/冷水费率：</label>
                         <input type="text" id="rate2ColdPerLiter">
                     </div>
                     <div class="input-wrapper">
@@ -3629,7 +3629,8 @@
                     <label for="excelData">从Excel粘贴数据（公司名称,微信公众号,厂商ID,卡类型,所属系统）：</label>
                     <textarea id="excelData" placeholder="例如：高密市泉碧然供水有限公司	高密泉碧然智慧净水	1028	翔东卡	跃龙公有售水机"></textarea>
                 </div>
-            </div>            
+            </div>
+            
             <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
                 <strong>提示：</strong>家用机常用参数为红色标注项。一般包含：滤芯寿命类型:、通道2脉冲[冷、小2]:、制水时间:、检修时间、卡流量。
             </div>

@@ -1,4 +1,59 @@
 <!DOCTYPE html>
+<!-- 
+⚡️ YL工具集 - 多功能Web应用工具集合
+
+📋 项目概述：
+这是一个集成了多种实用工具的单页Web应用，专为YL工作流程设计，提供便捷的数据处理和转换功能。
+
+🔧 主要工具列表：
+1. 🔄 脉冲计算器 - 用于脉冲参数计算
+2. 🔢 进制转换工具 - 支持十进制与十六进制相互转换
+3. 📋 入库参数解析工具 - 解析设备入库参数
+4. 📱 ICCID详情工具 - 处理ICCID号码，支持区间解析和格式转换
+5. 📋 IC卡号处理 - 批量处理Excel文件中的IC卡号和流水号
+6. 🔢 生成流水号工具 - 生成连续流水号
+7. 💧 洗浴水控金额水量换算 - 金额与水量的相互换算
+8. 🚰 水控单价 - 计算水控设备的单价
+9. 📊 IMEI/ICCID乱码处理工具 - 修复Excel中ICCID/IMEI的科学计数法问题
+10. 🔲 二维码生成器 - 批量生成二维码
+11. 📊 日志分析器 - 分析设备日志
+12. 🔍 解析二维码 - 解析二维码内容
+
+📚 技术栈：
+- HTML5 + CSS3 + JavaScript
+- jQuery 3.6.0
+- XLSX库（Excel文件处理）
+- jsQR库（二维码解析）
+- Tesseract.js（文字识别）
+- OCRAD.js（轻量级OCR库）
+
+🎯 核心功能：
+- Excel文件上传与处理
+- 智能数据识别与清洗
+- 模板化文件生成
+- 多种数据格式转换
+- 批量处理功能
+- 响应式设计，支持移动端
+- 多重备用方案确保高可用性
+
+📝 使用说明：
+1. 通过顶部工具切换按钮选择所需工具
+2. 按照各工具的使用提示操作
+3. 支持文件拖拽上传
+4. 处理结果实时预览
+5. 自动下载生成的文件
+
+🔧 快速理解信息（用于下次沟通）：
+- 项目类型：单页Web应用工具集
+- 核心功能：Excel处理、数据转换、批量操作
+- 主要工具：IC卡号处理、ICCID详情、流水号生成、进制转换
+- 技术依赖：jQuery、XLSX、jsQR等
+- 特色功能：智能数据识别、模板化生成、多重备用方案
+- 最近修改：添加了流水号自动清理"NO."前缀功能
+
+📅 最后更新：2025-11-27
+
+-->
     <html lang="zh-CN">
     <head>
     <meta charset="UTF-8">
@@ -356,7 +411,7 @@
             
             /* ===== 工具导航栏样式 ===== */
     /* 使用大小写不敏感的方式处理工具ID选择 */
-    .tool-switcher button:not(.active):not([data-tool-id='excelTemplateTool']):not([data-tool-id='pulseTool']):not([data-tool-id*='iccid']):not([data-tool-id*='ICCID']):not([data-tool-id*='serial']):not([data-tool-id*='qr']):not([data-tool-id*='二维码生成']) {
+    .tool-switcher button:not(.active):not([data-tool-id='excelTemplateTool']):not([data-tool-id='pulseTool']):not([data-tool-id*='iccid']):not([data-tool-id*='ICCID']):not([data-tool-id*='serial']):not([data-tool-id*='qr']):not([data-tool-id*='二维码生成']):not([data-tool-id='stockParamTool']) {
         display: none;
     }
             .tool-switcher {
@@ -1311,6 +1366,7 @@
                 <nav class="tool-switcher" id="mainToolSwitcher">
                 <button data-tool-id="pulseTool">🔄 脉冲计算器</button>
                 <button data-tool-id="conversionTool">🔢 进制转换器</button>
+                <button data-tool-id="stockParamTool">📦 入库参数生成</button>
                 <button data-tool-id="paramParser">📋 入库参数解析</button>
                 <button data-tool-id="iccidTool">📱 ICCID详情</button>
                 <button data-tool-id="excelTemplateTool">📋 IC卡号处理</button>
@@ -1321,7 +1377,7 @@
                 <button data-tool-id="qrGeneratorTool">🔲 二维码生成器</button>
                 <button data-tool-id="logAnalysisTool">📊 日志分析器</button>
                 <button data-tool-id="logAnalysisTool2">📊 日志解析器</button>
-            <button data-tool-id="qrParserTool">🔍 解析二维码</button>
+                <button data-tool-id="qrParserTool">🔍 解析二维码</button>
             </nav>
             
             <!-- 移动端菜单按钮 -->
@@ -1360,6 +1416,7 @@
                     <div class="mobile-tool-switcher">
                         <button onclick="showTool('pulseTool'); toggleMobileMenu();" class="mobile-menu-item">脉冲计算器</button>
                         <button onclick="showTool('conversionTool'); toggleMobileMenu();" class="mobile-menu-item">进制转换器</button>
+                        <button onclick="showTool('stockParamTool'); toggleMobileMenu();" class="mobile-menu-item">入库参数生成</button>
                         <button onclick="showTool('paramParser'); toggleMobileMenu();" class="mobile-menu-item">入库参数解析</button>
                         <button onclick="showTool('iccidTool'); toggleMobileMenu();" class="mobile-menu-item">ICCID详情</button>
                         <button onclick="showTool('excelTemplateTool'); toggleMobileMenu();" class="mobile-menu-item">IC卡号处理</button>
@@ -3081,7 +3138,270 @@
                 // 默认显示脉冲计算器工具
                 showTool('pulseTool');
             });
-        </script>
+            
+            // 入库参数生成器相关函数
+            function extractData() {
+                // 验证滤芯寿命类型是否已选择
+                const filterLifeType = document.getElementById('filterLifeType').value;
+                if (!filterLifeType) {
+                    alert('请选择滤芯寿命类型！');
+                    return;
+                }
+                
+                // 获取Excel数据并处理
+                const excelData = document.getElementById('excelData').value.trim();
+                let excelResult = '';
+                
+                if (excelData) {
+                    // 替换所有空白字符（包括制表符、空格等）为中文逗号
+                    const extractedData = excelData.split(/\s+/).filter(item => item.trim() !== '');
+                    excelResult = extractedData.join('，') + '。';
+                }
+                
+                // 获取滤芯寿命类型的完整描述
+                let filterLifeTypeText = '';
+                if (filterLifeType === '0') {
+                    filterLifeTypeText = '0.时间';
+                } else if (filterLifeType === '1') {
+                    filterLifeTypeText = '1.流量';
+                }
+                
+                // 获取参数数据
+                const parameters = {
+                    '主板型号：': document.getElementById('motherboardModel').value.trim(),
+                    '滤芯寿命类型：': filterLifeTypeText,
+                    '通道2脉冲[冷、小2]：': document.getElementById('channel2Pulse').value.trim(),
+                    '通道1脉冲[热,大]：': document.getElementById('channel1Pulse').value.trim(),
+                    '制水时间：': document.getElementById('waterTime').value.trim(),
+                    '阀2放水时间[冷、小]：': document.getElementById('valve2Time').value.trim(),
+                    '阀1放水时间[罐装、大、热]：': document.getElementById('valve1Time').value.trim(),
+                    '检修时间：': document.getElementById('maintainTime').value.trim(),
+                    '大/1通道/热水费率：': document.getElementById('rate1Hot').value.trim(),
+                    '小/2通道/冷水费率：': document.getElementById('rate2Cold').value.trim(),
+                    '大/1通道/热水费率元/升：': document.getElementById('rate1HotPerLiter').value.trim(),
+                    '小/2通道/冷水费率元/升：': document.getElementById('rate2ColdPerLiter').value.trim(),
+                    '单次限制流量/箱3：': document.getElementById('singleLimitFlow').value.trim(),
+                    '浮球-派士：': document.getElementById('floatBall').value.trim(),
+                    '单次限制时间：': document.getElementById('singleLimitTime').value.trim(),
+                    '卡流量：': document.getElementById('cardFlow').value.trim(),
+                    'ICCID起始：': document.getElementById('iccidStart').value.trim(),
+                    'ICCID结尾：': document.getElementById('iccidEnd').value.trim(),
+                    '入库数量：': document.getElementById('inStockCount').value.trim()
+                };
+                
+                // 构建参数结果，只包含有值的参数
+                const paramEntries = [];
+                for (const [key, value] of Object.entries(parameters)) {
+                    if (value !== '') {
+                        paramEntries.push(`${key}${value}`);
+                    }
+                }
+                const paramResult = paramEntries.join('，') + '。';
+                
+                // 合并结果
+                let finalResult = '';
+                if (excelResult) {
+                    finalResult += excelResult + '\n';
+                }
+                if (paramResult && paramResult !== '。') {
+                    finalResult += paramResult;
+                }
+                
+                // 显示结果
+                const resultElement = document.getElementById('result');
+                resultElement.textContent = finalResult;
+                
+                // 自动复制结果到剪贴板
+                navigator.clipboard.writeText(finalResult)
+                    .then(() => {
+                        console.log('结果已复制到剪贴板');
+                    })
+                    .catch(err => {
+                        console.error('复制失败:', err);
+                    });
+            }
+            
+            function convertData() {
+                const nonStandardData = document.getElementById('nonStandardData').value.trim();
+                if (!nonStandardData) {
+                    alert('请输入非标准内容！');
+                    return;
+                }
+                
+                // 清空之前所有转换的数据
+                clearAllData();
+                
+                // 解析基础信息：公司名称、公众号、厂商ID、卡类型、所属系统
+                const basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
+                
+                // 提取并填充基础信息到Excel数据区域
+                let companyName = '';
+                let wechatName = '';
+                let vendorId = '';
+                let cardType = '无卡类型'; // 默认无卡类型
+                let motherboardModel = '';
+                
+                if (basicInfo.length >= 1) {
+                    companyName = basicInfo[0];
+                }
+                if (basicInfo.length >= 2) {
+                    wechatName = basicInfo[1];
+                }
+                if (basicInfo.length >= 3) {
+                    vendorId = basicInfo[2];
+                }
+                
+                // 提取主板型号，检测W开头或AI开头的关联内容
+                if (basicInfo.length >= 1) {
+                    for (let i = 0; i < basicInfo.length; i++) {
+                        const item = basicInfo[i];
+                        if ((item.startsWith('W') || item.startsWith('AI')) && item.length > 1) {
+                            motherboardModel = item;
+                            break;
+                        }
+                    }
+                    // 填充主板型号
+                    document.getElementById('motherboardModel').value = motherboardModel;
+                }
+                
+                // 将基础信息填充到Excel数据文本域
+                // 格式：公司名称	微信公众号	无卡类型	厂商ID
+                document.getElementById('excelData').value = `${companyName}\t${wechatName}\t${cardType}\t${vendorId}`;
+                
+                // 解析滤芯寿命类型
+                if (nonStandardData.includes('流量')) {
+                    document.getElementById('filterLifeType').value = '1';
+                } else if (nonStandardData.includes('时间')) {
+                    document.getElementById('filterLifeType').value = '0';
+                }
+                
+                // 解析ICCID起始和结尾（支持换行，匹配所有8986开头的ICCID）
+                const iccidRangeMatch = nonStandardData.match(/(8986[0-9A-F]+)\s*到\s*(8986[0-9A-F]+)/i);
+                if (iccidRangeMatch && iccidRangeMatch[1] && iccidRangeMatch[2]) {
+                    document.getElementById('iccidStart').value = iccidRangeMatch[1];
+                    document.getElementById('iccidEnd').value = iccidRangeMatch[2];
+                }
+                
+                // 解析入库数量
+                const countMatch = nonStandardData.match(/[（(]\s*(\d+)\s*张[）)]/);
+                if (countMatch && countMatch[1]) {
+                    document.getElementById('inStockCount').value = countMatch[1];
+                }
+                
+                // 解析通道2脉冲（冷水脉冲）
+                const coldPulseMatch = nonStandardData.match(/冷水(?:路)?脉冲(\d+)/);
+                if (coldPulseMatch && coldPulseMatch[1]) {
+                    document.getElementById('channel2Pulse').value = coldPulseMatch[1];
+                }
+                
+                // 解析通道1脉冲（热水脉冲）
+                const hotPulseMatch = nonStandardData.match(/热水脉冲(\d+)/);
+                if (hotPulseMatch && hotPulseMatch[1]) {
+                    document.getElementById('channel1Pulse').value = hotPulseMatch[1];
+                }
+                
+                // 解析检修时间
+                const maintainTimeMatch = nonStandardData.match(/检修(\d+)/);
+                if (maintainTimeMatch && maintainTimeMatch[1]) {
+                    document.getElementById('maintainTime').value = maintainTimeMatch[1];
+                }
+                
+                // 解析大/1通道/热水费率元/升
+                const hotRateMatch = nonStandardData.match(/大\/1通道\/热水费率\[元\/升\]([\d.]+)/);
+                if (hotRateMatch && hotRateMatch[1]) {
+                    document.getElementById('rate1HotPerLiter').value = hotRateMatch[1];
+                }
+                
+                // 解析小/2通道/冷水费率元/升
+                const coldRateMatch = nonStandardData.match(/小\/2通道\/冷水费率\[元\/升\]([\d.]+)/);
+                if (coldRateMatch && coldRateMatch[1]) {
+                    document.getElementById('rate2ColdPerLiter').value = coldRateMatch[1];
+                }
+                
+                // 解析限制流量
+                const limitFlowMatch = nonStandardData.match(/限制流量(\d+)/);
+                if (limitFlowMatch && limitFlowMatch[1]) {
+                    document.getElementById('singleLimitFlow').value = limitFlowMatch[1];
+                }
+                
+                // 解析浮球
+                const floatBallMatch = nonStandardData.match(/浮球(\d+)/);
+                if (floatBallMatch && floatBallMatch[1]) {
+                    document.getElementById('floatBall').value = floatBallMatch[1];
+                }
+                
+                // 解析单次限制时间
+                const limitTimeMatch = nonStandardData.match(/单次限制(\d+)/);
+                if (limitTimeMatch && limitTimeMatch[1]) {
+                    document.getElementById('singleLimitTime').value = limitTimeMatch[1];
+                }
+                
+                // 解析卡流量
+                const cardFlowMatch = nonStandardData.match(/(\d+)M/);
+                if (cardFlowMatch && cardFlowMatch[1]) {
+                    document.getElementById('cardFlow').value = cardFlowMatch[1];
+                }
+                
+                // 解析阀2放水时间[冷、小]：匹配多种格式
+                // 匹配格式1：放水时间冷2路6
+                // 匹配格式2：冷2路6
+                // 匹配格式3：阀2放水时间冷2路6
+                let valve2Time = '';
+                const valve2TimeMatch = nonStandardData.match(/放水时间冷2路(\d+)/i);
+                if (valve2TimeMatch && valve2TimeMatch[1]) {
+                    valve2Time = valve2TimeMatch[1];
+                    document.getElementById('valve2Time').value = valve2Time;
+                }
+                
+                // 解析阀1放水时间[罐装、大、热]：匹配多种格式
+                // 匹配格式1：热1路6
+                // 匹配格式2：阀1放水时间热1路6
+                // 匹配格式3：放水时间热1路6
+                // 匹配格式4：如果没有明确热1路参数，使用冷2路的参数值
+                const valve1TimeMatch = nonStandardData.match(/(?:放水时间|阀1放水时间)?热1路(\d+)/i);
+                if (valve1TimeMatch && valve1TimeMatch[1]) {
+                    document.getElementById('valve1Time').value = valve1TimeMatch[1];
+                } else {
+                    // 如果没有找到热1路参数，使用冷2路的参数值作为默认值
+                    if (valve2Time) {
+                        document.getElementById('valve1Time').value = valve2Time;
+                    }
+                }
+                
+                // 自动提取标准化信息
+                extractData();
+            }
+            
+            // 清空所有数据的函数
+            function clearAllData() {
+                // 清空Excel数据区域
+                document.getElementById('excelData').value = '';
+                
+                // 清空参数设置区域
+                document.getElementById('motherboardModel').value = '';
+                document.getElementById('filterLifeType').value = '';
+                document.getElementById('channel2Pulse').value = '';
+                document.getElementById('channel1Pulse').value = '';
+                document.getElementById('waterTime').value = '';
+                document.getElementById('valve2Time').value = '';
+                document.getElementById('valve1Time').value = '';
+                document.getElementById('maintainTime').value = '';
+                document.getElementById('rate1Hot').value = '';
+                document.getElementById('rate2Cold').value = '';
+                document.getElementById('rate1HotPerLiter').value = '';
+                document.getElementById('rate2ColdPerLiter').value = '';
+                document.getElementById('singleLimitFlow').value = '';
+                document.getElementById('floatBall').value = '';
+                document.getElementById('singleLimitTime').value = '';
+                document.getElementById('cardFlow').value = '';
+                document.getElementById('iccidStart').value = '';
+                document.getElementById('iccidEnd').value = '';
+                document.getElementById('inStockCount').value = '';
+                
+                // 清空结果显示区域
+                document.getElementById('result').textContent = '';
+            }
+            </script>
 
         <!-- 二维码生成器工具模块 -->
         <section id="qrGeneratorTool" class="calculator" style="display: none;">
@@ -3197,6 +3517,121 @@
                     <label for="imeiIccidResult">IMEI和ICCID解析结果：</label>
                     <textarea id="imeiIccidResult" class="result-area" rows="10" readonly placeholder="IMEI和ICCID解析结果将显示在这里..."></textarea>
                 </div>
+            </div>
+        </section>
+        <section id="stockParamTool" class="calculator" style="display: none;">
+            <h2>📦 入库参数生成器</h2>
+            
+            <div class="tool-section">
+                <h3>一键转换区域</h3>
+                <div class="form-group">
+                    <label for="nonStandardData">粘贴非标准内容：</label>
+                    <textarea id="nonStandardData" placeholder="例如：中国水务-分宜半亩-建烨  银龙直饮水    1001    跃龙新私有   WSSJ2-B1   流量滤芯  冷水路脉冲330，热水脉冲330  检修720，大/1通道/热水费率[元/升]0.5，小/2通道/冷水费率[元/升]0.5，限制流量7500,浮球7，单次限制300  指定ID 
+ 898604E70623D0181822到 
+ 898604E70623D0181831（10张）  18M "></textarea>
+                </div>
+                <button class="btn" onclick="convertData()">一键转换</button>
+            </div>
+            
+            <div class="result-area" id="result" style="margin-top: 20px;"></div>
+            
+            <div class="tool-section">
+                <h3>参数设置</h3>
+                <div class="parameter-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <div class="input-wrapper">
+                        <label for="motherboardModel">主板型号:</label>
+                        <input type="text" id="motherboardModel">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="filterLifeType" style="color: red;">滤芯寿命类型:</label>
+                        <select id="filterLifeType">
+                            <option value="">请选择</option>
+                            <option value="0">0.时间</option>
+                            <option value="1">1.流量</option>
+                        </select>
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="channel2Pulse" style="color: red;">通道2脉冲[冷、小2]:</label>
+                        <input type="text" id="channel2Pulse">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="channel1Pulse">通道1脉冲[热,大]:</label>
+                        <input type="text" id="channel1Pulse">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="waterTime" style="color: red;">制水时间:</label>
+                        <input type="text" id="waterTime">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="valve2Time">阀2放水时间[冷、小]:</label>
+                        <input type="text" id="valve2Time">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="valve1Time">阀1放水时间[罐装、大、热]:</label>
+                        <input type="text" id="valve1Time">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="maintainTime" style="color: red;">检修时间:</label>
+                        <input type="text" id="maintainTime">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate1Hot">大/1通道/热水费率:</label>
+                        <input type="text" id="rate1Hot">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate2Cold">小/2通道/冷水费率:</label>
+                        <input type="text" id="rate2Cold">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate1HotPerLiter">大/1通道/热水费率元/升:</label>
+                        <input type="text" id="rate1HotPerLiter">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate2ColdPerLiter">小/2通道/冷水费率元/升:</label>
+                        <input type="text" id="rate2ColdPerLiter">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="singleLimitFlow">单次限制流量/箱3:</label>
+                        <input type="text" id="singleLimitFlow">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="floatBall">浮球-派士:</label>
+                        <input type="text" id="floatBall">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="singleLimitTime">单次限制时间:</label>
+                        <input type="text" id="singleLimitTime">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="cardFlow" style="color: red;">卡流量:</label>
+                        <input type="text" id="cardFlow">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="iccidStart">ICCID起始:</label>
+                        <input type="text" id="iccidStart">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="iccidEnd">ICCID结尾:</label>
+                        <input type="text" id="iccidEnd">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="inStockCount">入库数量:</label>
+                        <input type="text" id="inStockCount">
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="extractData()">提取数据</button>
+            
+            <div class="tool-section">
+                <h3>数据粘贴区域</h3>
+                <div class="form-group">
+                    <label for="excelData">从Excel粘贴数据（公司名称,微信公众号,厂商ID,卡类型,所属系统）：</label>
+                    <textarea id="excelData" placeholder="例如：高密市泉碧然供水有限公司	高密泉碧然智慧净水	1028	翔东卡	跃龙公有售水机"></textarea>
+                </div>
+            </div>            
+            <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+                <strong>提示：</strong>家用机常用参数为红色标注项。一般包含：滤芯寿命类型:、通道2脉冲[冷、小2]:、制水时间:、检修时间、卡流量。
             </div>
         </section>
         <section id="qrParserTool" class="calculator" style="display: none;">
@@ -4699,6 +5134,13 @@
         
         // 解析二维码
         function parseQrCodes() {
+            // 检查jsQR库是否可用
+            if (typeof jsQR === 'undefined') {
+                showQrParserStatus('jsQR库未加载，无法解析二维码', 'error');
+                console.error('jsQR库未加载');
+                return;
+            }
+            
             const fileInput = document.getElementById('fileUpload');
             const files = fileInput.files;
             const qrResults = document.getElementById('qrResults');
@@ -4742,27 +5184,93 @@
                     const img = new Image();
                     const imgSrc = event.target.result;
                     
-                    img.onload = function() {
-                        // 创建Canvas并绘制图片
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    // 设置图片跨域属性
+                    img.crossOrigin = 'anonymous';
+                    
+                    // 设置图片加载超时
+                    const timeoutId = setTimeout(() => {
+                        console.error(`图片 ${file.name} 加载超时`);
+                        img.src = ''; // 取消加载
                         
                         // 初始化该图片的解析结果对象
                         const fileId = file.name + '_' + Date.now();
                         imageParseResults[fileId] = {
                             fileName: file.name,
-                            qrContent: '',
+                            qrContent: '图片加载超时',
                             textContent: ''
                         };
                         
-                        // 获取图像数据
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        // 创建图片预览元素（只有文件名，没有图片）
+                        createImagePreview(fileId, '', imageParseResults[fileId]);
                         
-                        // 使用jsQR解析二维码
-                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+                        results.push(`文件名: ${file.name}\n图片加载超时`);
+                        processedCount++;
+                        
+                        if (processedCount === imageFiles.length) {
+                            qrResults.value = results.join('\n------------------------\n');
+                            extractInfoBtn.disabled = false;
+                            showQrParserStatus(`二维码解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                        }
+                    }, 10000); // 10秒超时
+                    
+                    img.onload = function() {
+                        clearTimeout(timeoutId);
+                        console.log(`图片 ${file.name} 加载成功，尺寸: ${img.width}x${img.height}`);
+                        
+                        try {
+                            // 创建Canvas并绘制图片
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            if (!ctx) {
+                                throw new Error('无法创建Canvas上下文');
+                            }
+                            
+                            // 限制图片最大尺寸为2000px，避免Canvas过大
+                            const maxSize = 2000;
+                            let width = img.width;
+                            let height = img.height;
+                            
+                            if (width > maxSize || height > maxSize) {
+                                const scale = maxSize / Math.max(width, height);
+                                width *= scale;
+                                height *= scale;
+                                console.log(`图片 ${file.name} 被缩放到: ${width}x${height}`);
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            
+                            // 清空Canvas
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            
+                            // 绘制图片
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            // 初始化该图片的解析结果对象
+                            const fileId = file.name + '_' + Date.now();
+                            imageParseResults[fileId] = {
+                                fileName: file.name,
+                                qrContent: '',
+                                textContent: ''
+                            };
+                            
+                            // 获取图像数据
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            console.log(`获取图像数据成功: ${imageData.width}x${imageData.height}, 数据长度: ${imageData.data.length}`);
+                            
+                            // 使用jsQR解析二维码，添加配置选项
+                            let code = null;
+                            try {
+                                code = jsQR(imageData.data, imageData.width, imageData.height, {
+                                    inversionAttempts: 'attemptBoth', // 尝试正常和反转颜色
+                                    errorCorrectionLevel: 'high' // 高纠错级别
+                                });
+                                console.log(`jsQR解析结果:`, code);
+                            } catch (jsQRError) {
+                                console.error(`jsQR解析失败:`, jsQRError);
+                                throw new Error(`jsQR解析失败: ${jsQRError.message}`);
+                            }
                         
                         // 准备文件结果
                         let fileResult = `文件名: ${file.name}`;
@@ -4797,9 +5305,35 @@
                             
                             showQrParserStatus(`二维码解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
                         }
+                        } catch (error) {
+                            console.error(`处理图片 ${file.name} 时发生错误:`, error);
+                            
+                            // 初始化该图片的解析结果对象
+                            const fileId = file.name + '_' + Date.now();
+                            imageParseResults[fileId] = {
+                                fileName: file.name,
+                                qrContent: `解析错误: ${error.message}`,
+                                textContent: ''
+                            };
+                            
+                            // 创建图片预览元素
+                            createImagePreview(fileId, imgSrc, imageParseResults[fileId]);
+                            
+                            results.push(`文件名: ${file.name}\n解析错误: ${error.message}`);
+                            processedCount++;
+                            
+                            if (processedCount === imageFiles.length) {
+                                qrResults.value = results.join('\n------------------------\n');
+                                extractInfoBtn.disabled = false;
+                                showQrParserStatus(`二维码解析完成，共处理 ${imageFiles.length} 个文件`, 'info');
+                            }
+                        }
                     };
                     
                     img.onerror = function() {
+                        clearTimeout(timeoutId);
+                        console.error(`图片 ${file.name} 加载失败`);
+                        
                         // 初始化该图片的解析结果对象
                         const fileId = file.name + '_' + Date.now();
                         imageParseResults[fileId] = {
@@ -5590,10 +6124,11 @@
                         const isSerialTool = btnText.includes('生成流水号');
                         const isQRTool = btnText.includes('解析二维码');
                         const isQRGeneratorTool = btnText.includes('二维码生成器') || btnText.includes('二维码生成');
+                        const isStockParamTool = btnText.includes('入库参数生成');
                         
                         // 设置按钮显示状态：如果是激活态或属于常用工具则显示（空字符串重置为默认显示），否则隐藏
                         btn.style.display = (isActive || isIcCardTool || isPulseTool || 
-                                          isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool) ? '' : 'none';
+                                          isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool || isStockParamTool) ? '' : 'none';
                     }
                 });
             }

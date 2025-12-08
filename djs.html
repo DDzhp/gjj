@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倒计时工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        
+        .countdown-display {
+            font-size: 8rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+        }
+        
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(86, 171, 47, 0.4);
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+        
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 65, 108, 0.4);
+        }
+        
+        .settings {
+            margin: 20px 0;
+        }
+        
+        .setting-item {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        input[type="number"] {
+            padding: 12px;
+            font-size: 1.1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 200px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .status.running {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1565c0;
+        }
+        
+        .status.stopped {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .countdown-display {
+                font-size: 6rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .countdown-display {
+                font-size: 4rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏰ 倒计时工具</h1>
+        
+        <div class="settings">
+            <div class="setting-item">
+                <label for="countdownTime">倒计时秒数：</label>
+                <input type="number" id="countdownTime" min="1" value="6">
+            </div>
+            <div class="setting-item">
+                <label>倒计时次数：</label>
+                <div id="countdownCount" style="font-size: 1.5rem; font-weight: bold; color: #667eea;">0</div>
+            </div>
+        </div>
+        
+        <div class="countdown-display" id="countdownDisplay">6</div>
+        
+        <div class="controls">
+            <button class="btn-start" id="startBtn">▶️ 开始</button>
+            <button class="btn-stop" id="stopBtn" disabled>⏹️ 停止</button>
+        </div>
+        
+        <div class="status stopped" id="status">已停止</div>
+    </div>
+    
+    <!-- 音频元素 -->
+    <audio id="notificationSound" preload="auto">
+        <source src="js/tishiyin.mp3" type="audio/mpeg">
+        您的浏览器不支持音频元素。
+    </audio>
+    
+    <script>
+        // 全局变量
+        let countdownInterval = null;
+        let currentTime = 6;
+        let initialTime = 6;
+        let isRunning = false;
+        let isPaused = false;
+        let autoRestart = true;
+        let countdownCount = 0;
+        
+        // DOM元素
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const countdownTimeInput = document.getElementById('countdownTime');
+        const countdownCountElement = document.getElementById('countdownCount');
+        const status = document.getElementById('status');
+        const notificationSound = document.getElementById('notificationSound');
+        
+        // 初始化
+        function init() {
+            updateDisplay();
+            
+            // 绑定事件
+            startBtn.addEventListener('click', toggleCountdown);
+            stopBtn.addEventListener('click', stopCountdown);
+            countdownTimeInput.addEventListener('input', updateDisplay);
+        }
+        
+        // 更新显示
+        function updateDisplay() {
+            const time = parseInt(countdownTimeInput.value) || 6;
+            countdownDisplay.textContent = time;
+            initialTime = time;
+            if (!isRunning) {
+                currentTime = time;
+            }
+        }
+        
+        // 切换倒计时状态（开始/暂停/继续）
+        function toggleCountdown() {
+            if (!isRunning) {
+                // 开始倒计时
+                startCountdown();
+            } else if (isPaused) {
+                // 继续倒计时
+                resumeCountdown();
+            } else {
+                // 暂停倒计时
+                pauseCountdown();
+            }
+        }
+        
+        // 开始倒计时
+        function startCountdown() {
+            isRunning = true;
+            isPaused = false;
+            
+            // 更新按钮状态
+            startBtn.textContent = '⏸️ 暂停';
+            stopBtn.disabled = false;
+            status.textContent = '运行中';
+            status.className = 'status running';
+            
+            // 禁用秒数输入
+            countdownTimeInput.disabled = true;
+            
+            // 设置初始时间
+            currentTime = parseInt(countdownTimeInput.value) || 6;
+            initialTime = currentTime;
+            countdownDisplay.textContent = currentTime;
+            
+            // 开始计时
+            runCountdown();
+        }
+        
+        // 更新倒计时次数显示
+        function updateCountdownCount() {
+            countdownCountElement.textContent = countdownCount;
+        }
+        
+        // 运行倒计时
+        function runCountdown() {
+            countdownInterval = setInterval(() => {
+                currentTime--;
+                countdownDisplay.textContent = currentTime;
+                
+                if (currentTime <= 0) {
+                    clearInterval(countdownInterval);
+                    playSound();
+                    
+                    // 增加倒计时次数
+                    countdownCount++;
+                    updateCountdownCount();
+                    
+                    // 自动重新开始
+                    if (autoRestart) {
+                        setTimeout(() => {
+                            // 重置时间并重新开始
+                            currentTime = initialTime;
+                            countdownDisplay.textContent = currentTime;
+                            runCountdown();
+                        }, 1000); // 1秒后重新开始
+                    } else {
+                        stopCountdown();
+                    }
+                }
+            }, 1000);
+        }
+        
+        // 暂停倒计时
+        function pauseCountdown() {
+            isPaused = true;
+            clearInterval(countdownInterval);
+            
+            // 更新按钮状态
+            startBtn.textContent = '▶️ 继续';
+            status.textContent = '已暂停';
+            status.className = 'status stopped';
+        }
+        
+        // 继续倒计时
+        function resumeCountdown() {
+            isPaused = false;
+            
+            // 更新按钮状态
+            startBtn.textContent = '⏸️ 暂停';
+            status.textContent = '运行中';
+            status.className = 'status running';
+            
+            // 继续计时
+            runCountdown();
+        }
+        
+        // 停止倒计时
+        function stopCountdown() {
+            isRunning = false;
+            isPaused = false;
+            clearInterval(countdownInterval);
+            
+            // 清空倒计时次数
+            countdownCount = 0;
+            updateCountdownCount();
+            
+            // 更新按钮状态
+            startBtn.textContent = '▶️ 开始';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            status.textContent = '已停止';
+            status.className = 'status stopped';
+            
+            // 启用秒数输入
+            countdownTimeInput.disabled = false;
+            
+            // 重置显示
+            updateDisplay();
+        }
+        
+        // 播放声音
+        function playSound() {
+            try {
+                notificationSound.currentTime = 0;
+                notificationSound.play().catch(error => {
+                    console.error('播放音频失败:', error);
+                });
+            } catch (error) {
+                console.error('播放音频失败:', error);
+            }
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

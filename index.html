@@ -3235,24 +3235,62 @@
                 // 清空之前所有转换的数据
                 clearAllData();
                 
+                // 定义系统类型关键字数组，包含所有支持的系统类型
+                const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙公有售水机有域名', '跃龙新公有', '跃龙公有', '跃龙公有有域名', '跃龙2.0公有', '跃龙3.0公有', '跃龙私有', '客户私有'];
+                
                 // 处理用户输入的格式，支持逗号和空格分隔
                 let basicInfo;
-                if (nonStandardData.includes('，')) {
-                    // 处理逗号分隔格式
-                    const firstPart = nonStandardData.split('。')[0];
-                    basicInfo = firstPart.split('，').filter(item => item.trim() !== '');
-                } else {
-                    // 处理空格分隔格式
-                    basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
-                }
-                
-                // 提取并填充基础信息到Excel数据区域
                 let companyName = '';
                 let wechatName = '';
                 let vendorId = '';
                 let cardType = '无卡类型'; // 默认无卡类型
                 let motherboardModel = '';
-                let systemType = ''; // 新增：系统类型
+                let systemType = ''; // 系统类型
+                
+                if (nonStandardData.includes('，')) {
+                    // 处理逗号分隔格式
+                    const firstPart = nonStandardData.split('。')[0];
+                    basicInfo = firstPart.split('，').filter(item => item.trim() !== '');
+                    
+                    if (basicInfo.length >= 1) {
+                        companyName = basicInfo[0].trim();
+                    }
+                    if (basicInfo.length >= 2) {
+                        wechatName = basicInfo[1].trim();
+                    }
+                    if (basicInfo.length >= 3) {
+                        cardType = basicInfo[2].trim();
+                    }
+                    if (basicInfo.length >= 4) {
+                        vendorId = basicInfo[3].trim();
+                    }
+                    if (basicInfo.length >= 5) {
+                        // 检查第五个字段是否为系统类型
+                        const fifthField = basicInfo[4].trim();
+                        if (systemKeywords.includes(fifthField)) {
+                            systemType = fifthField;
+                        }
+                    }
+                    
+                    // 提取主板型号
+                    const modelMatch = nonStandardData.match(/主板型号：([^，。]+)/);
+                    if (modelMatch && modelMatch[1]) {
+                        motherboardModel = modelMatch[1].trim();
+                    }
+                } else {
+                    // 处理空格分隔格式
+                    basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
+                    
+                    if (basicInfo.length >= 1) {
+                        companyName = basicInfo[0];
+                    }
+                    if (basicInfo.length >= 2) {
+                        wechatName = basicInfo[1];
+                    }
+                    if (basicInfo.length >= 3) {
+                        vendorId = basicInfo[2];
+                    }
+                }
                 
                 if (basicInfo.length >= 1) {
                     companyName = basicInfo[0];
@@ -3273,7 +3311,7 @@
                                 // 提取型号前方的系统类型
                                 if (i > 0) {
                                     // 查找系统类型关键字
-                                    const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙新公有', '跃龙公有', '跃龙私有', '客户私有'];
+                                    const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙公有售水机有域名', '跃龙新公有', '跃龙公有', '跃龙公有有域名', '跃龙2.0公有', '跃龙3.0公有', '跃龙私有', '客户私有'];
                                     for (let j = i - 1; j >= 0; j--) {
                                         if (systemKeywords.includes(basicInfo[j])) {
                                             systemType = basicInfo[j];
@@ -3290,7 +3328,7 @@
                     
                     // 如果还没有找到系统类型，尝试从所有基本信息中匹配
                     if (!systemType) {
-                        const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙新公有', '跃龙公有', '跃龙私有', '客户私有'];
+                        const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙公有售水机有域名', '跃龙新公有', '跃龙公有', '跃龙公有有域名', '跃龙2.0公有', '跃龙3.0公有', '跃龙私有', '客户私有'];
                         for (const item of basicInfo) {
                             if (systemKeywords.includes(item)) {
                                 systemType = item;
@@ -3302,7 +3340,7 @@
                 // 完全从原始数据提取系统类型，不使用默认值
                 if (!systemType) {
                     // 定义完整的系统类型关键字数组
-                    const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙新公有', '跃龙公有', '跃龙私有', '客户私有'];
+                    const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙公有售水机有域名', '跃龙新公有', '跃龙公有', '跃龙公有有域名', '跃龙2.0公有', '跃龙3.0公有', '跃龙私有', '客户私有'];
                     // 尝试从整个非标准数据中匹配
                     for (const keyword of systemKeywords) {
                         if (nonStandardData.includes(keyword)) {

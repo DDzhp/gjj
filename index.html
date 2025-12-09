@@ -3153,8 +3153,8 @@
                 let excelResult = '';
                 
                 if (excelData) {
-                    // 替换所有空白字符（包括制表符、空格等）为中文逗号
-                    const extractedData = excelData.split(/\s+/).filter(item => item.trim() !== '');
+                    // 处理制表符分隔的字段
+                    const extractedData = excelData.split(/\t/).filter(item => item.trim() !== '');
                     excelResult = extractedData.join('，') + '。';
                 }
                 
@@ -3197,14 +3197,17 @@
                         paramEntries.push(`${key}${value}`);
                     }
                 }
-                const paramResult = paramEntries.join('，') + '。';
+                let paramResult = '';
+                if (paramEntries.length > 0) {
+                    paramResult = paramEntries.join('，') + '。';
+                }
                 
                 // 合并结果
                 let finalResult = '';
                 if (excelResult) {
                     finalResult += excelResult + '\n';
                 }
-                if (paramResult && paramResult !== '。') {
+                if (paramResult) {
                     finalResult += paramResult;
                 }
                 
@@ -3282,6 +3285,9 @@
                     systemType = '跃龙公有售水机';
                 }
                 
+                // 填充系统类型到新添加的输入框
+                document.getElementById('systemType').value = systemType;
+                
                 // 将基础信息填充到Excel数据文本域
                 // 格式：公司名称	微信公众号	无卡类型	厂商ID	系统类型
                 document.getElementById('excelData').value = `${companyName}\t${wechatName}\t${cardType}\t${vendorId}\t${systemType}`;
@@ -3319,15 +3325,21 @@
                 }
                 
                 // 解析检修时间
-                const maintainTimeMatch = nonStandardData.match(/检修(\d+)/);
-                if (maintainTimeMatch && maintainTimeMatch[1]) {
-                    document.getElementById('maintainTime').value = maintainTimeMatch[1];
+                const maintainTimeMatch = nonStandardData.match(/检修\s*时间：(\d+)|检修(\d+)/);
+                if (maintainTimeMatch) {
+                    const maintainTime = maintainTimeMatch[1] || maintainTimeMatch[2];
+                    if (maintainTime) {
+                        document.getElementById('maintainTime').value = maintainTime;
+                    }
                 }
                 
                 // 解析制水时间
-                const waterTimeMatch = nonStandardData.match(/制水(\d+)/);
-                if (waterTimeMatch && waterTimeMatch[1]) {
-                    document.getElementById('waterTime').value = waterTimeMatch[1];
+                const waterTimeMatch = nonStandardData.match(/制水\s*时间：(\d+)|制水(\d+)/);
+                if (waterTimeMatch) {
+                    const waterTime = waterTimeMatch[1] || waterTimeMatch[2];
+                    if (waterTime) {
+                        document.getElementById('waterTime').value = waterTime;
+                    }
                 }
                 
                 // 解析热水费率为大/1通道/热水老费率
@@ -3596,6 +3608,10 @@
                     <div class="input-wrapper">
                         <label for="motherboardModel">主板型号:</label>
                         <input type="text" id="motherboardModel">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="systemType">系统类型:</label>
+                        <input type="text" id="systemType" placeholder="例如：跃龙公有售水机">
                     </div>
                     <div class="input-wrapper">
                         <label for="filterLifeType" style="color: red;">滤芯寿命:</label>

@@ -3235,8 +3235,16 @@
                 // 清空之前所有转换的数据
                 clearAllData();
                 
-                // 解析基础信息：公司名称、公众号、厂商ID、卡类型、所属系统
-                const basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
+                // 处理用户输入的格式，支持逗号和空格分隔
+                let basicInfo;
+                if (nonStandardData.includes('，')) {
+                    // 处理逗号分隔格式
+                    const firstPart = nonStandardData.split('。')[0];
+                    basicInfo = firstPart.split('，').filter(item => item.trim() !== '');
+                } else {
+                    // 处理空格分隔格式
+                    basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
+                }
                 
                 // 提取并填充基础信息到Excel数据区域
                 let companyName = '';
@@ -3257,32 +3265,51 @@
                 }
                 
                 // 提取主板型号和系统类型
-                if (basicInfo.length >= 1) {
-                    for (let i = 0; i < basicInfo.length; i++) {
-                        const item = basicInfo[i];
-                        if ((item.startsWith('W') || item.startsWith('AI')) && item.length > 1) {
-                            motherboardModel = item;
-                            // 提取型号前方的系统类型
-                            if (i > 0) {
-                                // 查找系统类型关键字
-                                const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙新公有', '跃龙公有', '跃龙私有'];
-                                for (let j = i - 1; j >= 0; j--) {
-                                    if (systemKeywords.includes(basicInfo[j])) {
-                                        systemType = basicInfo[j];
-                                        break;
+                    if (basicInfo.length >= 1) {
+                        for (let i = 0; i < basicInfo.length; i++) {
+                            const item = basicInfo[i];
+                            if ((item.startsWith('W') || item.startsWith('AI')) && item.length > 1) {
+                                motherboardModel = item;
+                                // 提取型号前方的系统类型
+                                if (i > 0) {
+                                    // 查找系统类型关键字
+                                    const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙新公有', '跃龙公有', '跃龙私有', '客户私有'];
+                                    for (let j = i - 1; j >= 0; j--) {
+                                        if (systemKeywords.includes(basicInfo[j])) {
+                                            systemType = basicInfo[j];
+                                            break;
+                                        }
                                     }
                                 }
+                                break;
                             }
+                        }
+                        // 填充主板型号
+                        document.getElementById('motherboardModel').value = motherboardModel;
+                    }
+                    
+                    // 如果还没有找到系统类型，尝试从所有基本信息中匹配
+                    if (!systemType) {
+                        const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙新公有', '跃龙公有', '跃龙私有', '客户私有'];
+                        for (const item of basicInfo) {
+                            if (systemKeywords.includes(item)) {
+                                systemType = item;
+                                break;
+                            }
+                        }
+                    }
+                
+                // 完全从原始数据提取系统类型，不使用默认值
+                if (!systemType) {
+                    // 定义完整的系统类型关键字数组
+                    const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙新公有', '跃龙公有', '跃龙私有', '客户私有'];
+                    // 尝试从整个非标准数据中匹配
+                    for (const keyword of systemKeywords) {
+                        if (nonStandardData.includes(keyword)) {
+                            systemType = keyword;
                             break;
                         }
                     }
-                    // 填充主板型号
-                    document.getElementById('motherboardModel').value = motherboardModel;
-                }
-                
-                // 如果没有找到系统类型，默认使用"跃龙公有售水机"
-                if (!systemType) {
-                    systemType = '跃龙公有售水机';
                 }
                 
                 // 填充系统类型到新添加的输入框

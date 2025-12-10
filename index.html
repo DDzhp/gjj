@@ -3155,7 +3155,11 @@
                 if (excelData) {
                     // 处理制表符分隔的字段
                     const extractedData = excelData.split(/\t/).filter(item => item.trim() !== '');
-                    excelResult = extractedData.join('，') + '。';
+                    // 确保只包含基础信息：公司名称、微信公众号、无卡类型、厂商ID、系统类型
+                    // 去除可能包含重复参数的多余字段
+                    const basicFields = extractedData.slice(0, 5);
+                    // 第2步：系统类型输出完成后换行
+                    excelResult = basicFields.join('，') + '。\n';
                 }
                 
                 // 获取滤芯寿命的完整描述
@@ -3200,6 +3204,18 @@
                 let paramResult = '';
                 if (paramEntries.length > 0) {
                     paramResult = paramEntries.join('，') + '。';
+                }
+                
+                // 检查原始数据是否包含"指定ID"，如果包含则添加到结果末尾
+                const nonStandardData = document.getElementById('nonStandardData').value.trim();
+                if (nonStandardData.includes('指定ID')) {
+                    if (paramResult) {
+                        // 如果已有参数结果，在句号前添加
+                        paramResult = paramResult.replace(/。$/, '，指定ID。');
+                    } else {
+                        // 如果没有参数结果，直接添加
+                        paramResult = '指定ID。';
+                    }
                 }
                 
                 // 合并结果
@@ -3258,9 +3274,11 @@
                     if (basicInfo.length >= 2) {
                         wechatName = basicInfo[1].trim();
                     }
-                    if (basicInfo.length >= 3) {
-                        cardType = basicInfo[2].trim();
-                    }
+                    // 所有卡类型都设置为"无卡类型"
+                    // if (basicInfo.length >= 3) {
+                    //     cardType = basicInfo[2].trim();
+                    // }
+                    cardType = '无卡类型';
                     if (basicInfo.length >= 4) {
                         vendorId = basicInfo[3].trim();
                     }
@@ -3273,9 +3291,32 @@
                     }
                     
                     // 提取主板型号
-                    const modelMatch = nonStandardData.match(/主板型号：([^，。]+)/);
+                    // 1. 先尝试从明确标注中提取
+                    let modelMatch = nonStandardData.match(/主板型号：([^，。]+)/);
                     if (modelMatch && modelMatch[1]) {
                         motherboardModel = modelMatch[1].trim();
+                    } else {
+                        // 2. 如果没有明确标注，从系统类型后面查找型号
+                        // 先找到系统类型在字符串中的位置
+                        let systemTypePos = -1;
+                        for (const keyword of systemKeywords) {
+                            const pos = nonStandardData.indexOf(keyword);
+                            if (pos !== -1) {
+                                systemTypePos = pos + keyword.length;
+                                break;
+                            }
+                        }
+                        
+                        if (systemTypePos !== -1) {
+                            // 从系统类型后面提取型号
+                            const textAfterSystem = nonStandardData.slice(systemTypePos);
+                            // 匹配以AI、ai、Ai、W、YL等开头，允许-连字符的型号
+                            const modelRegex = /(AI|ai|Ai|W|YL)[A-Za-z0-9\-]*/;
+                            const match = textAfterSystem.match(modelRegex);
+                            if (match && match[0]) {
+                                motherboardModel = match[0];
+                            }
+                        }
                     }
                 } else {
                     // 处理空格分隔格式
@@ -3304,21 +3345,28 @@
                 
                 // 提取主板型号和系统类型
                     if (basicInfo.length >= 1) {
+                        // 优化：系统类型后面，以AI、ai、Ai、W、YL等开头，允许-连字符的型号识别
+                        // 1. 找到系统类型在basicInfo中的位置
+                        let systemTypeIndex = -1;
                         for (let i = 0; i < basicInfo.length; i++) {
+                            if (systemKeywords.includes(basicInfo[i])) {
+                                systemTypeIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        // 2. 从系统类型后面开始查找型号
+                        let startIndex = systemTypeIndex + 1;
+                        if (systemTypeIndex === -1) {
+                            startIndex = 0; // 如果没有找到系统类型，从开始查找
+                        }
+                        
+                        for (let i = startIndex; i < basicInfo.length; i++) {
                             const item = basicInfo[i];
-                            if ((item.startsWith('W') || item.startsWith('AI')) && item.length > 1) {
+                            // 匹配以AI、ai、Ai、W、YL等开头，允许-连字符的型号
+                            const modelRegex = /^(AI|ai|Ai|W|YL)[A-Za-z0-9\-]*$/;
+                            if (modelRegex.test(item)) {
                                 motherboardModel = item;
-                                // 提取型号前方的系统类型
-                                if (i > 0) {
-                                    // 查找系统类型关键字
-                                    const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙公有售水机有域名', '跃龙新公有', '跃龙新公有有域名', '跃龙公有', '跃龙公有有域名', '跃龙2.0公有', '跃龙3.0公有', '跃龙私有', '客户私有'];
-                                    for (let j = i - 1; j >= 0; j--) {
-                                        if (systemKeywords.includes(basicInfo[j])) {
-                                            systemType = basicInfo[j];
-                                            break;
-                                        }
-                                    }
-                                }
                                 break;
                             }
                         }

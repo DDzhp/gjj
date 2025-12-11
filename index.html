@@ -3264,31 +3264,41 @@
                 let systemType = ''; // 系统类型
                 
                 if (nonStandardData.includes('，')) {
-                    // 处理逗号分隔格式
-                    const firstPart = nonStandardData.split('。')[0];
-                    basicInfo = firstPart.split('，').filter(item => item.trim() !== '');
+                    // 优化：用户数据包含逗号，但主要是空格分隔的，所以先按空格分割处理
+                    basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
                     
-                    if (basicInfo.length >= 1) {
-                        companyName = basicInfo[0].trim();
+                    // 处理五要素：公司名称,微信公众号,厂商ID,卡类型,所属系统
+                // 1. 处理公司名称
+                if (basicInfo.length >= 1) {
+                    companyName = basicInfo[0];
+                }
+                
+                // 2. 处理微信公众号 - 为空时补填公司名称
+                if (basicInfo.length >= 2 && basicInfo[1].trim() !== '') {
+                    wechatName = basicInfo[1];
+                } else {
+                    wechatName = companyName; // 微信公众号为空时，默认补填公司名称
+                }
+                
+                // 3. 处理厂商ID
+                if (basicInfo.length >= 3) {
+                    vendorId = basicInfo[2];
+                }
+                
+                // 4. 所有卡类型都设置为"无卡类型"
+                cardType = '无卡类型';
+                
+                // 5. 处理所属系统 - 检测到所属系统时，完结五要素转换
+                // 遍历从第四个字段开始的所有字段，寻找系统类型
+                for (let i = 3; i < basicInfo.length; i++) {
+                    const item = basicInfo[i];
+                    if (systemKeywords.includes(item)) {
+                        systemType = item;
+                        break; // 检测到所属系统时，完结五要素转换
                     }
-                    if (basicInfo.length >= 2) {
-                        wechatName = basicInfo[1].trim();
-                    }
-                    // 所有卡类型都设置为"无卡类型"
-                    // if (basicInfo.length >= 3) {
-                    //     cardType = basicInfo[2].trim();
-                    // }
+                }
+                    // 所有卡类型都设置为"无卡类型"，忽略原始卡类型字段
                     cardType = '无卡类型';
-                    if (basicInfo.length >= 4) {
-                        vendorId = basicInfo[3].trim();
-                    }
-                    if (basicInfo.length >= 5) {
-                        // 检查第五个字段是否为系统类型
-                        const fifthField = basicInfo[4].trim();
-                        if (systemKeywords.includes(fifthField)) {
-                            systemType = fifthField;
-                        }
-                    }
                     
                     // 提取主板型号
                     // 1. 先尝试从明确标注中提取
@@ -3322,26 +3332,40 @@
                     // 处理空格分隔格式
                     basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
                     
+                    // 处理五要素：公司名称,微信公众号,厂商ID,卡类型,所属系统
+                    // 1. 处理公司名称
                     if (basicInfo.length >= 1) {
                         companyName = basicInfo[0];
                     }
-                    if (basicInfo.length >= 2) {
+                    
+                    // 2. 处理微信公众号 - 为空时补填公司名称
+                    if (basicInfo.length >= 2 && basicInfo[1].trim() !== '') {
                         wechatName = basicInfo[1];
+                    } else {
+                        wechatName = companyName; // 微信公众号为空时，默认补填公司名称
                     }
+                    
+                    // 3. 处理厂商ID
                     if (basicInfo.length >= 3) {
                         vendorId = basicInfo[2];
                     }
+                    
+                    // 4. 所有卡类型都设置为"无卡类型"
+                    cardType = '无卡类型';
+                    
+                    // 5. 处理所属系统 - 检测到所属系统时，完结五要素转换
+                    // 遍历从第四个字段开始的所有字段，寻找系统类型
+                    for (let i = 3; i < basicInfo.length; i++) {
+                        const item = basicInfo[i];
+                        if (systemKeywords.includes(item)) {
+                            systemType = item;
+                            break; // 检测到所属系统时，完结五要素转换
+                        }
+                    }
                 }
                 
-                if (basicInfo.length >= 1) {
-                    companyName = basicInfo[0];
-                }
-                if (basicInfo.length >= 2) {
-                    wechatName = basicInfo[1];
-                }
-                if (basicInfo.length >= 3) {
-                    vendorId = basicInfo[2];
-                }
+                // 五要素已在前面处理完成，此处不再重复处理
+                // 删除重复的五要素处理逻辑，保留微信公众号为空时补填公司名称的优化
                 
                 // 提取主板型号和系统类型
                     if (basicInfo.length >= 1) {
@@ -3471,6 +3495,12 @@
                 const coldRate2Match = nonStandardData.match(/冷水费率2路([\d.]+)元\/升/);
                 if (coldRate2Match && coldRate2Match[1]) {
                     document.getElementById('rate2ColdPerLiter').value = coldRate2Match[1];
+                }
+                
+                // 解析冷水费率(0.3)元/升格式为小/2通道/冷水费率
+                const coldRateWithBracketsMatch = nonStandardData.match(/冷水费率\(([\d.]+)\)元\/升/);
+                if (coldRateWithBracketsMatch && coldRateWithBracketsMatch[1]) {
+                    document.getElementById('rate2ColdPerLiter').value = coldRateWithBracketsMatch[1];
                 }
                 
                 // 解析热水费率1路为大/1通道/热水费率

@@ -1,0 +1,8 @@
+{
+  "name": "gjj",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Build step here'"  // 替换为实际构建命令（如 react-scripts build、vite build 等）
+  },
+  "private": true  // 若为私有项目，避免意外发布到 npm
+}

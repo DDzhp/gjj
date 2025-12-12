@@ -3221,7 +3221,7 @@
                 // 合并结果
                 let finalResult = '';
                 if (excelResult) {
-                    finalResult += excelResult + '\n';
+                    finalResult += excelResult;
                 }
                 if (paramResult) {
                     finalResult += paramResult;
@@ -3248,8 +3248,28 @@
                     return;
                 }
                 
-                // 清空之前所有转换的数据
-                clearAllData();
+                // 不清空之前所有转换的数据，只清空参数设置区域
+                // 清空参数设置区域
+                document.getElementById('motherboardModel').value = '';
+                document.getElementById('filterLifeType').value = '';
+                document.getElementById('channel2Pulse').value = '';
+                document.getElementById('channel1Pulse').value = '';
+                document.getElementById('waterTime').value = '';
+                document.getElementById('valve2Time').value = '';
+                document.getElementById('valve1Time').value = '';
+                document.getElementById('maintainTime').value = '';
+                document.getElementById('rate1Hot').value = '';
+                document.getElementById('rate2Cold').value = '';
+                document.getElementById('rate1HotPerLiter').value = '';
+                document.getElementById('rate2ColdPerLiter').value = '';
+                document.getElementById('singleLimitFlow').value = '';
+                document.getElementById('floatBall').value = '';
+                document.getElementById('singleLimitTime').value = '';
+                document.getElementById('cardFlow').value = '';
+                document.getElementById('iccidStart').value = '';
+                document.getElementById('iccidEnd').value = '';
+                document.getElementById('inStockCount').value = '';
+                document.getElementById('hotWaterTemp').value = '';
                 
                 // 定义系统类型关键字数组，包含所有支持的系统类型
                 const systemKeywords = ['跃龙新私有', '跃龙公有售水机', '跃龙公有售水机有域名', '跃龙新公有', '跃龙新公有有域名', '跃龙公有', '跃龙公有有域名', '跃龙2.0公有', '跃龙3.0公有', '跃龙私有', '客户私有'];
@@ -3306,25 +3326,36 @@
                     if (modelMatch && modelMatch[1]) {
                         motherboardModel = modelMatch[1].trim();
                     } else {
-                        // 2. 如果没有明确标注，从系统类型后面查找型号
-                        // 先找到系统类型在字符串中的位置
-                        let systemTypePos = -1;
-                        for (const keyword of systemKeywords) {
-                            const pos = nonStandardData.indexOf(keyword);
-                            if (pos !== -1) {
-                                systemTypePos = pos + keyword.length;
+                        // 2. 遍历所有字段，查找型号
+                        for (const item of basicInfo) {
+                            // 匹配以AI、ai、Ai、W、YL等开头，允许-连字符和中文后缀的型号
+                            const modelRegex = /(AI|ai|Ai|W|YL)[A-Za-z0-9\-]+(?:[\u4e00-\u9fa5])?/;
+                            const match = item.match(modelRegex);
+                            if (match && match[0]) {
+                                motherboardModel = match[0];
                                 break;
                             }
                         }
                         
-                        if (systemTypePos !== -1) {
-                            // 从系统类型后面提取型号
-                            const textAfterSystem = nonStandardData.slice(systemTypePos);
-                            // 匹配以AI、ai、Ai、W、YL等开头，允许-连字符的型号
-                            const modelRegex = /(AI|ai|Ai|W|YL)[A-Za-z0-9\-]*/;
-                            const match = textAfterSystem.match(modelRegex);
-                            if (match && match[0]) {
-                                motherboardModel = match[0];
+                        // 3. 如果还是没找到，从系统类型后面查找型号
+                        if (!motherboardModel) {
+                            let systemTypePos = -1;
+                            for (const keyword of systemKeywords) {
+                                const pos = nonStandardData.indexOf(keyword);
+                                if (pos !== -1) {
+                                    systemTypePos = pos + keyword.length;
+                                    break;
+                                }
+                            }
+                            
+                            if (systemTypePos !== -1) {
+                                // 从系统类型后面提取型号，允许包含中文后缀
+                                const textAfterSystem = nonStandardData.slice(systemTypePos);
+                                const modelRegex = /(AI|ai|Ai|W|YL)[A-Za-z0-9\-]+(?:[\u4e00-\u9fa5])?/;
+                                const match = textAfterSystem.match(modelRegex);
+                                if (match && match[0]) {
+                                    motherboardModel = match[0];
+                                }
                             }
                         }
                     }
@@ -3387,8 +3418,8 @@
                         
                         for (let i = startIndex; i < basicInfo.length; i++) {
                             const item = basicInfo[i];
-                            // 匹配以AI、ai、Ai、W、YL等开头，允许-连字符的型号
-                            const modelRegex = /^(AI|ai|Ai|W|YL)[A-Za-z0-9\-]*$/;
+                            // 匹配以AI、ai、Ai、W、YL等开头，允许-连字符和中文后缀的型号
+                            const modelRegex = /^(AI|ai|Ai|W|YL)[A-Za-z0-9\-]+(?:[\u4e00-\u9fa5])?$/;
                             if (modelRegex.test(item)) {
                                 motherboardModel = item;
                                 break;

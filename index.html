@@ -3328,11 +3328,10 @@
                     } else {
                         // 2. 遍历所有字段，查找型号
                         for (const item of basicInfo) {
-                            // 匹配以AI、ai、Ai、W、YL等开头，允许-连字符和中文后缀的型号
-                            const modelRegex = /(AI|ai|Ai|W|YL)[A-Za-z0-9\-]+(?:[\u4e00-\u9fa5])?/;
-                            const match = item.match(modelRegex);
-                            if (match && match[0]) {
-                                motherboardModel = match[0];
+                            // 匹配任意字母开头，包含字母、数字、连字符和中文的型号，不包含空格
+                            const modelRegex = /^[A-Za-z][A-Za-z0-9\-\u4e00-\u9fa5]+$/;
+                            if (modelRegex.test(item)) {
+                                motherboardModel = item;
                                 break;
                             }
                         }
@@ -3349,12 +3348,13 @@
                             }
                             
                             if (systemTypePos !== -1) {
-                                // 从系统类型后面提取型号，允许包含中文后缀
-                                const textAfterSystem = nonStandardData.slice(systemTypePos);
-                                const modelRegex = /(AI|ai|Ai|W|YL)[A-Za-z0-9\-]+(?:[\u4e00-\u9fa5])?/;
+                                // 从系统类型后面提取型号，遇到空格自动结束
+                                const textAfterSystem = nonStandardData.slice(systemTypePos).trim();
+                                // 匹配任意字母开头，包含字母、数字、连字符和中文的型号，遇到空格停止
+                                const modelRegex = /^[A-Za-z][A-Za-z0-9\-\u4e00-\u9fa5]+/;
                                 const match = textAfterSystem.match(modelRegex);
                                 if (match && match[0]) {
-                                    motherboardModel = match[0];
+                                    motherboardModel = match[0].trim();
                                 }
                             }
                         }
@@ -3393,6 +3393,48 @@
                             break; // 检测到所属系统时，完结五要素转换
                         }
                     }
+                    
+                    // 提取主板型号
+                    // 1. 先尝试从明确标注中提取
+                    let modelMatch = nonStandardData.match(/主板型号：([^，。]+)/);
+                    if (modelMatch && modelMatch[1]) {
+                        motherboardModel = modelMatch[1].trim();
+                    } else {
+                        // 2. 找到系统类型在字符串中的位置
+                        let systemTypePos = -1;
+                        for (const keyword of systemKeywords) {
+                            const pos = nonStandardData.indexOf(keyword);
+                            if (pos !== -1) {
+                                systemTypePos = pos + keyword.length;
+                                break;
+                            }
+                        }
+                        
+                        if (systemTypePos !== -1) {
+                            // 3. 从系统类型后面提取第一个以字母开头的连续字符串作为型号
+                            const textAfterSystem = nonStandardData.slice(systemTypePos).trim();
+                            // 匹配任意字母开头，包含字母、数字、连字符和中文的型号，遇到空格停止
+                            const modelRegex = /^[A-Za-z][A-Za-z0-9\-\u4e00-\u9fa5]+/;
+                            const match = textAfterSystem.match(modelRegex);
+                            if (match && match[0]) {
+                                motherboardModel = match[0].trim();
+                            }
+                        }
+                        
+                        // 4. 如果还是没找到，遍历所有字段，查找型号
+                        if (!motherboardModel) {
+                            for (const item of basicInfo) {
+                                // 匹配任意字母开头，包含字母、数字、连字符和中文的型号，不包含空格
+                                const modelRegex = /^[A-Za-z][A-Za-z0-9\-\u4e00-\u9fa5]+$/;
+                                if (modelRegex.test(item)) {
+                                    motherboardModel = item;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // 填充主板型号
+                    document.getElementById('motherboardModel').value = motherboardModel;
                 }
                 
                 // 五要素已在前面处理完成，此处不再重复处理
@@ -3490,6 +3532,14 @@
                 const hotPulseMatch = nonStandardData.match(/热水脉冲(\d+)/);
                 if (hotPulseMatch && hotPulseMatch[1]) {
                     document.getElementById('channel1Pulse').value = hotPulseMatch[1];
+                }
+                
+                // 解析未标明类型的脉冲，自动填充到通道2脉冲
+                if (!document.getElementById('channel2Pulse').value && !document.getElementById('channel1Pulse').value) {
+                    const pulseMatch = nonStandardData.match(/脉冲(\d+)/);
+                    if (pulseMatch && pulseMatch[1]) {
+                        document.getElementById('channel2Pulse').value = pulseMatch[1];
+                    }
                 }
                 
                 // 解析检修时间

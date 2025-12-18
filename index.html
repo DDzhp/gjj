@@ -3167,8 +3167,8 @@
                     // 确保只包含基础信息：公司名称、微信公众号、无卡类型、厂商ID、系统类型
                     // 去除可能包含重复参数的多余字段
                     const basicFields = extractedData.slice(0, 5);
-                    // 第2步：系统类型输出完成后换行
-                    excelResult = basicFields.join('，') + '。\n';
+                    // 第2步：系统类型输出完成后，用【】括起来
+                    excelResult ='【' + basicFields.join('，') + '。】';
                 }
                 
                 // 获取滤芯寿命的完整描述

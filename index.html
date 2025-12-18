@@ -746,7 +746,7 @@
                 padding: 6px 4px;
                 border-bottom: 1px solid #dee2e6;
                 font-family: 'Courier New', monospace;
-                font-size: 0.7em;
+                font-size: 1.5em;
                 text-align: center;
                 white-space: nowrap;
                 min-width: 60px;
@@ -924,7 +924,7 @@
                 padding: 20px;
                 border-radius: 12px;
                 border: 2px solid #e9ecef;
-                min-height: 120px;
+                min-height: 40px;
                 font-family: 'Consolas', 'Monaco', monospace;
                 line-height: 1.6;
             }
@@ -1463,7 +1463,14 @@
                 <div class="form-group">
                     <label>上传Excel文件或拖拽文件到下方：</label>
                     <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="height: 150px; padding: 8px; font-size: 14px;">
-                
+                </div>
+                <div class="button-group">
+                    <button onclick="processExcelFile()" class="btn-primary" disabled>📊 处理Excel文件</button>
+                    <button onclick="clearExcelData()" class="btn-warning">🗑️ 清空数据</button>
+                </div>
+                <div class="form-group">
+                    <label>数据预览：</label>
+                    <div id="excelDataPreview" class="result-area" style="max-height: 300px; overflow-y: auto;">等待文件上传...</div>
                 </div>
                 <div class="form-group">
                     <label>使用模板：</label>
@@ -1472,17 +1479,9 @@
                     </select>
                     <div id="templateStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px;">🔄 正在加载远程模板...</div>
                 </div>
-                <div class="button-group">
-                    <button onclick="processExcelFile()" class="btn-primary" disabled>📊 处理Excel文件</button>
-                    <button onclick="clearExcelData()" class="btn-warning">🗑️ 清空数据</button>
-                </div>
                 <div class="form-group">
                     <label>处理状态：</label>
                     <div id="excelProcessStatus" class="result-area">请上传Excel文件并选择模板</div>
-                </div>
-                <div class="form-group">
-                    <label>数据预览：</label>
-                    <div id="excelDataPreview" class="result-area" style="max-height: 300px; overflow-y: auto;">等待文件上传...</div>
                 </div>
                 <div class="info-box">
                     <div class="title">💡 使用说明：</div>
@@ -2112,10 +2111,10 @@
                     };
                     
                     // 显示预览
-                    let preview = `<h4>数据解析结果：</h4>`;
-                    preview += `<p>开始行：第${startRow + 1}行</p>`;
-                    preview += `<p>水卡号列：${String.fromCharCode(65 + waterCardCol)}列 (${waterCards.length}条)</p>`;
-                    preview += `<p>流水号列：${String.fromCharCode(65 + serialCol)}列 (${serials.length}条)</p>`;
+                    let preview = `<p>数据解析结果：</p>`;
+                    preview += `<p><text>开始行：第${startRow + 1}行</text>`;
+                    preview += `<text>;水卡号列：${String.fromCharCode(65 + waterCardCol)}列 (${waterCards.length}条)</text>`;
+                    preview += `<text>;流水号列：${String.fromCharCode(65 + serialCol)}列 (${serials.length}条)</text></p>`;
                     
                     preview += `<table class="data-table">`;
                     preview += `<tr><th>序号</th><th>水卡号</th><th>流水号</th></tr>`;
@@ -2222,14 +2221,24 @@
                             
                             // 填入A列（水卡号）
                             if (parsedData.waterCardNumbers[i]) {
-                                sheetData[rowIndex][0] = parsedData.waterCardNumbers[i];
+                                // sheetData[rowIndex][0] = parsedData.waterCardNumbers[i];
+                                if(parsedData.waterCardNumbers[i].length != 8 ){
+                                    alert(`第${i+1}行水卡(IC卡)号长度必须为8个字符，请检查！`);return;
+                                }else{
+                                    sheetData[rowIndex][0] = parsedData.waterCardNumbers[i];
+                                }
                             }
                             
                             // 填入B列（流水号），再次清理"NO."前缀确保数据干净
                             if (parsedData.serialNumbers[i]) {
                                 const rawSerial = parsedData.serialNumbers[i].toString();
                                 const cleanedSerial = rawSerial.replace(/^NO\./i, '').trim();
-                                sheetData[rowIndex][1] = cleanedSerial;
+                                if(cleanedSerial.length < 1 ||cleanedSerial.length >12){
+                                    alert(`第${i+1}行流水号长度必须在1-12个字符之间，请检查！`);return;
+                                }else{
+                                    sheetData[rowIndex][1] = cleanedSerial;
+                                }
+                                // sheetData[rowIndex][1] = cleanedSerial;
                             }
                         }
                         

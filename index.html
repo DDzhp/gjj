@@ -3588,8 +3588,10 @@
                     }
                     
                     // 6. 根据关键词匹配结果设置滤芯寿命类型
-                    // 优化：时间关键词优先，因为在型号后、数值参数前的范围内更可能出现
-                    if (hasTimeKeyword) {
+                    // 优化：优先匹配明确的"流量"关键词，因为这是滤芯寿命类型的直接标识
+                    if (nonStandardData.includes('流量')) {
+                        document.getElementById('filterLifeType').value = '1';
+                    } else if (hasTimeKeyword) {
                         document.getElementById('filterLifeType').value = '0';
                     } else if (hasFlowKeyword) {
                         document.getElementById('filterLifeType').value = '1';
@@ -3717,6 +3719,24 @@
                 const singleConsumptionLimitMatch = nonStandardData.match(/单次消费限制(\d+)/);
                 if (singleConsumptionLimitMatch && singleConsumptionLimitMatch[1]) {
                     document.getElementById('singleLimitFlow').value = singleConsumptionLimitMatch[1];
+                }
+                
+                // 解析单次限制时间
+                const singleLimitTimeMatch = nonStandardData.match(/单次限制时间(\d+)/);
+                if (singleLimitTimeMatch && singleLimitTimeMatch[1]) {
+                    document.getElementById('singleLimitTime').value = singleLimitTimeMatch[1];
+                }
+                
+                // 解析冷水费率2路(X)元/升格式，填写到小/2通道/冷水费率
+                const coldRate2WithBracketsMatch = nonStandardData.match(/冷水费率2路\(([\d.]+)\)元\/升/);
+                if (coldRate2WithBracketsMatch && coldRate2WithBracketsMatch[1]) {
+                    document.getElementById('rate2ColdPerLiter').value = coldRate2WithBracketsMatch[1];
+                }
+                
+                // 解析热水费率1路(X)元/升格式，填写到大/1通道/热水费率
+                const hotRate1WithBracketsMatch = nonStandardData.match(/热水费率1路\(([\d.]+)\)元\/升/);
+                if (hotRate1WithBracketsMatch && hotRate1WithBracketsMatch[1]) {
+                    document.getElementById('rate1HotPerLiter').value = hotRate1WithBracketsMatch[1];
                 }
                 
                 // 解析热水温度，填写到热水 温度

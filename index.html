@@ -411,7 +411,7 @@
             
             /* ===== 工具导航栏样式 ===== */
     /* 使用大小写不敏感的方式处理工具ID选择 */
-    .tool-switcher button:not(.active):not([data-tool-id='excelTemplateTool']):not([data-tool-id='pulseTool']):not([data-tool-id*='iccid']):not([data-tool-id*='ICCID']):not([data-tool-id*='serial']):not([data-tool-id*='qr']):not([data-tool-id*='二维码生成']):not([data-tool-id='stockParamTool']) {
+    .tool-switcher button:not(.active):not([data-tool-id='excelTemplateTool']):not([data-tool-id='pulseTool']):not([data-tool-id*='iccid']):not([data-tool-id*='ICCID']):not([data-tool-id*='serial']):not([data-tool-id*='qr']):not([data-tool-id*='二维码生成']):not([data-tool-id='stockParamTool']):not([data-tool-id='imeiExtractionTool']) {
         display: none;
     }
             .tool-switcher {
@@ -1370,6 +1370,7 @@
                 <button data-tool-id="paramParser">📋 入库参数解析</button>
                 <button data-tool-id="iccidTool">📱 ICCID详情</button>
                 <button data-tool-id="excelTemplateTool">📋 IC卡号处理</button>
+                <button data-tool-id="imeiExtractionTool">📱 IMEI提取</button>
                 <button data-tool-id="serialNumberTool">🔢 生成流水号</button>
                 <button data-tool-id="waterValueTool">💧 洗浴单价</button>
                 <button data-tool-id="waterPriceTool">🚰 水控单价</button>
@@ -1420,6 +1421,7 @@
                         <button onclick="showTool('paramParser'); toggleMobileMenu();" class="mobile-menu-item">入库参数解析</button>
                         <button onclick="showTool('iccidTool'); toggleMobileMenu();" class="mobile-menu-item">ICCID详情</button>
                         <button onclick="showTool('excelTemplateTool'); toggleMobileMenu();" class="mobile-menu-item">IC卡号处理</button>
+                        <button onclick="showTool('imeiExtractionTool'); toggleMobileMenu();" class="mobile-menu-item">IMEI提取</button>
                         <button onclick="showTool('serialNumberTool'); toggleMobileMenu();" class="mobile-menu-item">生成流水号</button>
                         <button onclick="showTool('waterValueTool'); toggleMobileMenu();" class="mobile-menu-item">洗浴单价</button>
                         <button onclick="showTool('waterPriceTool'); toggleMobileMenu();" class="mobile-menu-item">水控单价</button>
@@ -1445,6 +1447,7 @@
                         <button data-tool-id="paramParser" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📋 入库参数解析</button>
                         <button data-tool-id="iccidTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📱 ICCID详情</button>
                         <button data-tool-id="excelTemplateTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📋 IC卡号处理</button>
+                        <button data-tool-id="imeiExtractionTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">📱 IMEI提取</button>
                         <button data-tool-id="serialNumberTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🔢 生成流水号</button>
                         <button data-tool-id="waterValueTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">💧 洗浴单价</button>
                         <button data-tool-id="waterPriceTool" style="padding: 16px 20px; text-align: left; background: rgba(102, 126, 234, 0.1); border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s ease;">🚰 水控单价</button>
@@ -1745,6 +1748,38 @@
                         </div>
                     </div>
             </section>
+            
+            <!-- IMEI提取工具模块 -->
+            <section id="imeiExtractionTool" class="calculator" style="display:none;">
+                <h2>📱 IMEI提取</h2>
+                <div class="form-group">
+                    <label>上传Excel文件：</label>
+                    <input type="file" id="imeiFileInput" accept=".xlsx,.xls" style="height: 150px; padding: 8px; font-size: 14px;">
+                </div>
+                <div class="button-group">
+                    <button onclick="extractImei()" class="btn-primary" disabled>🔍 提取IMEI</button>
+                    <button onclick="clearImeiData()" class="btn-warning">🗑️ 清空数据</button>
+                </div>
+                <div class="form-group">
+                    <label>提取结果：</label>
+                    <div id="imeiResult" class="result-area" style="max-height: 300px; overflow-y: auto;">等待文件上传...</div>
+                </div>
+                <div class="form-group">
+                    <label>提取状态：</label>
+                    <div id="imeiProcessStatus" class="result-area">请上传Excel文件</div>
+                </div>
+                <div class="info-box">
+                    <div class="title">💡 使用说明：</div>
+                    <div class="content">
+                        • 支持.xlsx和.xls格式的Excel文件<br>
+                        • 从B列提取IMEI数据<br>
+                        • IMEI标准：86开头的15位纯数字<br>
+                        • 提取结果会自动显示在页面上<br>
+                        • 提取完成后会自动复制结果到剪贴板<br>
+                        • 结果格式为一行一个IMEI
+                    </div>
+                </div>
+            </section>
 
         </div>
 
@@ -1755,6 +1790,10 @@
             let uploadedFileName = '';
             let templateWorkbook = null;
             let loadedTemplates = new Map(); // 存储已加载的模板文件
+            
+            // IMEI提取工具相关变量
+            let imeiData = [];
+            let imeiFileName = '';
             
             // 远程模板配置（多重备用方案）
             const remoteTemplateConfig = {
@@ -3089,6 +3128,159 @@
                 }
             }
             
+            // IMEI提取工具相关函数
+            function readImeiFile(file) {
+                const statusDiv = document.getElementById('imeiProcessStatus');
+                const resultDiv = document.getElementById('imeiResult');
+                
+                // 保存上传文件名
+                imeiFileName = file.name;
+                
+                statusDiv.innerHTML = '正在读取Excel文件...';
+                resultDiv.innerHTML = '正在解析文件内容...';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        analyzeImeiData(jsonData);
+                        
+                    } catch (error) {
+                        statusDiv.innerHTML = `读取文件失败: ${error.message}`;
+                        resultDiv.innerHTML = '文件解析失败';
+                    }
+                };
+                
+                reader.readAsArrayBuffer(file);
+            }
+            
+            function analyzeImeiData(data) {
+                const statusDiv = document.getElementById('imeiProcessStatus');
+                const resultDiv = document.getElementById('imeiResult');
+                
+                try {
+                    if (!data || data.length === 0) {
+                        statusDiv.innerHTML = '文件为空或无有效数据';
+                        resultDiv.innerHTML = '文件为空或无有效数据';
+                        return;
+                    }
+                    
+                    let startRow = 0;
+                    
+                    // 检查首行是否包含中文字符
+                    const firstRow = data[0] || [];
+                    const hasChineseInFirstRow = firstRow.some(cell => 
+                        cell && /[\u4e00-\u9fa5]/.test(cell.toString())
+                    );
+                    
+                    if (hasChineseInFirstRow) {
+                        startRow = 1;
+                        statusDiv.innerHTML = '检测到首行包含中文，将从第二行开始处理';
+                    } else {
+                        startRow = 0;
+                        statusDiv.innerHTML = '首行不包含中文，从第一行开始处理';
+                    }
+                    
+                    // 从B列提取IMEI数据
+                    const imeiList = [];
+                    
+                    for (let i = startRow; i < data.length; i++) {
+                        const row = data[i];
+                        if (row && row.length >= 2) { // B列是索引1
+                            const cellValue = row[1] ? row[1].toString().trim() : '';
+                            
+                            // 验证IMEI格式：86开头的15位纯数字
+                            if (/^86\d{13}$/.test(cellValue)) {
+                                imeiList.push(cellValue);
+                            }
+                        }
+                    }
+                    
+                    imeiData = imeiList;
+                    
+                    // 显示提取结果
+                    let resultHtml = '';
+                    if (imeiList.length > 0) {
+                        resultHtml = `<p>共提取到 ${imeiList.length} 个有效的IMEI：</p>`;
+                        resultHtml += '<ul>';
+                        
+                        const maxDisplay = Math.min(3000, imeiList.length);
+                        for (let i = 0; i < maxDisplay; i++) {
+                            resultHtml += `<li>${imeiList[i]}</li>`;
+                        }
+                        
+                        if (imeiList.length > maxDisplay) {
+                            resultHtml += `<li>... 还有 ${imeiList.length - maxDisplay} 个IMEI</li>`;
+                        }
+                        
+                        resultHtml += '</ul>';
+                    } else {
+                        resultHtml = '未找到有效的IMEI数据，请检查文件格式';
+                    }
+                    
+                    resultDiv.innerHTML = resultHtml;
+                    statusDiv.innerHTML = `提取完成！共找到 ${imeiList.length} 个有效的IMEI`;
+                    
+                    // 更新按钮状态
+                    updateImeiButton();
+                    
+                } catch (error) {
+                    statusDiv.innerHTML = `数据分析失败: ${error.message}`;
+                    resultDiv.innerHTML = '数据分析失败';
+                }
+            }
+            
+            function extractImei() {
+                const statusDiv = document.getElementById('imeiProcessStatus');
+                
+                if (imeiData.length === 0) {
+                    statusDiv.innerHTML = '没有找到有效的IMEI数据';
+                    return;
+                }
+                
+                // 生成一行一个IMEI的格式
+                const imeiText = imeiData.join('\n');
+                
+                // 复制到剪贴板
+                navigator.clipboard.writeText(imeiText)
+                    .then(() => {
+                        statusDiv.innerHTML = `✅ 提取完成！共提取 ${imeiData.length} 个IMEI，已自动复制到剪贴板`;
+                    })
+                    .catch(err => {
+                        statusDiv.innerHTML = `提取完成！共提取 ${imeiData.length} 个IMEI，但复制到剪贴板失败: ${err.message}`;
+                    });
+            }
+            
+            function clearImeiData() {
+                imeiData = [];
+                imeiFileName = '';
+                document.getElementById('imeiFileInput').value = '';
+                document.getElementById('imeiResult').innerHTML = '等待文件上传...';
+                document.getElementById('imeiProcessStatus').innerHTML = '请上传Excel文件';
+                updateImeiButton();
+            }
+            
+            function updateImeiButton() {
+                const hasData = imeiData.length > 0;
+                const processButton = document.querySelector('#imeiExtractionTool .btn-primary');
+                processButton.disabled = !hasData;
+                
+                if (processButton.disabled) {
+                    processButton.textContent = '🔍 请先上传文件';
+                } else {
+                    processButton.textContent = '🔍 提取IMEI';
+                }
+            }
+            
             // 事件绑定
             document.addEventListener('DOMContentLoaded', function() {
                 // 脉冲计算器事件
@@ -3120,6 +3312,19 @@
                         clearExcelData();
                     }
                 });
+                
+                // IMEI文件上传事件
+                const imeiFileInput = document.getElementById('imeiFileInput');
+                if (imeiFileInput) {
+                    imeiFileInput.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            readImeiFile(file);
+                        } else {
+                            clearImeiData();
+                        }
+                    });
+                }
                 
                 // 模板选择事件
                 document.getElementById('templateSelect').addEventListener('change', function(e) {

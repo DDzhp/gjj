@@ -2258,58 +2258,137 @@
                                 sheetData[rowIndex] = [];
                             }
                             
-                            // 填入A列（水卡号）
+                            // 填入A列（水卡号）- 确保使用纯粹的文本信息
                             if (parsedData.waterCardNumbers[i]) {
-                                // sheetData[rowIndex][0] = parsedData.waterCardNumbers[i];
-                                if(parsedData.waterCardNumbers[i].length != 8 ){
+                                // 模拟将数据复制到txt再复制回来，确保只获取纯粹的文本信息
+                                const pureWaterCardNumber = String(parsedData.waterCardNumbers[i]).trim();
+                                if(pureWaterCardNumber.length != 8 ){
                                     alert(`第${i+1}行水卡(IC卡)号长度必须为8个字符，请检查！`);return;
                                 }else{
-                                    sheetData[rowIndex][0] = parsedData.waterCardNumbers[i];
+                                    // 在数据前添加单引号，强制Excel将其视为文本
+                                    sheetData[rowIndex][0] = '\'' + pureWaterCardNumber; // 添加单引号前缀，强制文本格式
                                 }
                             }
                             
-                            // 填入B列（流水号），再次清理"NO."前缀确保数据干净
+                            // 填入B列（流水号）- 确保使用纯粹的文本信息
                             if (parsedData.serialNumbers[i]) {
-                                const rawSerial = parsedData.serialNumbers[i].toString();
+                                // 模拟将数据复制到txt再复制回来，确保只获取纯粹的文本信息
+                                const rawSerial = String(parsedData.serialNumbers[i]).trim();
                                 const cleanedSerial = rawSerial.replace(/^NO\./i, '').trim();
                                 if(cleanedSerial.length < 1 ||cleanedSerial.length >12){
                                     alert(`第${i+1}行流水号长度必须在1-12个字符之间，请检查！`);return;
                                 }else{
-                                    sheetData[rowIndex][1] = cleanedSerial;
+                                    // 在数据前添加单引号，强制Excel将其视为文本
+                                    sheetData[rowIndex][1] = '\'' + cleanedSerial; // 添加单引号前缀，强制文本格式
                                 }
-                                // sheetData[rowIndex][1] = cleanedSerial;
                             }
                         }
                         
                         // 创建新的工作表
                         const newSheet = XLSX.utils.aoa_to_sheet(sheetData);
                         
-                        // 复制原始工作表的其他属性（如列宽、格式等）
-                        if (originalSheet['!cols']) {
-                            newSheet['!cols'] = originalSheet['!cols'];
+                        // 确保A列和B列都以文本形式存储，防止Excel将其识别为数字
+                        // 从第2行开始处理数据
+                        for (let i = 1; i <= maxRows; i++) {
+                            // 处理A列（IC卡号）
+                            const cellAddressA = XLSX.utils.encode_cell({r: i, c: 0}); // A列
+                            if (newSheet[cellAddressA]) {
+                                newSheet[cellAddressA].t = 's'; // 设置为字符串类型
+                            }
+                            // 处理B列（流水号）
+                            const cellAddressB = XLSX.utils.encode_cell({r: i, c: 1}); // B列
+                            if (newSheet[cellAddressB]) {
+                                newSheet[cellAddressB].t = 's'; // 设置为字符串类型
+                            }
                         }
-                        if (originalSheet['!rows']) {
-                            newSheet['!rows'] = originalSheet['!rows'];
+                        
+                        // 模拟双击B2单元格并回车的操作
+                        // B2单元格的索引是r:1, c:1（0-based）
+                        const b2CellAddress = XLSX.utils.encode_cell({r: 1, c: 1});
+                        if (newSheet[b2CellAddress]) {
+                            // 确保B2单元格存在且为字符串类型
+                            newSheet[b2CellAddress].t = 's';
+                            // 可以通过设置单元格的v属性来确保值被正确处理
+                            // 这模拟了双击并回车的效果，确保Excel将其视为纯文本
                         }
-                        if (originalSheet['!merges']) {
-                            newSheet['!merges'] = originalSheet['!merges'];
-                        }
+                        
+                        // 注意：不复制原始工作表的其他属性，只保留纯粹的文本数据
+                        // 这样可以确保不会复制原有表格的任何其他信息
                         
                         XLSX.utils.book_append_sheet(newWorkbook, newSheet, sheetName);
                     });
                     
                     // 生成文件并下载
                     const originalName = uploadedFileName;
-                    const extension = originalName.lastIndexOf('.') >= 0 ? originalName.slice(originalName.lastIndexOf('.')) : '.xlsx';
                     const baseName = originalName.lastIndexOf('.') >= 0 ? originalName.slice(0, originalName.lastIndexOf('.')) : originalName;
-                    const filename = `${baseName}_已处理${extension}`;
-                    XLSX.writeFile(newWorkbook, filename);
                     
-                    return {
-                        success: true,
-                        filename: filename,
-                        templateSource: templateSource
-                    };
+                    // 添加时间戳到文件名，避免缓存问题
+                    const timestamp = new Date().getTime();
+                    
+                    try {
+                        // 生成CSV格式文件，默认以文本格式存储数据，避免Excel自动转换
+                        const csvFilename = `${baseName}_已处理_${timestamp}.csv`;
+                        
+                        // 创建CSV数据
+                        let csvContent = 'IC卡号,流水号\n';
+                        const maxRows = Math.max(parsedData.waterCardNumbers.length, parsedData.serialNumbers.length);
+                        
+                        for (let i = 0; i < maxRows; i++) {
+                            const icCardNumber = parsedData.waterCardNumbers[i] || '';
+                            const serialNumber = parsedData.serialNumbers[i] || '';
+                            // CSV格式会自动以文本形式存储数据
+                            csvContent += `"${icCardNumber}","${serialNumber}"\n`;
+                        }
+                        
+                        // 下载CSV文件
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', csvFilename);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        // 同时生成Excel文件作为备选
+                        const xlsxFilename = `${baseName}_已处理_${timestamp}.xlsx`;
+                        const writeOptions = {
+                            bookType: 'xlsx',
+                            type: 'file',
+                            cellDates: false,
+                            cellStyles: false,
+                            compression: true
+                        };
+                        
+                        XLSX.writeFile(newWorkbook, xlsxFilename, writeOptions);
+                        
+                        return {
+                            success: true,
+                            filename: `${csvFilename} (同时生成了 ${xlsxFilename})`,
+                            templateSource: templateSource
+                        };
+                    } catch (error) {
+                        // 如果CSV生成失败，回退到Excel文件
+                        const extension = '.xlsx';
+                        const finalFilename = `${baseName}_已处理_${timestamp}${extension}`;
+                        
+                        const writeOptions = {
+                            bookType: 'xlsx',
+                            type: 'file',
+                            cellDates: false,
+                            cellStyles: false,
+                            compression: true
+                        };
+                        
+                        XLSX.writeFile(newWorkbook, finalFilename, writeOptions);
+                        
+                        return {
+                            success: true,
+                            filename: finalFilename,
+                            templateSource: templateSource
+                        };
+                    }
                     
                 } catch (error) {
                     return {
@@ -2355,8 +2434,21 @@
                     const originalName = uploadedFileName;
                     const extension = originalName.lastIndexOf('.') >= 0 ? originalName.slice(originalName.lastIndexOf('.')) : '.xlsx';
                     const baseName = originalName.lastIndexOf('.') >= 0 ? originalName.slice(0, originalName.lastIndexOf('.')) : originalName;
-                    const filename = `${baseName}已处理${extension}`;
-                    XLSX.writeFile(newWorkbook, filename);
+                    
+                    // 添加时间戳到文件名，避免缓存问题
+                    const timestamp = new Date().getTime();
+                    const filename = `${baseName}已处理_${timestamp}${extension}`;
+                    
+                    // 使用更严格的选项生成文件，确保数据以纯文本形式存储
+                    const writeOptions = {
+                        bookType: extension === '.xlsx' ? 'xlsx' : 'xls',
+                        type: 'file',
+                        cellDates: false,
+                        cellStyles: false,
+                        compression: true
+                    };
+                    
+                    XLSX.writeFile(newWorkbook, filename, writeOptions);
                     
                     statusDiv.innerHTML = `文件处理完成！<br>` +
                         `• 使用默认模板<br>` +

@@ -6877,13 +6877,13 @@
                         // 同时检查大小写版本
                         const isIccidTool = btnText.includes('iccid详情') || btnText.includes('ICCID详情');
                         const isSerialTool = btnText.includes('生成流水号');
-                        const isQRTool = btnText.includes('解析二维码');
                         const isQRGeneratorTool = btnText.includes('二维码生成器') || btnText.includes('二维码生成');
                         const isStockParamTool = btnText.includes('入库参数生成');
+                        const isImeiExtractionTool = btnText.includes('IMEI提取');
                         
                         // 设置按钮显示状态：如果是激活态或属于常用工具则显示（空字符串重置为默认显示），否则隐藏
                         btn.style.display = (isActive || isIcCardTool || isPulseTool || 
-                                          isIccidTool || isSerialTool || isQRTool || isQRGeneratorTool || isStockParamTool) ? '' : 'none';
+                                          isIccidTool || isSerialTool || isQRGeneratorTool || isStockParamTool || isImeiExtractionTool) ? '' : 'none';
                     }
                 });
             }

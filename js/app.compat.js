@@ -110,7 +110,7 @@
         want = valid[saved] ? saved : '';
       } catch (e) { want = ''; }
     }
-    if (!want) want = tools[0].id;
+    if (!want) want = valid['stockParamTool'] ? 'stockParamTool' : tools[0].id;
 
     // 仅当当前显示的工具与目标不一致时才切换，避免重复初始化
     var panel = document.getElementById(want);

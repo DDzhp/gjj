@@ -229,6 +229,8 @@
 
   // 对外暴露，覆盖旧版实现，保持同名同参
   window.showTool = showTool;
+  // 暴露密钥门函数，供 showTool 内部按需调用
+  window.initKeyGate = initKeyGate;
   // 备份一份，供 app.compat.js 在业务脚本加载后夺回控制权
   window.__shellShowTool = showTool;
 

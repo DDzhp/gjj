@@ -377,6 +377,8 @@
       var saved = localStorage.getItem(LS_KEY);
       if (saved && findTool(saved)) return saved;
     } catch (e) {}
+    // 默认打开「入库参数生成」工具
+    if (findTool('stockParamTool')) return 'stockParamTool';
     return TOOLS.length ? TOOLS[0].id : null;
   }
 

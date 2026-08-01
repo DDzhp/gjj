@@ -262,7 +262,18 @@
     var htmlCommon = '';
     var htmlMore = '';
 
-    TOOLS.forEach(function (t) {
+    // 常用工具置顶顺序：把重点工具（如入库参数生成）排到最前面
+    var PRIORITY = ['stockParamTool', 'iccidTool', 'excelTemplateTool', 'qrGeneratorTool'];
+    var commonTools = TOOLS.filter(function (t) { return t.common; });
+    commonTools.sort(function (a, b) {
+      var ia = PRIORITY.indexOf(a.id);
+      var ib = PRIORITY.indexOf(b.id);
+      if (ia === -1) ia = 999;
+      if (ib === -1) ib = 999;
+      return ia - ib;
+    });
+
+    commonTools.forEach(function (t) {
       if (t.common) {
         htmlCommon += '<button type="button" class="tool-bar__item" data-tool-id="' + t.id + '">' +
                         '<span class="tool-bar__icon">' + t.icon + '</span>' +

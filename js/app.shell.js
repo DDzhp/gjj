@@ -281,8 +281,9 @@
                     '</button>';
     });
 
-    // “查看更多”面板显示全部工具（不限于非常用），避免面板为空
+    // "查看更多"面板仅显示非常用工具，避免与顶部常用条重复
     TOOLS.forEach(function (t) {
+      if (t.common) return;
       htmlMore += '<button type="button" class="tool-bar__item" data-tool-id="' + t.id + '">' +
                     '<span class="tool-bar__icon">' + t.icon + '</span>' +
                     '<span class="tool-bar__label">' + t.name + '</span>' +

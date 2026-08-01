@@ -274,17 +274,19 @@
     });
 
     commonTools.forEach(function (t) {
-      if (t.common) {
-        htmlCommon += '<button type="button" class="tool-bar__item" data-tool-id="' + t.id + '">' +
-                        '<span class="tool-bar__icon">' + t.icon + '</span>' +
-                        '<span class="tool-bar__label">' + t.name + '</span>' +
-                      '</button>';
-      } else {
-        htmlMore += '<button type="button" class="tool-bar__item" data-tool-id="' + t.id + '">' +
+      if (!t.common) return;
+      htmlCommon += '<button type="button" class="tool-bar__item" data-tool-id="' + t.id + '">' +
                       '<span class="tool-bar__icon">' + t.icon + '</span>' +
                       '<span class="tool-bar__label">' + t.name + '</span>' +
                     '</button>';
-      }
+    });
+
+    // “查看更多”面板显示全部工具（不限于非常用），避免面板为空
+    TOOLS.forEach(function (t) {
+      htmlMore += '<button type="button" class="tool-bar__item" data-tool-id="' + t.id + '">' +
+                    '<span class="tool-bar__icon">' + t.icon + '</span>' +
+                    '<span class="tool-bar__label">' + t.name + '</span>' +
+                  '</button>';
     });
 
     if (el.switch) el.switch.innerHTML = htmlCommon;

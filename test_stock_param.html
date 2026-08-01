@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试入库参数生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            font-family: monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .param {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>测试入库参数生成器放水时间解析</h1>
+        
+        <h2>测试数据</h2>
+        <textarea id="testData">高密市泉碧然供水有限公司 	 高密泉碧然智慧净水    	 1028 	 翔东卡 	 跃龙公有售水机 	 WSSJ2-A1   流量滤芯  放水时间冷2路6， 检修720，大/1通道/热水费率[元/升]0.3，小/2通道/冷水费率[元/升]0.3，限制流量7500,浮球7，单次限制300   入IMEI号 
+ 898604C6062290468922到898604C6062290468933   (12张)</textarea>
+        
+        <button onclick="testConvertData()">测试转换</button>
+        
+        <div class="result">
+            <h2>测试结果</h2>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟convertData函数的核心逻辑
+        function testConvertData() {
+            const nonStandardData = document.getElementById('testData').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '';
+            
+            // 解析阀2放水时间[冷、小]：匹配多种格式
+            const valve2TimeMatch = nonStandardData.match(/(?:放水时间|阀2放水时间)?冷2路(\d+)/i);
+            let valve2Time = '未匹配到';
+            if (valve2TimeMatch && valve2TimeMatch[1]) {
+                valve2Time = valve2TimeMatch[1];
+            } else {
+                const coldChannelMatch = nonStandardData.match(/小\/2通道\/冷水费率.*?(\d+)/i);
+                if (coldChannelMatch && coldChannelMatch[1]) {
+                    valve2Time = coldChannelMatch[1];
+                }
+            }
+            
+            // 解析阀1放水时间[罐装、大、热]：匹配多种格式
+            const valve1TimeMatch = nonStandardData.match(/(?:放水时间|阀1放水时间)?热1路(\d+)/i);
+            let valve1Time = '未匹配到';
+            if (valve1TimeMatch && valve1TimeMatch[1]) {
+                valve1Time = valve1TimeMatch[1];
+            } else {
+                const hotChannelMatch = nonStandardData.match(/大\/1通道\/热水费率.*?(\d+)/i);
+                if (hotChannelMatch && hotChannelMatch[1]) {
+                    valve1Time = hotChannelMatch[1];
+                }
+            }
+            
+            // 显示结果
+            resultDiv.innerHTML = `
+                <div class="param">阀2放水时间[冷、小]：${valve2Time}</div>
+                <div class="param">阀1放水时间[罐装、大、热]：${valve1Time}</div>
+            `;
+        }
+    </script>
+</body>
+</html>

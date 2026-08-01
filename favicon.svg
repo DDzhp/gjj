@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 背景圆环 -->
+  <circle cx="256" cy="256" r="200" fill="#667eea" stroke="#764ba2" stroke-width="20" stroke-linecap="round"/>
+  <!-- 闪电形状 -->
+  <polygon points="256,80 216,256 320,200 176,200 280,256 240,432" fill="#ffffff" stroke="#4ecdc4" stroke-width="10" stroke-linejoin="round"/>
+  <!-- 文字YL -->
+  <text x="256" y="280" font-family="Arial, sans-serif" font-size="120" font-weight="bold" text-anchor="middle" fill="#ffffff" stroke="#45b7d1" stroke-width="5">YL</text>
+</svg>

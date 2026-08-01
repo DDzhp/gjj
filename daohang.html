@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的网址收藏 - 天蓝色主题</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e6f7ff, #b3e0ff, #80ccff);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #003366;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+        }
+        
+        header {
+            margin-bottom: 40px;
+            animation: fadeInDown 1s ease;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            color: #004d99;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #0066cc;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            justify-content: center;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 16px;
+            padding: 30px 25px;
+            box-shadow: 0 10px 30px rgba(0, 102, 204, 0.15);
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 102, 204, 0.25);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #4da6ff, #0066cc);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 28px;
+        }
+        
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #004d99;
+        }
+        
+        .card p {
+            color: #006699;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(to right, #0066cc, #004d99);
+            color: white;
+            text-decoration: none;
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 102, 204, 0.4);
+            background: linear-gradient(to right, #0052a3, #003d7a);
+        }
+        
+        footer {
+            margin-top: 60px;
+            color: #006699;
+            font-size: 0.9rem;
+            animation: fadeInUp 1s ease;
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .cards-container {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+                margin: 0 auto;
+            }
+            
+            .card {
+                padding: 25px 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .icon {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+            
+            .card h3 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-bookmark"></i> 我的网址收藏</h1>
+            <p class="subtitle">精心挑选的优质网站，助您高效工作与学习</p>
+        </header>
+        
+        <div class="cards-container">
+            <!-- 卡片 1 -->
+            <div class="card">
+                <div class="icon">
+                    <i class="fab fa-google"></i>
+                </div>
+                <h3>谷歌搜索</h3>
+                <p>全球最大的搜索引擎，提供网页、图片、视频等多种搜索服务，帮助您快速找到所需信息。</p>
+                <a href="https://www.google.com" target="_blank" class="btn">访问网站</a>
+            </div>
+            
+            <!-- 卡片 2 -->
+            <div class="card">
+                <div class="icon">
+                    <i class="fab fa-github"></i>
+                </div>
+                <h3>GitHub</h3>
+                <p>全球最大的代码托管平台，用于版本控制和协作，是开发者学习和交流的重要社区。</p>
+                <a href="https://github.com" target="_blank" class="btn">访问网站</a>
+            </div>
+            
+            <!-- 卡片 3 -->
+            <div class="card">
+                <div class="icon">
+                    <i class="fab fa-youtube"></i>
+                </div>
+                <h3>YouTube</h3>
+                <p>全球最大的视频分享平台，提供教育、娱乐、技术等各种类型的视频内容。</p>
+                <a href="https://www.youtube.com" target="_blank" class="btn">访问网站</a>
+            </div>
+            
+            <!-- 卡片 4 -->
+            <div class="card">
+                <div class="icon">
+                    <i class="fab fa-stack-overflow"></i>
+                </div>
+                <h3>Stack Overflow</h3>
+                <p>程序员问答社区，解决编程问题、学习新技术、分享知识的最佳平台。</p>
+                <a href="https://stackoverflow.com" target="_blank" class="btn">访问网站</a>
+            </div>
+            
+            <!-- 卡片 5 -->
+            <div class="card">
+                <div class="icon">
+                    <i class="fab fa-medium"></i>
+                </div>
+                <h3>Medium</h3>
+                <p>高质量内容创作平台，阅读和分享技术、商业、文化等领域的深度文章。</p>
+                <a href="https://medium.com" target="_blank" class="btn">访问网站</a>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 我的网址收藏 | 天蓝色主题响应式设计</p>
+        </footer>
+    </div>
+</body>
+</html>

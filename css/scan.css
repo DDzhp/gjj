@@ -1,0 +1,432 @@
+/* 批量扫描件处理工具 —— 样式（作用域限定在 .scan-tool 内） */
+
+.scan-tool {
+  --bg: #f4f6f9;
+  --panel: #ffffff;
+  --border: #e2e6ec;
+  --text: #1f2933;
+  --muted: #7b8794;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --a: #0f9d76;
+  --b: #7c4dff;
+  --err: #dc2626;
+  --ok: #059669;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(16, 24, 40, .06), 0 1px 2px rgba(16, 24, 40, .04);
+}
+
+.scan-tool * { box-sizing: border-box; }
+
+/* ── 顶部 ─────────────────────────────────────────────────────────────── */
+.scan-tool header { margin-bottom: 18px; }
+
+.scan-tool h1 {
+  font-size: 20px;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.scan-tool .sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.scan-tool .cv-status {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+.scan-tool .cv-loading { background: #fef9e7; color: #92700e; border-color: #f7e3a1; }
+.scan-tool .cv-ready   { background: #e7f6f0; color: #05714f; border-color: #a7ddc9; }
+.scan-tool .cv-failed  { background: #fdecec; color: #a01919; border-color: #f3bcbc; }
+
+.scan-tool .cv-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.scan-tool .btn-sm {
+  height: 26px;
+  padding: 0 12px;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.scan-tool .cv-help {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #fff8f8;
+  border: 1px solid #f3d5d5;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #6a4a4a;
+  max-width: 760px;
+}
+.scan-tool .cv-help summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #a01919;
+}
+.scan-tool .cv-help ol { margin: 8px 0 0; padding-left: 20px; }
+.scan-tool .cv-help li { margin-bottom: 6px; }
+.scan-tool .cv-help code {
+  background: #f3e5e5;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/* ── 上传区 ───────────────────────────────────────────────────────────── */
+.scan-tool .dropzone {
+  background: var(--panel);
+  border: 2px dashed #c6cedb;
+  border-radius: var(--radius);
+  padding: 30px 20px;
+  text-align: center;
+  transition: .18s;
+  margin-bottom: 16px;
+}
+.scan-tool .dropzone.hover {
+  border-color: var(--primary);
+  background: #eff5ff;
+}
+.scan-tool .dz-title { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.scan-tool .dz-hint  { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+.scan-tool .dz-btns  { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ── 控制面板 ─────────────────────────────────────────────────────────── */
+.scan-tool .panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.scan-tool .controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 26px;
+  align-items: flex-end;
+}
+
+.scan-tool .field { display: flex; flex-direction: column; gap: 5px; }
+.scan-tool .field > label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+.scan-tool .field select {
+  height: 32px;
+  min-width: 130px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  font-size: 13px;
+}
+.scan-tool .field input[type=range] { width: 150px; accent-color: var(--primary); }
+.scan-tool .field input[type=range]:disabled { opacity: .4; }
+
+.scan-tool .range-row { display: flex; align-items: center; gap: 10px; }
+.scan-tool .range-val {
+  min-width: 40px;
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.scan-tool .checks { display: flex; flex-direction: column; gap: 7px; }
+.scan-tool .checks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.scan-tool .checks input { accent-color: var(--primary); }
+
+.scan-tool .actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* ── 按钮 ─────────────────────────────────────────────────────────────── */
+.scan-tool .btn {
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: .15s;
+  white-space: nowrap;
+}
+.scan-tool .btn:hover:not(:disabled) { border-color: #aab6c8; background: #f7f9fc; }
+.scan-tool .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.scan-tool .btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.scan-tool .btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.scan-tool .btn-a:not(:disabled) { border-color: var(--a); color: var(--a); }
+.scan-tool .btn-b:not(:disabled) { border-color: var(--b); color: var(--b); }
+
+.scan-tool .icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.scan-tool .icon-btn:hover { background: #f0f2f6; color: var(--err); }
+
+.scan-tool .link-btn {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+  margin-left: auto;
+}
+.scan-tool .link-btn:hover { text-decoration: underline; }
+
+/* ── 进度 ─────────────────────────────────────────────────────────────── */
+.scan-tool .progress { margin-top: 12px; }
+.scan-tool .progress-track {
+  height: 6px;
+  background: #e8ecf2;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.scan-tool .progress-bar {
+  height: 100%;
+  width: 0;
+  background: var(--primary);
+  transition: width .2s;
+}
+.scan-tool .progress-text {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+/* ── 列表 ─────────────────────────────────────────────────────────────── */
+.scan-tool .list-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.scan-tool .list-head h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.scan-tool .list-head .num { color: var(--muted); font-size: 13px; }
+
+.scan-tool .empty {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 50px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.scan-tool .row {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.scan-tool .row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbfd;
+}
+.scan-tool .row-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.scan-tool .badge {
+  font-size: 11.5px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: #eef1f5;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.scan-tool .badge-run { background: #fff4e0; color: #a86a00; }
+.scan-tool .badge-ok  { background: #e7f6f0; color: var(--ok); }
+.scan-tool .badge-err { background: #fdecec; color: var(--err); }
+
+/* 三栏并排 */
+.scan-tool .panes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+
+.scan-tool .pane {
+  margin: 0;
+  padding: 12px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.scan-tool .pane figcaption {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scan-tool .tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 4px;
+  color: #fff;
+}
+.scan-tool .tag-a { background: var(--a); }
+.scan-tool .tag-b { background: var(--b); }
+
+.scan-tool .canvas-box {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fa
+    repeating-conic-gradient(#eceef1 0% 25%, transparent 0% 50%) 0 / 16px 16px;
+  border: 1px solid #eceef1;
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 6px;
+}
+
+.scan-tool .canvas-box img,
+.scan-tool .canvas-box canvas {
+  max-width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  display: block;
+  background: #fff;
+}
+
+.scan-tool .canvas-box canvas.preview { cursor: zoom-in; }
+
+.scan-tool .ph { color: #aab2bd; font-size: 12.5px; }
+.scan-tool .ph.err { color: var(--err); text-align: center; padding: 0 10px; }
+
+.scan-tool .note {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin: 6px 0 0;
+  min-height: 16px;
+}
+
+/* ── 大图（全局，JS 注入到 body） ──────────────────────────────────────── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 20, 28, .88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 999;
+  cursor: zoom-out;
+  padding: 24px;
+}
+.lightbox-img {
+  max-width: 94vw;
+  max-height: 84vh;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, .5);
+}
+.lightbox-cap { color: #dfe4ea; font-size: 13px; }
+
+/* ── Toast（全局，JS 注入到 body） ─────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%) translateY(14px);
+  background: #23303f;
+  color: #fff;
+  padding: 9px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: .24s;
+  z-index: 1000;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── 说明 ─────────────────────────────────────────────────────────────── */
+.scan-tool .footnote {
+  margin-top: 26px;
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.9;
+}
+.scan-tool .footnote strong { color: var(--text); }
+.scan-tool .footnote code {
+  background: #f0f2f6;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* ── 响应式 ───────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .scan-tool .panes { grid-template-columns: 1fr; }
+  .scan-tool .canvas-box img, .scan-tool .canvas-box canvas { max-height: 300px; }
+  .scan-tool .actions { margin-left: 0; width: 100%; }
+}

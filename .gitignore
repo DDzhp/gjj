@@ -1,0 +1,9 @@
+# 内部/工具目录，不纳入同步
+.codebuddy/
+.playwright-cli/
+zxtest/
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store

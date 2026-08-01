@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>入库参数生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .tool-section {
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        textarea, input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 4px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .result {
+            background-color: #f0f8ff;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .parameter-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        @media (min-width: 600px) {
+            .parameter-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .input-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>入库参数生成器</h1>
+        
+        <div class="tool-section">
+            <h2>数据粘贴区域</h2>
+            <div class="input-group">
+                <label for="excelData">从Excel粘贴数据（公司名称,微信公众号,厂商ID,卡类型,所属系统）：</label>
+                <textarea id="excelData" placeholder="例如：高密市泉碧然供水有限公司	高密泉碧然智慧净水	1028	翔东卡	跃龙公有售水机"></textarea>
+            </div>
+        </div>
+        
+        <div class="tool-section">
+            <h2>一键转换区域</h2>
+            <div class="input-group">
+                <label for="nonStandardData">粘贴非标准内容：</label>
+                <textarea id="nonStandardData" placeholder="例如：中国水务-分宜半亩-建烨  银龙直饮水    1001    跃龙新私有   WSSJ2-B1   流量滤芯  冷水路脉冲330，热水脉冲330  检修720，大/1通道/热水费率[元/升]0.5，小/2通道/冷水费率[元/升]0.5，限制流量7500,浮球7，单次限制300  指定ID 
+ 898604E70623D0181822到 
+ 898604E70623D0181831（10张）  18M "></textarea>
+            </div>
+            <button class="btn" onclick="convertData()">一键转换</button>
+        </div>
+        
+        <div class="tool-section">
+            <h2>参数设置</h2>
+            <div class="parameter-grid">
+                <div class="input-wrapper">
+                    <label for="motherboardModel">型号:</label>
+                    <input type="text" id="motherboardModel">
+                </div>
+                <div class="input-wrapper">
+                    <label for="filterLifeType" style="color: red;">滤芯寿命类型:</label>
+                    <select id="filterLifeType">
+                        <option value="">请选择</option>
+                        <option value="0">0.时间</option>
+                        <option value="1">1.流量</option>
+                    </select>
+                </div>
+                <div class="input-wrapper">
+                    <label for="channel2Pulse" style="color: red;">通道2脉冲[冷、小2]:</label>
+                    <input type="text" id="channel2Pulse">
+                </div>
+                <div class="input-wrapper">
+                    <label for="channel1Pulse">通道1脉冲[热,大]:</label>
+                    <input type="text" id="channel1Pulse">
+                </div>
+                <div class="input-wrapper">
+                    <label for="waterTime" style="color: red;">制水时间:</label>
+                    <input type="text" id="waterTime">
+                </div>
+                <div class="input-wrapper">
+                    <label for="valve2Time">阀2放水时间[冷、小]:</label>
+                    <input type="text" id="valve2Time">
+                </div>
+                <div class="input-wrapper">
+                    <label for="valve1Time">阀1放水时间[罐装、大、热]:</label>
+                    <input type="text" id="valve1Time">
+                </div>
+                <div class="input-wrapper">
+                    <label for="maintainTime" style="color: red;">检修时间:</label>
+                    <input type="text" id="maintainTime">
+                </div>
+                <div class="input-wrapper">
+                    <label for="rate1Hot">大/1通道/热水费率:</label>
+                    <input type="text" id="rate1Hot">
+                </div>
+                <div class="input-wrapper">
+                    <label for="rate2Cold">小/2通道/冷水费率:</label>
+                    <input type="text" id="rate2Cold">
+                </div>
+                <div class="input-wrapper">
+                    <label for="rate1HotPerLiter">大/1通道/热水费率元/升:</label>
+                    <input type="text" id="rate1HotPerLiter">
+                </div>
+                <div class="input-wrapper">
+                    <label for="rate2ColdPerLiter">小/2通道/冷水费率元/升:</label>
+                    <input type="text" id="rate2ColdPerLiter">
+                </div>
+                <div class="input-wrapper">
+                    <label for="singleLimitFlow">单次限制流量/箱3:</label>
+                    <input type="text" id="singleLimitFlow">
+                </div>
+                <div class="input-wrapper">
+                    <label for="floatBall">浮球-派士:</label>
+                    <input type="text" id="floatBall">
+                </div>
+                <div class="input-wrapper">
+                    <label for="singleLimitTime">单次限制时间:</label>
+                    <input type="text" id="singleLimitTime">
+                </div>
+                <div class="input-wrapper">
+                    <label for="cardFlow" style="color: red;">卡流量:</label>
+                    <input type="text" id="cardFlow">
+                </div>
+                <div class="input-wrapper">
+                    <label for="iccidStart">ICCID起始:</label>
+                    <input type="text" id="iccidStart">
+                </div>
+                <div class="input-wrapper">
+                    <label for="iccidEnd">ICCID结尾:</label>
+                    <input type="text" id="iccidEnd">
+                </div>
+                <div class="input-wrapper">
+                    <label for="inStockCount">入库数量:</label>
+                    <input type="text" id="inStockCount">
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn" onclick="extractData()">提取数据</button>
+        
+        <div class="result" id="result"></div>
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+            <strong>提示：</strong>家用机常用参数为红色标注项。一般包含：滤芯寿命类型:、通道2脉冲[冷、小2]:、制水时间:、检修时间、卡流量。
+        </div>
+    </div>
+    
+    <script>
+        function extractData() {
+            // 验证滤芯寿命类型是否已选择
+            const filterLifeType = document.getElementById('filterLifeType').value;
+            if (!filterLifeType) {
+                alert('请选择滤芯寿命类型！');
+                return;
+            }
+            
+            // 获取Excel数据并处理
+            const excelData = document.getElementById('excelData').value.trim();
+            let excelResult = '';
+            
+            if (excelData) {
+                // 替换所有空白字符（包括制表符、空格等）为中文逗号
+                const extractedData = excelData.split(/\s+/).filter(item => item.trim() !== '');
+                excelResult = extractedData.join('，') + '。';
+            }
+            
+            // 获取滤芯寿命类型的完整描述
+            let filterLifeTypeText = '';
+            if (filterLifeType === '0') {
+                filterLifeTypeText = '0.时间';
+            } else if (filterLifeType === '1') {
+                filterLifeTypeText = '1.流量';
+            }
+            
+            // 获取参数数据
+            const parameters = {
+                '型号：': document.getElementById('motherboardModel').value.trim(),
+                '滤芯寿命类型：': filterLifeTypeText,
+                '通道2脉冲[冷、小2]：': document.getElementById('channel2Pulse').value.trim(),
+                '通道1脉冲[热,大]：': document.getElementById('channel1Pulse').value.trim(),
+                '制水时间：': document.getElementById('waterTime').value.trim(),
+                '阀2放水时间[冷、小]：': document.getElementById('valve2Time').value.trim(),
+                '阀1放水时间[罐装、大、热]：': document.getElementById('valve1Time').value.trim(),
+                '检修时间：': document.getElementById('maintainTime').value.trim(),
+                '大/1通道/热水费率：': document.getElementById('rate1Hot').value.trim(),
+                '小/2通道/冷水费率：': document.getElementById('rate2Cold').value.trim(),
+                '大/1通道/热水费率元/升：': document.getElementById('rate1HotPerLiter').value.trim(),
+                '小/2通道/冷水费率元/升：': document.getElementById('rate2ColdPerLiter').value.trim(),
+                '单次限制流量/箱3：': document.getElementById('singleLimitFlow').value.trim(),
+                '浮球-派士：': document.getElementById('floatBall').value.trim(),
+                '单次限制时间：': document.getElementById('singleLimitTime').value.trim(),
+                '卡流量：': document.getElementById('cardFlow').value.trim(),
+                'ICCID起始：': document.getElementById('iccidStart').value.trim(),
+                'ICCID结尾：': document.getElementById('iccidEnd').value.trim(),
+                '入库数量：': document.getElementById('inStockCount').value.trim()
+            };
+            
+            // 构建参数结果，只包含有值的参数
+            const paramEntries = [];
+            for (const [key, value] of Object.entries(parameters)) {
+                if (value !== '') {
+                    paramEntries.push(`${key}${value}`);
+                }
+            }
+            const paramResult = paramEntries.join('，') + '。';
+            
+            // 合并结果
+            let finalResult = '';
+            if (excelResult) {
+                finalResult += excelResult;
+            }
+            if (paramResult && paramResult !== '。') {
+                if (finalResult) {
+                    finalResult += '\n' + paramResult;
+                } else {
+                    finalResult += paramResult;
+                }
+            }
+            
+            // 显示结果
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = finalResult;
+            
+            // 自动复制结果到剪贴板
+            navigator.clipboard.writeText(finalResult)
+                .then(() => {
+                    console.log('结果已复制到剪贴板');
+                })
+                .catch(err => {
+                    console.error('复制失败:', err);
+                });
+        }
+        
+        function convertData() {
+            const nonStandardData = document.getElementById('nonStandardData').value.trim();
+            if (!nonStandardData) {
+                alert('请输入非标准内容！');
+                return;
+            }
+            
+            // 不清空之前所有数据，只清空必要的数据
+            // 清空参数设置区域（保留Excel数据区域）
+            document.getElementById('motherboardModel').value = '';
+            document.getElementById('filterLifeType').value = '';
+            document.getElementById('channel2Pulse').value = '';
+            document.getElementById('channel1Pulse').value = '';
+            document.getElementById('waterTime').value = '';
+            document.getElementById('valve2Time').value = '';
+            document.getElementById('valve1Time').value = '';
+            document.getElementById('maintainTime').value = '';
+            document.getElementById('rate1Hot').value = '';
+            document.getElementById('rate2Cold').value = '';
+            document.getElementById('rate1HotPerLiter').value = '';
+            document.getElementById('rate2ColdPerLiter').value = '';
+            document.getElementById('singleLimitFlow').value = '';
+            document.getElementById('floatBall').value = '';
+            document.getElementById('singleLimitTime').value = '';
+            document.getElementById('cardFlow').value = '';
+            document.getElementById('iccidStart').value = '';
+            document.getElementById('iccidEnd').value = '';
+            document.getElementById('inStockCount').value = '';
+            
+            // 解析基础信息：公司名称、公众号、厂商ID、卡类型、所属系统
+            const basicInfo = nonStandardData.split(/\s+/).filter(item => item.trim() !== '');
+            
+            // 提取并填充基础信息到Excel数据区域
+            let companyName = '';
+            let wechatName = '';
+            let vendorId = '';
+            let cardType = '默认卡'; // 默认卡类型
+            let motherboardModel = '';
+            
+            if (basicInfo.length >= 1) {
+                companyName = basicInfo[0];
+            }
+            if (basicInfo.length >= 2) {
+                wechatName = basicInfo[1];
+            }
+            if (basicInfo.length >= 3) {
+                vendorId = basicInfo[2];
+            }
+            if (basicInfo.length >= 4) {
+                cardType = basicInfo[3];
+            }
+            
+            // 提取主板型号，检测W开头或AI开头的关联内容，包括带中文后缀的型号
+            for (let i = 0; i < basicInfo.length; i++) {
+                const item = basicInfo[i];
+                if ((item.startsWith('W') || item.startsWith('AI')) && item.length > 1) {
+                    motherboardModel = item;
+                    break;
+                }
+            }
+            
+            // 解析制水时间
+            const waterTimeMatch = nonStandardData.match(/制水(\d+)/);
+            if (waterTimeMatch && waterTimeMatch[1]) {
+                document.getElementById('waterTime').value = waterTimeMatch[1];
+            }
+            // 填充主板型号
+            document.getElementById('motherboardModel').value = motherboardModel;
+            
+            // 将基础信息填充到Excel数据文本域
+            document.getElementById('excelData').value = `${companyName}\t${wechatName}\t${cardType}\t${vendorId}`;
+            
+            // 解析滤芯寿命类型
+            if (nonStandardData.includes('流量')) {
+                document.getElementById('filterLifeType').value = '1';
+            } else if (nonStandardData.includes('时间')) {
+                document.getElementById('filterLifeType').value = '0';
+            }
+            
+            // 解析ICCID起始和结尾（支持换行，匹配所有8986开头的ICCID）
+            const iccidRangeMatch = nonStandardData.match(/(8986[0-9A-F]+)\s*到\s*(8986[0-9A-F]+)/i);
+            if (iccidRangeMatch && iccidRangeMatch[1] && iccidRangeMatch[2]) {
+                document.getElementById('iccidStart').value = iccidRangeMatch[1];
+                document.getElementById('iccidEnd').value = iccidRangeMatch[2];
+            }
+            
+            // 解析入库数量
+            const countMatch = nonStandardData.match(/[（(]\s*(\d+)\s*张[）)]/);
+            if (countMatch && countMatch[1]) {
+                document.getElementById('inStockCount').value = countMatch[1];
+            }
+            
+            // 解析通道2脉冲（冷水脉冲）
+            const coldPulseMatch = nonStandardData.match(/冷水(?:路)?脉冲(\d+)/);
+            if (coldPulseMatch && coldPulseMatch[1]) {
+                document.getElementById('channel2Pulse').value = coldPulseMatch[1];
+            }
+            
+            // 解析通道1脉冲（热水脉冲）
+            const hotPulseMatch = nonStandardData.match(/热水脉冲(\d+)/);
+            if (hotPulseMatch && hotPulseMatch[1]) {
+                document.getElementById('channel1Pulse').value = hotPulseMatch[1];
+            }
+            
+            // 解析检修时间
+            const maintainTimeMatch = nonStandardData.match(/检修(\d+)/);
+            if (maintainTimeMatch && maintainTimeMatch[1]) {
+                document.getElementById('maintainTime').value = maintainTimeMatch[1];
+            }
+            
+            // 解析大/1通道/热水费率元/升
+            const hotRateMatch = nonStandardData.match(/大\/1通道\/热水费率\[元\/升\]([\d.]+)/);
+            if (hotRateMatch && hotRateMatch[1]) {
+                document.getElementById('rate1HotPerLiter').value = hotRateMatch[1];
+            }
+            
+            // 解析小/2通道/冷水费率元/升
+            const coldRateMatch = nonStandardData.match(/小\/2通道\/冷水费率\[元\/升\]([\d.]+)/);
+            if (coldRateMatch && coldRateMatch[1]) {
+                document.getElementById('rate2ColdPerLiter').value = coldRateMatch[1];
+            }
+            
+            // 解析限制流量
+            const limitFlowMatch = nonStandardData.match(/限制流量(\d+)/);
+            if (limitFlowMatch && limitFlowMatch[1]) {
+                document.getElementById('singleLimitFlow').value = limitFlowMatch[1];
+            }
+            
+            // 解析浮球
+            const floatBallMatch = nonStandardData.match(/浮球(\d+)/);
+            if (floatBallMatch && floatBallMatch[1]) {
+                document.getElementById('floatBall').value = floatBallMatch[1];
+            }
+            
+            // 解析单次限制时间
+            const limitTimeMatch = nonStandardData.match(/单次限制(\d+)/);
+            if (limitTimeMatch && limitTimeMatch[1]) {
+                document.getElementById('singleLimitTime').value = limitTimeMatch[1];
+            }
+            
+            // 解析卡流量
+            const cardFlowMatch = nonStandardData.match(/(\d+)M/);
+            if (cardFlowMatch && cardFlowMatch[1]) {
+                document.getElementById('cardFlow').value = cardFlowMatch[1];
+            }
+            
+            // 自动提取标准化信息
+            extractData();
+        }
+        
+        // 清空所有数据的函数
+        function clearAllData() {
+            // 清空Excel数据区域
+            document.getElementById('excelData').value = '';
+            
+            // 清空参数设置区域
+            document.getElementById('motherboardModel').value = '';
+            document.getElementById('filterLifeType').value = '';
+            document.getElementById('channel2Pulse').value = '';
+            document.getElementById('channel1Pulse').value = '';
+            document.getElementById('waterTime').value = '';
+            document.getElementById('valve2Time').value = '';
+            document.getElementById('valve1Time').value = '';
+            document.getElementById('maintainTime').value = '';
+            document.getElementById('rate1Hot').value = '';
+            document.getElementById('rate2Cold').value = '';
+            document.getElementById('rate1HotPerLiter').value = '';
+            document.getElementById('rate2ColdPerLiter').value = '';
+            document.getElementById('singleLimitFlow').value = '';
+            document.getElementById('floatBall').value = '';
+            document.getElementById('singleLimitTime').value = '';
+            document.getElementById('cardFlow').value = '';
+            document.getElementById('iccidStart').value = '';
+            document.getElementById('iccidEnd').value = '';
+            document.getElementById('inStockCount').value = '';
+            
+            // 清空结果显示区域
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码解析工具</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 二维码解析库 -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+    <!-- Tesseract OCR库 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-area i {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .upload-area p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .upload-area .browse-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-area .browse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(86, 171, 47, 0.4);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(86, 171, 47, 0.6);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 154, 158, 0.6);
+        }
+
+        .results-container {
+            margin-top: 30px;
+        }
+
+        .result-box {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-item {
+            width: 150px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .image-item .info {
+            padding: 8px;
+            font-size: 12px;
+            text-align: center;
+            background: #f5f5f5;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 二维码解析工具</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <i>📁</i>
+            <p>拖拽图片文件或文件夹到此处</p>
+            <p>支持 JPG, PNG, GIF 格式</p>
+            <button class="browse-btn" id="browseBtn">浏览文件</button>
+            <input type="file" id="fileInput" accept="image/*" multiple webkitdirectory directory>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="parseBtn" disabled>📊 解析二维码</button>
+            <button class="btn btn-info" id="parseCaoliBtn" disabled>🌾 草料解析</button>
+            <button class="btn btn-secondary" id="ocrBtn" disabled>📝 文字识别</button>
+            <button class="btn btn-success" id="extractBtn" disabled>🔢 提取信息</button>
+            <button class="btn btn-warning" id="clearBtn">🗑️ 清空</button>
+        </div>
+        
+        <div id="status" class="status status-info hidden">
+            请选择要解析的图片文件
+        </div>
+        
+        <div class="progress-bar hidden" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="results-container">
+            <h3>解析结果：</h3>
+            <div id="resultBox" class="result-box">
+// 等待解析...
+            </div>
+        </div>
+        
+        <div class="image-preview" id="imagePreview">
+            <!-- 图片预览将在这里显示 -->
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let uploadedFiles = [];
+        let parsedResults = [];
+        let ocrResults = [];
+        
+        // DOM元素
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const parseBtn = document.getElementById('parseBtn');
+        const parseCaoliBtn = document.getElementById('parseCaoliBtn');
+        const ocrBtn = document.getElementById('ocrBtn');
+        const extractBtn = document.getElementById('extractBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultBox = document.getElementById('resultBox');
+        const statusDiv = document.getElementById('status');
+        const imagePreview = document.getElementById('imagePreview');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        
+        // 检查库是否加载完成
+        function checkLibraries() {
+            if (typeof jsQR === 'undefined') {
+                showStatus('jsQR库加载失败，请检查网络连接', 'error');
+                return false;
+            }
+            return true;
+        }
+        
+        // 检查Tesseract库是否加载完成
+        function checkTesseract() {
+            if (typeof Tesseract === 'undefined') {
+                showStatus('Tesseract.js库加载失败，请检查网络连接', 'error');
+                return false;
+            }
+            return true;
+        }
+        
+        // 事件监听器
+        browseBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+        
+        parseBtn.addEventListener('click', parseAllQRcodes);
+        parseCaoliBtn.addEventListener('click', parseWithCaoliAPI);
+        ocrBtn.addEventListener('click', performOCR);
+        extractBtn.addEventListener('click', extractInfo);
+        clearBtn.addEventListener('click', clearAll);
+        
+        // 处理文件选择
+        function handleFileSelect(e) {
+            handleFiles(e.target.files);
+        }
+        
+        // 处理文件
+        function handleFiles(files) {
+            uploadedFiles = [];
+            imagePreview.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // 检查是否为图片文件
+                if (file.type.startsWith('image/')) {
+                    uploadedFiles.push(file);
+                    
+                    // 创建图片预览
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imageItem = document.createElement('div');
+                        imageItem.className = 'image-item';
+                        imageItem.innerHTML = `
+                            <img src="${e.target.result}" alt="${file.name}">
+                            <div class="info">${file.name}</div>
+                        `;
+                        imagePreview.appendChild(imageItem);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+            
+            if (uploadedFiles.length > 0) {
+                showStatus(`已选择 ${uploadedFiles.length} 个图片文件`, 'info');
+                parseBtn.disabled = false;
+                parseCaoliBtn.disabled = false;
+                ocrBtn.disabled = false;
+            } else {
+                showStatus('未找到有效的图片文件', 'error');
+                parseBtn.disabled = true;
+                parseCaoliBtn.disabled = true;
+                ocrBtn.disabled = true;
+            }
+        }
+        
+        // 显示状态信息
+        function showStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status status-' + type;
+            statusDiv.classList.remove('hidden');
+            
+            // 3秒后自动隐藏成功和信息提示
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 3000);
+            }
+        }
+        
+        // 更新进度条
+        function updateProgress(percent) {
+            progressFill.style.width = percent + '%';
+            if (percent > 0) {
+                progressBar.classList.remove('hidden');
+            } else {
+                progressBar.classList.add('hidden');
+            }
+        }
+        
+        // 解析所有二维码
+        async function parseAllQRcodes() {
+            if (!checkLibraries()) return;
+            
+            if (uploadedFiles.length === 0) {
+                showStatus('请先选择图片文件', 'error');
+                return;
+            }
+            
+            showStatus('正在解析二维码，请稍候...', 'info');
+            updateProgress(0);
+            resultBox.textContent = '正在解析...\\n';
+            parsedResults = [];
+            
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                const file = uploadedFiles[i];
+                const progress = Math.round((i / uploadedFiles.length) * 100);
+                updateProgress(progress);
+                
+                resultBox.textContent += `\\n--- 正在处理: ${file.name} ---\\n`;
+                
+                try {
+                    const qrData = await parseQRcode(file);
+                    parsedResults.push({
+                        fileName: file.name,
+                        qrCodes: qrData
+                    });
+                    
+                    if (qrData.length > 0) {
+                        qrData.forEach((data, index) => {
+                            resultBox.textContent += `二维码 ${index + 1}: ${data}\\n`;
+                        });
+                    } else {
+                        resultBox.textContent += '未检测到二维码\\n';
+                    }
+                } catch (error) {
+                    resultBox.textContent += `解析错误: ${error.message}\\n`;
+                    console.error('解析错误:', error);
+                }
+            }
+            
+            updateProgress(100);
+            setTimeout(() => updateProgress(0), 1000);
+            
+            resultBox.textContent += '\\n--- 解析完成 ---\\n';
+            showStatus('二维码解析完成', 'success');
+            extractBtn.disabled = false;
+        }
+        
+        // 使用草料二维码API解析
+        async function parseWithCaoliAPI() {
+            if (uploadedFiles.length === 0) {
+                showStatus('请先选择图片文件', 'error');
+                return;
+            }
+            
+            showStatus('正在使用草料二维码API解析，请稍候...', 'info');
+            updateProgress(0);
+            resultBox.textContent = '正在使用草料二维码API解析...\\n';
+            parsedResults = [];
+            
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                const file = uploadedFiles[i];
+                const progress = Math.round((i / uploadedFiles.length) * 100);
+                updateProgress(progress);
+                
+                resultBox.textContent += `\\n--- 正在处理: ${file.name} ---\\n`;
+                
+                try {
+                    const qrData = await parseWithCaoli(file);
+                    parsedResults.push({
+                        fileName: file.name,
+                        qrCodes: qrData
+                    });
+                    
+                    if (qrData.length > 0) {
+                        qrData.forEach((data, index) => {
+                            resultBox.textContent += `二维码 ${index + 1}: ${data}\\n`;
+                        });
+                    } else {
+                        resultBox.textContent += '未检测到二维码\\n';
+                    }
+                } catch (error) {
+                    resultBox.textContent += `解析错误: ${error.message}\\n`;
+                    console.error('解析错误:', error);
+                }
+            }
+            
+            updateProgress(100);
+            setTimeout(() => updateProgress(0), 1000);
+            
+            resultBox.textContent += '\\n--- 解析完成 ---\\n';
+            showStatus('草料二维码解析完成', 'success');
+            extractBtn.disabled = false;
+        }
+        
+        // 草料二维码API解析实现（使用代理方式绕过CORS限制）
+        function parseWithCaoli(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    try {
+                        // 将图片转换为Base64用于上传
+                        const base64Image = e.target.result.split(',')[1]; // 去掉data:image/*;base64,前缀
+                        
+                        // 使用代理服务器绕过CORS限制
+                        // 这里使用一个通用的CORS代理
+                        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                        const targetUrl = 'https://cli.im/Api/Browser/dealimage';
+                        
+                        // 创建FormData对象
+                        const formData = new FormData();
+                        formData.append('file', base64Image);
+                        formData.append('barcodeType', 'qr');
+                        
+                        // 使用代理发送请求
+                        const response = await fetch(proxyUrl + targetUrl, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('网络请求失败: ' + response.status);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.status === 1 && data.data.raw_text) {
+                            // 草料二维码API返回的结果
+                            resolve([data.data.raw_text]);
+                        } else {
+                            resolve([]);
+                        }
+                    } catch (error) {
+                        // 如果代理方式失败，尝试直接上传
+                        try {
+                            // 将图片转换为Blob用于上传
+                            const res = await fetch(e.target.result);
+                            const blob = await res.blob();
+                            
+                            // 创建FormData对象
+                            const formData = new FormData();
+                            formData.append('file', blob, file.name);
+                            formData.append('barcodeType', 'qr');
+                            
+                            // 直接调用草料二维码API（可能仍然会遇到CORS问题）
+                            const response = await fetch('https://cli.im/Api/Browser/dealimage', {
+                                method: 'POST',
+                                body: formData,
+                                mode: 'no-cors' // 尝试使用no-cors模式
+                            });
+                            
+                            // 由于no-cors模式的限制，我们无法获取响应内容
+                            // 在这种情况下，我们返回一个提示信息
+                            resolve(['[草料二维码API调用完成，但由于浏览器安全限制无法获取结果，请手动访问https://cli.im解析图片]']);
+                        } catch (directError) {
+                            reject(new Error('草料二维码解析失败: ' + error.message + ' (直接调用也失败: ' + directError.message + ')'));
+                        }
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('文件读取失败'));
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // 解析单个二维码
+        function parseQRcode(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    const img = new Image();
+                    img.onload = async () => {
+                        try {
+                            // 使用 jsQR 库解析
+                            const qrResults = await parseWithJsQR(img);
+                            
+                            // 如果 jsQR 没有结果，尝试使用 ZXing 库
+                            if (qrResults.length === 0) {
+                                const zxingResults = await parseWithZXing(img);
+                                resolve(zxingResults);
+                            } else {
+                                resolve(qrResults);
+                            }
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    img.onerror = () => reject(new Error('图片加载失败'));
+                    img.src = e.target.result;
+                };
+                
+                reader.onerror = () => reject(new Error('文件读取失败'));
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // 使用 jsQR 库解析
+        function parseWithJsQR(img) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    resolve([code.data]);
+                } else {
+                    // 尝试检测多个二维码
+                    const results = detectMultipleQR(imageData);
+                    resolve(results);
+                }
+            });
+        }
+        
+        // 检测多个二维码（简单实现）
+        function detectMultipleQR(imageData) {
+            // 这里可以实现更复杂的多二维码检测逻辑
+            // 为简化，我们只返回一个结果
+            return [];
+        }
+        
+        // 使用 ZXing 库解析（备用方法）
+        async function parseWithZXing(img) {
+            return new Promise((resolve) => {
+                try {
+                    // 检查 ZXing 库是否已加载
+                    if (typeof ZXing === 'undefined') {
+                        resolve([]); // 未加载ZXing库时返回空数组
+                        return;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                    
+                    const imageUrl = canvas.toDataURL('image/png');
+                    const barcodeDetector = new ZXing.BrowserMultiFormatReader();
+                    
+                    barcodeDetector.decodeFromImage(undefined, imageUrl)
+                        .then(result => {
+                            resolve([result.getText()]);
+                        })
+                        .catch(() => {
+                            resolve([]); // 未检测到二维码
+                        });
+                } catch (error) {
+                    resolve([]); // 出错时返回空数组
+                }
+            });
+        }
+        
+        // 执行OCR文字识别
+        async function performOCR() {
+            if (!checkTesseract()) return;
+            
+            if (uploadedFiles.length === 0) {
+                showStatus('请先选择图片文件', 'error');
+                return;
+            }
+            
+            showStatus('正在进行文字识别，请稍候...', 'info');
+            updateProgress(0);
+            resultBox.textContent = '正在进行文字识别...\\n';
+            ocrResults = [];
+            
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                const file = uploadedFiles[i];
+                const progress = Math.round((i / uploadedFiles.length) * 100);
+                updateProgress(progress);
+                
+                resultBox.textContent += `\\n--- 正在处理: ${file.name} ---\\n`;
+                
+                try {
+                    const ocrData = await recognizeText(file);
+                    ocrResults.push({
+                        fileName: file.name,
+                        text: ocrData
+                    });
+                    
+                    if (ocrData) {
+                        resultBox.textContent += `识别结果:\\n${ocrData}\\n`;
+                    } else {
+                        resultBox.textContent += '未识别到文字内容\\n';
+                    }
+                } catch (error) {
+                    resultBox.textContent += `识别错误: ${error.message}\\n`;
+                    console.error('识别错误:', error);
+                }
+            }
+            
+            updateProgress(100);
+            setTimeout(() => updateProgress(0), 1000);
+            
+            resultBox.textContent += '\\n--- 文字识别完成 ---\\n';
+            showStatus('文字识别完成', 'success');
+            extractBtn.disabled = false;
+        }
+        
+        // 使用Tesseract.js进行文字识别
+        function recognizeText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    try {
+                        // 使用Tesseract.js进行OCR识别
+                        const result = await Tesseract.recognize(
+                            e.target.result,
+                            'chi_sim+eng',
+                            { 
+                                logger: info => {
+                                    if (info.status === 'recognizing text') {
+                                        // 可以在这里显示识别进度
+                                        console.log(`识别进度: ${Math.round(info.progress * 100)}%`);
+                                    }
+                                }
+                            }
+                        );
+                        resolve(result.data.text);
+                    } catch (error) {
+                        reject(new Error('文字识别失败: ' + error.message));
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('文件读取失败'));
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // 提取信息
+        function extractInfo() {
+            let hasResults = false;
+            let extractedInfo = '提取的信息:\\n\\n';
+            
+            // 处理二维码结果
+            if (parsedResults.length > 0) {
+                hasResults = true;
+                extractedInfo += '【二维码信息】\\n';
+                parsedResults.forEach(item => {
+                    extractedInfo += `${item.fileName}:\\n`;
+                    item.qrCodes.forEach((qrData, index) => {
+                        // 提取15位以内的数字后缀
+                        const match = qrData.match(/(\\d{1,15})$/);
+                        if (match) {
+                            extractedInfo += `  二维码${index + 1}: ${match[1]}\\n`;
+                        } else {
+                            extractedInfo += `  二维码${index + 1}: ${qrData}\\n`;
+                        }
+                    });
+                    extractedInfo += '\\n';
+                });
+            }
+            
+            // 处理OCR结果
+            if (ocrResults.length > 0) {
+                hasResults = true;
+                extractedInfo += '【文字信息】\\n';
+                ocrResults.forEach(item => {
+                    extractedInfo += `${item.fileName}:\\n`;
+                    // 从OCR结果中提取可能的数字信息
+                    const numbers = item.text.match(/\\d{1,15}/g);
+                    if (numbers && numbers.length > 0) {
+                        numbers.forEach((num, index) => {
+                            extractedInfo += `  数字${index + 1}: ${num}\\n`;
+                        });
+                    } else {
+                        extractedInfo += '  未找到符合条件的数字\\n';
+                    }
+                    extractedInfo += '\\n';
+                });
+            }
+            
+            if (!hasResults) {
+                showStatus('请先解析二维码或进行文字识别', 'error');
+            } else {
+                resultBox.textContent = extractedInfo;
+                showStatus('信息提取完成', 'success');
+            }
+        }
+        
+        // 清空所有
+        function clearAll() {
+            uploadedFiles = [];
+            parsedResults = [];
+            ocrResults = [];
+            fileInput.value = '';
+            resultBox.textContent = '// 等待解析...\\n';
+            imagePreview.innerHTML = '';
+            parseBtn.disabled = true;
+            parseCaoliBtn.disabled = true;
+            ocrBtn.disabled = true;
+            extractBtn.disabled = true;
+            updateProgress(0);
+            statusDiv.classList.add('hidden');
+            showStatus('已清空所有数据', 'success');
+        }
+        
+        // 页面加载完成提示
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检查库是否加载完成
+            setTimeout(() => {
+                if (!checkLibraries()) {
+                    showStatus('二维码解析库加载失败，请刷新页面重试', 'error');
+                } else if (!checkTesseract()) {
+                    showStatus('Tesseract.js库加载失败，请刷新页面重试', 'error');
+                } else {
+                    showStatus('请上传图片文件开始解析二维码', 'info');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b6cf6">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="统一工具集 —— 脉冲计算、进制转换、ICCID 解析、二维码生成与识别、日志分析等一站式工具">
+<title>统一工具集</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232b6cf6'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='white'%3E%E2%9A%99%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/design-system.css">
+</head>
+<body>
+
+<!-- ======== 顶部导航 ======== -->
+<header class="app-header">
+  <div class="app-header__inner">
+    <button type="button" class="app-header__burger" id="appBurger"
+            aria-label="打开工具菜单" aria-expanded="false" aria-controls="toolNav">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="app-header__brand">
+      <svg class="app-header__logo" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <path fill="currentColor" d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/>
+      </svg>
+      <span class="app-header__title">统一工具集</span>
+    </div>
+    <div class="app-search">
+      <svg class="app-search__icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <path fill="currentColor" d="M10 2a8 8 0 105.3 14l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z"/>
+      </svg>
+      <input type="search" id="searchInput" class="app-search__input" placeholder="搜索工具…" aria-label="搜索工具">
+      <button type="button" class="app-search__clear" id="searchClear" aria-label="清除" hidden>×</button>
+    </div>
+  </div>
+</header>
+
+<!-- 移动端遮罩 -->
+<div class="app-scrim" id="appScrim" role="presentation"></div>
+
+<div class="app-body">
+  <!-- ======== 导航（PC 居中内联 / 移动端左侧抽屉） ======== -->
+  <nav class="tool-nav" id="toolNav" aria-label="工具导航">
+    <div class="tool-nav__head">
+      <span class="tool-nav__title">工具导航</span>
+      <button type="button" class="tool-nav__close" id="appNavClose" aria-label="收起菜单">✕</button>
+    </div>
+
+    <!-- 工具栏（常用 + 展开更多，同一行） -->
+    <div class="tool-bar" id="toolBar">
+      <nav class="tool-bar__common" id="toolSwitch" aria-label="常用工具"></nav>
+      <button type="button" class="tool-bar__toggle" id="allToolsToggle"
+              aria-expanded="false" aria-controls="allToolsPanel">
+        <span>查看更多</span><span class="tool-bar__caret">▲</span>
+      </button>
+      <nav class="tool-bar__more" id="allToolsPanel" style="display:none;" aria-label="全部工具"></nav>
+    </div>
+  </nav>
+
+  <!-- ======== 主内容（居中，左右 150px 留白） ======== -->
+  <main class="app-main">
+    <div class="app-main__inner">
+      <div class="page-head">
+        <h1 class="page-head__title" id="pageTitle"></h1>
+        <p class="page-head__desc" id="pageDesc"></p>
+      </div>
+
+<!-- ======== 工具面板（自原版逐字保留） ======== -->
+<section id="pulseTool" class="calculator" style="display:none;">
+                <h2>🔄 脉冲与进制计算</h2>
+
+                <div class="tool-cols">
+                <div class="tool-col">
+                <h3 style="margin:16px 0 10px;color:var(--brand-600);font-size:15px;">脉冲参数计算</h3>
+                <div class="form-group">
+                    <label>系统设置脉冲数：</label>
+                    <input type="number" id="systemPulses" min="0" step="1" placeholder="请输入正整数" >
+                </div>
+
+                <div class="form-group">
+                    <label>系统显示出水量(ml)：</label>
+                    <input type="number" id="systemWater" min="0" step="0.01" placeholder="请输入正数">
+                </div>
+
+                <div class="form-group">
+                    <label>实际出水量(ml)：</label>
+                    <input type="number" id="actualWater" placeholder="请输入正数">
+                </div>
+
+                <div class="form-group">
+                    <label>实际脉冲数：</label>
+                    <input type="number" id="actualPulses" readonly placeholder="自动计算结果">
+                </div>
+
+                <div class="button-group">
+                    <button onclick="calculateActualPulses()" class="btn-primary">🔢 计算实际脉冲数</button>
+                </div>
+                </div>
+
+                <div class="tool-col">
+                <h3 style="margin:16px 0 10px;color:var(--brand-600);font-size:15px;">进制转换（支持多行）</h3>
+                <div class="form-group">
+                    <label>十进制（每行一个数字）：</label>
+                    <textarea id="decimalInput" rows="4" placeholder="输入0-9数字，支持多行&#10;例如：&#10;255&#10;65535" oninput="convertDecToHex()"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>十六进制（每行一个）：</label>
+                    <textarea id="hexInput" rows="4" placeholder="输入0-9/A-F，支持多行&#10;例如：&#10;FF&#10;FFFF" oninput="convertHexToDec()"></textarea>
+                </div>
+                </div>
+                </div>
+            </section>
+
+<section id="stockParamTool" class="calculator" style="display: none;">
+            <h2>📦 入库参数生成器</h2>
+            
+            <div class="tool-section">
+                <h3>一键转换区域</h3>
+                <div class="form-group">
+                    <label for="nonStandardData">粘贴非标准内容：</label>
+                    <textarea id="nonStandardData" placeholder="例如：中国水务-分宜半亩-建烨  银龙直饮水    1001    跃龙新私有   WSSJ2-B1   流量滤芯  冷水路脉冲330，热水脉冲330  检修720，大/1通道/热水费率[元/升]0.5，小/2通道/冷水费率[元/升]0.5，限制流量7500,浮球7，单次限制300  指定ID 
+ 898604E70623D0181822到 
+ 898604E70623D0181831（10张）  18M "></textarea>
+                </div>
+                <button class="btn" onclick="convertData()">一键转换</button>
+            </div>
+            
+            <div class="result-area" id="result" style="margin-top: 20px;"></div>
+            
+            <div class="tool-section">
+                <h3>参数设置</h3>
+                <div class="parameter-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <div class="input-wrapper">
+                        <label for="motherboardModel">主板型号:</label>
+                        <input type="text" id="motherboardModel">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="systemType">系统类型:</label>
+                        <input type="text" id="systemType" placeholder="例如：跃龙公有售水机">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="filterLifeType" style="color: red;">滤芯寿命:</label>
+                        <select id="filterLifeType">
+                            <option value="">请选择</option>
+                            <option value="0">0.时间</option>
+                            <option value="1">1.流量</option>
+                        </select>
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="channel2Pulse" style="color: red;">通道2脉冲[冷、小2]:</label>
+                        <input type="text" id="channel2Pulse">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="channel1Pulse">通道1脉冲[热,大]:</label>
+                        <input type="text" id="channel1Pulse">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="waterTime" style="color: red;">制水时间:</label>
+                        <input type="text" id="waterTime">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="valve2Time">阀2放水时间[冷、小]:</label>
+                        <input type="text" id="valve2Time">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="valve1Time">阀1放水时间[罐装、大、热]:</label>
+                        <input type="text" id="valve1Time">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="maintainTime" style="color: red;">检修 时间：</label>
+                        <input type="text" id="maintainTime">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate1Hot">大/1通道/热水老费率:</label>
+                        <input type="text" id="rate1Hot">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate2Cold">小/2通道/冷水老费率:</label>
+                        <input type="text" id="rate2Cold">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate1HotPerLiter">大/1通道/热水费率：</label>
+                        <input type="text" id="rate1HotPerLiter">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate2ColdPerLiter">小/2通道/冷水费率：</label>
+                        <input type="text" id="rate2ColdPerLiter">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="singleLimitFlow">单次限制流量/箱3:</label>
+                        <input type="text" id="singleLimitFlow">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="floatBall">浮球-派士:</label>
+                        <input type="text" id="floatBall">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="singleLimitTime">单次限制时间:</label>
+                        <input type="text" id="singleLimitTime">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="cardFlow" style="color: red;">卡流量:</label>
+                        <input type="text" id="cardFlow">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="hotWaterTemp">热水 温度:</label>
+                        <input type="text" id="hotWaterTemp">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="tempLockDisinfectionWait">温度锁定、消毒后等待:</label>
+                        <input type="text" id="tempLockDisinfectionWait">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="disinfectionDuration">消毒持续时间:</label>
+                        <input type="text" id="disinfectionDuration">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="iccidStart">ICCID起始:</label>
+                        <input type="text" id="iccidStart">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="iccidEnd">ICCID结尾:</label>
+                        <input type="text" id="iccidEnd">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="inStockCount">入库数量:</label>
+                        <input type="text" id="inStockCount">
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="extractData()">提取数据</button>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+                <strong>提示：</strong>家用机常用参数为红色标注项。一般包含：滤芯寿命:、通道2脉冲\[冷、小2]:、制水时间:、检修时间、卡流量。
+            </div>
+            
+            <div class="tool-section">
+                <h3>数据粘贴区域</h3>
+                <div class="form-group">
+                    <label for="excelData">从Excel粘贴数据（公司名称,微信公众号,厂商ID,卡类型,所属系统）：</label>
+                    <textarea id="excelData" placeholder="例如：高密市泉碧然供水有限公司	高密泉碧然智慧净水	1028	翔东卡	跃龙公有售水机"></textarea>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+                <strong>提示：</strong>家用机常用参数为红色标注项。一般包含：滤芯寿命:、通道2脉冲[冷、小2]:、制水时间:、检修时间、卡流量。
+            </div>
+        </section>
+
+<section id="iccidTool" class="calculator" style="display:none;">
+                <h2>ICCID详情工具</h2>
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                        <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 使用说明：</div>
+                        <div style="color: #856404; font-size: 14px;">
+                            • 已去除20位长度限制，支持任意长度ICCID/数据，一行一个。<br>
+                            • 支持粘贴ICCID区间范围文本例：898604C6062290468489到898604C6062290468491<br>
+                            • 🔍 获取完整iccid：将区间所有iccid展开为一列数据。<br>
+                            • 🔁 一键去重：对原始输入框内容按行去重，结果输出到结果框。<br>
+                            • 🗑️ 清空输入：清空输入框与结果框，并重置汇总信息。<br>
+                            • 📝 批量转换为查询格式：删除换行，用英文逗号拼接为单行。<br>
+                            • 📊 转换为Excel格式：清除常见分隔符，每个数据独占一行，自动删空白行。<br>
+                            • 🔄 防止科学计数法：在Excel格式结果基础上每行末尾追加单引号。<br>
+                        </div>
+                    </div>
+                <!-- 数据汇总信息显示区域 -->
+                <div id="iccidSummary" style="padding:10px; margin:15px 0; border-radius:5px; background-color:#e7f1ff; border:1px solid #b8daff; color:#004085; font-weight:600;">
+                    当前合计数据：0 条
+                </div>
+
+                <!-- 操作提示（点击后显示，1秒自动消失） -->
+                <div id="iccidToast" style="padding:10px; margin-bottom:10px; border-radius:5px; display:none; font-weight:500;"></div>
+
+                <div class="form-group">
+                    <label>原始数据输入：</label>
+                    <textarea id="iccidInput" placeholder="粘贴ICCID范围文本... 示例：
+    898604C6062290468489到898604C6062290468491(3张)
+    898604C6062290469305到898604C6062290469309（5张）
+    898604D00623D0047511'
+    898604D00623D0047313'
+    898604D00623D0046269'
+
+    支持同时解析两种格式的ICCID
+    按Ctrl+Enter可以换行
+    " style="width:100%; height:100px; padding:8px; margin-bottom:10px;"></textarea>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                    <button onclick="parseIccids()" style="background: #007bff; color: white; padding: 8px 20px;">🔍 获取完整iccid</button>
+                    <button onclick="dedupIccids()" style="background: #6f42c1; color: white; padding: 8px 20px;">🔁 一键去重</button>
+                    <button onclick="clearIccidInput()" style="background: #dc3545; color: white; padding: 8px 20px;">🗑️ 清空输入</button>
+                    <button onclick="convertToQueryFormat()" style="background: #28a745; color: white; padding: 8px 20px;">📝 批量转换为查询格式</button>
+                    <button onclick="convertToExcelFormat()" style="background: #17a2b8; color: white; padding: 8px 20px;">📊 转换为Excel格式</button>
+                    <button onclick="preventScientificNotation()" style="background: #ffc107; color: black; padding: 8px 20px;">🔄 防止科学计数法</button>
+                </div>
+                
+                <div class="form-group">
+                    <label>解析结果：</label>
+                    <textarea id="iccidResult" style="width:100%; height:200px; padding:8px;"></textarea>
+                </div>
+            </section>
+
+<section id="excelTemplateTool" class="calculator" style="display:none;">
+                <h2>📋 IC卡号处理</h2>
+                <div class="form-group">
+                    <label>上传Excel文件或拖拽文件到下方：</label>
+                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="height: 150px; padding: 8px; font-size: 14px;">
+                </div>
+                <div class="button-group">
+                    <button onclick="processExcelFile()" class="btn-primary" disabled>📊 处理Excel文件</button>
+                    <button onclick="clearExcelData()" class="btn-warning">🗑️ 清空数据</button>
+                </div>
+                <div class="form-group">
+                    <label>数据预览：</label>
+                    <div id="excelDataPreview" class="result-area" style="max-height: 300px; overflow-y: auto;">等待文件上传...</div>
+                </div>
+                <div class="form-group">
+                    <label>使用模板：</label>
+                    <select id="templateSelect">
+                        <option value="ic卡入库模板.xls" selected>ic卡入库模板.xls</option>
+                    </select>
+                    <div id="templateStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px;">🔄 正在加载远程模板...</div>
+                </div>
+                <div class="form-group">
+                    <label>处理状态：</label>
+                    <div id="excelProcessStatus" class="result-area">请上传Excel文件并选择模板</div>
+                </div>
+                <div class="form-group" id="comparisonPreviewGroup" style="display: none;">
+                    <label>📊 数据对比预览（源文件 vs 转换后）：</label>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 300px;">
+                            <label style="font-weight: 600; color: #e67e22; display: block; margin-bottom: 5px;">📄 源文件预览（原始数据）：</label>
+                            <div id="sourcePreview" class="result-area" style="max-height: 300px; overflow-y: auto; font-size: 13px;"></div>
+                        </div>
+                        <div style="flex: 1; min-width: 300px;">
+                            <label style="font-weight: 600; color: #27ae60; display: block; margin-bottom: 5px;">✅ 转换后预览（清洗后数据）：</label>
+                            <div id="convertedPreview" class="result-area" style="max-height: 300px; overflow-y: auto; font-size: 13px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <div class="title">💡 使用说明：</div>
+                    <div class="content">
+                        • 支持.xlsx和.xls格式的Excel文件<br>
+                        • 使用GitHub Pages/Gitee Pages托管模板文件，稳定可靠<br>
+                        • 自动识别A、B列中的水卡号（包含字母）和流水号（纯数字）<br>
+                        • 流水号自动清洗：检测到英文/特殊字符时自动删除，只保留纯数字（如 QAD-1100082640 → 1100082640）<br>
+                        • 处理后显示数据对比预览：源文件原始数据 vs 转换后清洗数据<br>
+                        • 如果首行包含"流水号"、"水卡号"等中文字符，将跳过首行<br>
+                        • 处理后的数据将填入远程模板文件中<br>
+                        • 水卡号填入模板A列（从A2开始），流水号填入B列（从B2开始）<br><br>
+                        🔧 <strong>配置模板文件步骤：</strong><br>
+                        1️⃣ 在GitHub上创建一个公开仓库<br>
+                        2️⃣ 上传`ic卡入库模板.xls`文件到仓库根目录<br>
+                        3️⃣ 在仓库Settings中启用GitHub Pages<br>
+                        4️⃣ 获取模板文件的公开URL（如：https://username.github.io/repo/ic卡入库模板.xls）<br>
+                        5️⃣ 修改代码中的templateUrl为实际URL<br><br>
+                        🎆 <strong>Gitee Pages备用方案（国内访问更快）：</strong><br>
+                        1️⃣ 在Gitee上创建一个公开仓库<br>
+                        2️⃣ 上传`ic卡入库模板.xls`文件到仓库根目录<br>
+                        3️⃣ 在仓库的"服务"中选择"Gitee Pages"<br>
+                        4️⃣ 选择部署分支（通常为master），点击"启动"<br>
+                        5️⃣ 成功后获取URL（如：https://username.gitee.io/repo/ic卡入库模板.xls）<br>
+                        6️⃣ 将此URL设置为fallbackUrls[0]<br><br>
+                        🌍 <strong>如果Gitee Pages不可用，替代方案：</strong><br>
+                        • <strong>jsDelivr CDN</strong>: https://cdn.jsdelivr.net/gh/用户名/仓库名/文件名<br>
+                        • <strong>GitHub Raw</strong>: https://raw.githubusercontent.com/用户名/仓库名/main/文件名<br>
+                        • <strong>Coding.net</strong>: https://用户名.coding.net/p/项目名/d/仓库名/git/raw/master/文件名
+                    </div>
+                </div>
+                <div class="info-box" style="border-color: #007bff; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                    <div class="title" style="color: #1565c0;">🌐 当前多重备用配置：</div>
+                    <div class="content" style="color: #1565c0; font-size: 12px;">
+                        • 主URL：<code>GitHub Raw</code><br>
+                        • 备用URL 1：<code>GitHub Pages</code><br>
+                        • 备用URL 2：<code>Gitee Pages</code><br>
+                        • 备用URL 3：<code>jsDelivr CDN</code><br>
+                        • 备用URL 4：<code>Coding.net</code><br>
+                        • 状态：✅ 多重保障，高可用性
+                    </div>
+                </div>
+            </section>
+
+<section id="imeiExtractionTool" class="calculator" style="display:none;">
+                <h2>📱 IMEI提取</h2>
+                <div class="form-group">
+                    <label>上传Excel文件：</label>
+                    <input type="file" id="imeiFileInput" accept=".xlsx,.xls" style="height: 150px; padding: 8px; font-size: 14px;">
+                </div>
+                <div class="button-group">
+                    <button onclick="extractImei()" class="btn-primary" disabled>🔍 提取IMEI</button>
+                    <button onclick="clearImeiData()" class="btn-warning">🗑️ 清空数据</button>
+                </div>
+                <div class="form-group">
+                    <label>提取结果：</label>
+                    <div id="imeiResult" class="result-area" style="max-height: 300px; overflow-y: auto;">等待文件上传...</div>
+                </div>
+                <div class="form-group">
+                    <label>提取状态：</label>
+                    <div id="imeiProcessStatus" class="result-area">请上传Excel文件</div>
+                </div>
+                <div class="info-box">
+                    <div class="title">💡 使用说明：</div>
+                    <div class="content">
+                        • 支持.xlsx和.xls格式的Excel文件<br>
+                        • 从B列提取IMEI数据<br>
+                        • IMEI标准：86开头的15位纯数字<br>
+                        • 提取结果会自动显示在页面上<br>
+                        • 提取完成后会自动复制结果到剪贴板<br>
+                        • 结果格式为一行一个IMEI
+                    </div>
+                </div>
+            </section>
+
+<section id="serialNumberTool" class="calculator" style="display:none;">
+                <h2>🔢 生成流水号工具</h2>
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                    <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 使用说明：</div>
+                    <div style="color: #856404; font-size: 14px;">
+                        • 起始流水号为必填项，默认显示当日日期+001<br>
+                        • 数量和结束流水号任选其一填写<br>
+                        • 生成按钮用于根据输入生成对应数量的流水号<br>
+                        • 复制按钮可复制生成的结果<br>
+                        • 修改为后台批量查询格式：将换行分隔转为逗号分隔<br>
+                        • 防止科学计数格式：在每个流水号后添加单引号
+                    </div>
+                </div>
+                
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <div style="flex:1;">
+                        <label>起始流水号：</label>
+                        <input type="text" id="startSerialNumber" style="width:100%; padding:8px;">
+                    </div>
+                    <div style="flex:1;">
+                        <label>数量：</label>
+                        <input type="number" id="serialNumberCount" max="20000" style="width:100%; padding:8px;">
+                    </div>
+                    <div style="flex:1;">
+                        <label>结束流水号：</label>
+                        <input type="text" id="endSerialNumber" style="width:100%; padding:8px;">
+                    </div>
+                </div>
+                
+                <!-- 提示信息显示区域 -->
+                <div id="toolMessage" style="padding:10px; margin-bottom:10px; border-radius:5px; background-color: #f8f9fa; display:none;"></div>
+                
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <button onclick="generateSerialNumbers()" style="background: #007bff; color: white; padding: 8px 20px;">🔍 生成流水号</button>
+                    <button onclick="copySerialNumbers()" style="background: #6c757d; color: white; padding: 8px 20px;">📋 复制结果</button>
+                    <button onclick="formatSerialNumbers()" style="background: #28a745; color: white; padding: 8px 20px;">📝 修改为后台批量查询格式</button>
+                    <button onclick="addQuotesToSerialNumbers()" style="background: #ffc107; color: black; padding: 8px 20px;">🔄 防止科学计数格式</button>
+                </div>
+                
+                <div class="form-group">
+                    <label>生成结果：</label>
+                    <textarea id="serialNumberResult" style="width:100%; height:200px; padding:8px;"></textarea>
+                </div>
+            </section>
+
+<section id="waterValueTool" class="calculator" style="display:none;">
+                <h2>💧 水控计算</h2>
+
+                <div class="tool-cols">
+                <div class="tool-col">
+                <h3 style="margin:16px 0 10px;color:var(--brand-600);font-size:15px;">洗浴单价 · 金额水量换算</h3>
+                <div class="button-group">
+                    <button id="clearWaterValueBtn" class="btn-danger">🗑️ 清空数据</button>
+                </div>
+                <div class="form-group">
+                    <label>金额 (元):</label>
+                    <input type="number" id="amount" step="0.01" placeholder="输入金额" oninput="calculateWaterValue()">
+                </div>
+                <div class="form-group">
+                    <label>水量 (毫升):</label>
+                    <input type="number" id="waterVolume" placeholder="输入水量" oninput="calculateWaterValue()">
+                </div>
+                <div class="form-group">
+                    <label>1分钱对应水量 (毫升):</label>
+                    <input type="number" id="pricePerMl" step="0.01" placeholder="输入1分钱对应的毫升数" oninput="calculateWaterValue()">
+                </div>
+                <div class="form-group">
+                    <label>换算结果：</label>
+                    <div id="waterValueResult" class="result-area">
+                        <div id="waterCalculations">请输入任意两个参数进行计算</div>
+                    </div>
+                </div>
+                </div>
+
+                <div class="tool-col">
+                <h3 style="margin:16px 0 10px;color:var(--brand-600);font-size:15px;">水控单价 · 单价参数计算</h3>
+                <div class="button-group">
+                    <button id="clearWaterPriceBtn" class="btn-danger">🗑️ 清空数据</button>
+                </div>
+                <div class="form-group">
+                    <label>水量 (毫升):</label>
+                    <input type="number" id="waterVolume2" step="0.01" placeholder="例如：787" oninput="calculateWaterPrice()">
+                </div>
+                <div class="form-group">
+                    <label>消费金额 (元):</label>
+                    <input type="number" id="amount2" step="0.0001" placeholder="例如：0.2385" oninput="calculateWaterPrice()">
+                </div>
+                <div class="form-group">
+                    <label>1升水单价 (元/升):</label>
+                    <input type="number" id="pricePerLiter" step="0.0001" placeholder="例如：0.3030" oninput="calculateWaterPrice()">
+                </div>
+                <div class="form-group">
+                    <label>计算结果：</label>
+                    <div id="waterPriceResult" class="result-area">
+                        <div id="waterPriceCalculations">请输入任意两个参数进行计算</div>
+                    </div>
+                </div>
+                </div>
+                </div>
+            </section>
+
+<section id="csv89860Tool" class="calculator" style="display:none;">
+                    <h2>📊  IMEI/ICCID 乱码处理工具</h2>
+                    <div class="form-group">
+                        <label>上传文件（支持CSV、XLS、XLSX格式）：</label>
+                        <input type="file" id="csvFileInput" accept=".csv,.xls,.xlsx" style="height: 150px; padding: 8px; font-size: 14px;">
+                    </div>
+                    <button onclick="processCSVFile()" disabled>处理文件</button>
+                    <div class="form-group">
+                        <label>处理状态：</label>
+                        <div id="csvProcessStatus" style="min-height: 40px;">请选择文件进行处理</div>
+                    </div>
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                        <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 使用说明：</div>
+                        <div style="color: #856404; font-size: 14px;">
+                            • 支持CSV、Excel(.xls/.xlsx)格式文件处理<br>
+                            • 自动在所有"89860"开头的值前添加英文单引号<br>
+                            • 自动在所有"86"开头的15位数字(IMEI)前添加英文单引号<br>
+                            • 自动在所有长数字(可能被Excel转为科学计数法)前添加英文单引号<br>
+                            • 处理完成后自动下载修改后的文件
+                        </div>
+                    </div>
+            </section>
+
+<section id="qrGeneratorTool" class="calculator" style="display: none;">
+            <h2>🔲 二维码批量生成器</h2>
+            
+            <div class="info-box">
+                <strong>📋 功能说明：</strong><br>
+                1. 使用稳定的二维码API，无跨域限制<br>
+                2. 自动在二维码下方添加IMEI文字，文字大小自适应二维码宽度<br>
+                3. 输出为360x360px正方形PNG图片，便于打印和使用<br>
+                4. 支持批量生成和ZIP打包下载，稳定可靠
+            </div>
+            
+            <div class="form-group">
+                <label for="qrPrefix">二维码前缀：</label>
+                <input type="text" id="qrPrefix" placeholder="例：http://cloud.yuelongxinxi.com/qr/" value="http://cloud.yuelongxinxi.com/qr/">
+            </div>
+            
+            <div class="form-group">
+                <label for="qrImeiList">IMEI列表（一行一个）：</label>
+                <textarea id="qrImeiList" placeholder="请输入IMEI，一行一个，例如：&#10;860256072911545&#10;860256072911546&#10;860256072911547"></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" id="qrGenerateBtn">
+                    <span id="qrGenerateBtnText">🔲 生成二维码</span>
+                    <span id="qrGenerateBtnLoading" class="loading" style="display: none;"></span>
+                </button>
+                <button class="btn btn-success" id="qrDownloadBtn" disabled>
+                    📦 打包下载 (PNG格式)
+                </button>
+            </div>
+            
+            <div class="api-status" id="qrApiStatus">
+                <span class="api-icon">📡</span>
+                <span id="qrApiStatusText">准备生成二维码...</span>
+            </div>
+            
+            <div class="progress-container" id="qrProgressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="qrProgressFill"></div>
+                </div>
+                <div class="progress-text" id="qrProgressText">准备生成...</div>
+            </div>
+            
+            <div class="error-message" id="qrErrorMessage"></div>
+            <div class="success-message" id="qrSuccessMessage"></div>
+            
+            <div class="qr-grid" id="qrGrid"></div>
+        </section>
+
+<section id="logAnalysisTool" class="calculator" style="display: none;">
+                <h2>📊 日志分析器</h2>
+            <div style="font-weight: 600; color: #856404; margin-bottom: 5px;">💡 备忘录：</div>
+                        <div style="color: #856404; font-size: 14px;">
+                            • 优萨特殊流速=本次消费流量/充值流量*60=X毫升/1分钟。<br>
+            <div class="log-analysis-tool">
+                <div class="log-input-section">
+                    <textarea id="logInput" placeholder="请粘贴原始日志数据，每行一条数据...
+
+    支持的数据格式：
+    • 类型1: 0000011800800100000000001e012c000a000000000002009700000000000000000153588000000000025000000000a80100026a
+    • 类型2: 000035F1 00-80-00 0001 0BB8-000F 0258-0003 004B-0000 0000-0000 0000-2DDD-0000-0324-0332 0000-0000-0000-0000-0001 0000C03C 00 0584
+    • 类型3: 0000000C01440600000000000000000000012CD4C0000001E000000000000000000D0A000000010014070800000001000000141F1F000D030397
+    • 类型4: 00003B13 05-0C-09 0000 00000000-0000 00000000-0000 00005B1B-0146 0000-0000 0000-0000-4125-0000-0000 4E20-4E20-9C40-4E20-4E20 1C1DCF2A 03 0554
+
+    支持功能：
+    1. 自动识别多种数据类型并应用相应的解析规则
+    2. 格式灵活：支持带或不带"-"分隔符的数据格式
+    3. 表格展示：使用表格清晰展示每个字段的值和位置
+    4. 统计信息：显示解析成功和失败的条目数
+    5. 快捷键：按Ctrl+Enter可快速分析数据
+
+    数据字段说明：
+    • 设备ID、计费模式、命令、设备状态
+    • 本次消费、充值流量、充值天数、剩余流量、剩余天数
+    • 已用流量、已用天数、纯水TDS、原水TDS
+    • 各级滤芯寿命、最大滤芯寿命
+    • 北京时间、机器类型、校验码
+
+    使用提示：
+    - 每行输入一条数据，可批量解析多条日志
+    - 工具会自动清理数据中的空格和分隔符
+    - 表格支持水平滚动查看完整数据
+    - 悬停在表格单元格上可查看详细信息
+    - 解析错误时会显示具体错误原因和原始数据
+    - 支持多种日志格式的自动识别与解析
+
+    输入示例：
+    0000011800800100000000001e012c000a000000000002009700000000000000000153588000000000025000000000a80100026a
+    000035F1 00-80-00 0001 0BB8-000F 0258-0003 004B-0000 0000-0000 0000-2DDD-0000-0324-0332 0000-0000-0000-0000-0001 0000C03C 00 0584
+    0000000C01440600000000000000000000012CD4C0000001E000000000000000000D0A000000010014070800000001000000141F1F000D030397
+    00003B13 05-0C-09 0000 00000000-0000 00000000-0000 00005B1B-0146 0000-0000 0000-0000-4125-0000-0000 4E20-4E20-9C40-4E20-4E20 1C1DCF2A 03 0554
+
+    ⚡ 按 Ctrl+Enter 快速分析数据 ⚡"></textarea>
+                    
+                    <div class="buttons-section">
+                        <button id="analyzeBtn" class="analyze-btn">🚀 分析数据</button>
+                        <button id="parseImeiIccidBtn" class="analyze-btn">🔍 解析imei和iccid</button>
+                        <button id="clearLogBtn" class="clear-btn">🗑️ 清空</button>
+                    </div>
+                </div>
+                
+                <div id="statusSection" class="status-section"></div>
+                
+                <div class="result-section">
+                    <div class="result-content">
+                        <!-- 解析结果将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="imeiIccidResult">IMEI和ICCID解析结果：</label>
+                    <textarea id="imeiIccidResult" class="result-area" rows="10" readonly placeholder="IMEI和ICCID解析结果将显示在这里..."></textarea>
+                </div>
+            </div>
+        </section>
+
+<section id="qrBatchTool" class="calculator" style="display: none;">
+            <h2>📱 二维码批量识别</h2>
+            
+            <div class="info-box">
+                <strong>📋 功能说明：</strong><br>
+                1. 选择文件夹（自动递归包含子目录图片）或多张图片<br>
+                2. 逐图用 ZXing 解码二维码（支持一图多码），进度实时显示<br>
+                3. 完成后可一键导出 MD / CSV（浏览器下载）<br>
+                4. 结果区支持二次提取：链接去重 / IMEI(设备ID)去重 / 批量格式转换<br>
+                5. ZXing 支持单图识别多个二维码，并更好兼容模糊 / 畸变 / 光照不均
+            </div>
+            
+            <!-- 数据汇总信息显示区域 -->
+            <div id="qrBatchSummary" style="padding:10px; margin:15px 0; border-radius:5px; background-color:#e7f1ff; border:1px solid #b8daff; color:#004085; font-weight:600;">
+                当前合计：0 张图片 / 0 个二维码
+            </div>
+            
+            <!-- 操作提示（点击后显示，1.5秒自动消失） -->
+            <div id="qrBatchToast" style="padding:10px; margin-bottom:10px; border-radius:5px; display:none; font-weight:500;"></div>
+            
+            <div class="form-group">
+                <label for="qrBatchFiles">选择图片（文件夹或多选）：</label>
+                <div id="qrBatchDrop" style="height: 120px; border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; line-height: 80px; cursor: pointer; transition: all 0.3s ease;">
+                    <span id="qrBatchDropText">📁 点击或拖拽图片文件 / 文件夹到这里</span>
+                    <input type="file" id="qrBatchFiles" multiple webkitdirectory accept="image/*" style="display: none;">
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" id="qrBatchStartBtn">🔍 开始识别</button>
+                <button class="btn btn-warning" id="qrBatchCancelBtn" disabled>⏹ 取消</button>
+                <button class="btn btn-success" id="qrBatchExportMdBtn" disabled>📄 导出 MD</button>
+                <button class="btn btn-success" id="qrBatchExportCsvBtn" disabled>📊 导出 CSV</button>
+                <button class="btn btn-info" id="qrBatchExtractLinksBtn" disabled>🔗 提取链接去重</button>
+                <button class="btn btn-info" id="qrBatchExtractImeiBtn" disabled>🆔 提取IMEI/设备ID</button>
+                <button class="btn btn-secondary" id="qrBatchBatchFmtBtn" disabled>📝 批量格式转换</button>
+                <button class="btn btn-secondary" id="qrBatchCopyBtn" disabled>📋 复制结果</button>
+                <button class="btn btn-danger" id="qrBatchClearBtn">🗑️ 清空</button>
+            </div>
+            
+            <div class="status-section" id="qrBatchStatus" style="display: none;"></div>
+            
+            <div style="margin: 10px 0;">
+                <progress id="qrBatchProgress" max="100" value="0" style="width: 100%; height: 18px;"></progress>
+            </div>
+            
+            <div id="qrBatchFailed" style="margin: 10px 0; padding: 10px; border-radius: 5px; background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; font-size: 14px; display: none;"></div>
+            
+            <div class="form-group">
+                <label for="qrBatchResult">识别结果（可编辑 · 支持二次提取）：</label>
+                <textarea id="qrBatchResult" class="result-area" rows="18" readonly placeholder="识别结果将显示在这里..."></textarea>
+            </div>
+        </section>
+
+    <!-- qy日志分析：TCP通讯报文解析 -->
+    <section id="qyLogTool" class="calculator" style="display: none;">
+    <style>
+    .qy-log-tool .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .qy-log-tool .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e8e8e8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .qy-log-tool .packet-block { margin-top: 16px; }
+    .qy-log-tool .packet-block:first-child { margin-top: 0; }
+    .qy-log-tool .packet-title {
+      font-size: 15px; font-weight: 600; color: #3498db;
+      margin-bottom: 8px;
+    }
+    .qy-log-tool .result-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    .qy-log-tool .summary-item {
+      display: inline-flex; align-items: center; gap: 8px; margin: 4px 16px 4px 0;
+      padding: 6px 12px; background: #f1f8ff; border-radius: 6px;
+    }
+    .qy-log-tool label { font-weight: 500; margin-bottom: 6px; color: #555; font-size: 14px; }
+    .qy-log-tool textarea {
+      width: 100%; padding: 12px 16px; border: 1.5px solid #dcdde1; border-radius: 8px;
+      font-family: "Consolas","Monaco",monospace; font-size: 14px; resize: vertical;
+    }
+    .qy-log-tool textarea:focus { outline: none; border-color: #3498db; }
+    .qy-log-tool .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .qy-log-tool .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
+    }
+    .qy-log-tool .btn-primary { background: #3498db; color: #fff; }
+    .qy-log-tool .btn-primary:hover { background: #2980b9; }
+    .qy-log-tool .btn-secondary { background: #95a5a6; color: #fff; }
+    .qy-log-tool .btn-secondary:hover { background: #7f8c8d; }
+    .qy-log-tool .btn-success { background: #27ae60; color: #fff; }
+    .qy-log-tool .btn-success:hover { background: #219a52; }
+    .qy-log-tool .result-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    .qy-log-tool .result-table th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #e8e8e8; white-space: nowrap; }
+    .qy-log-tool .result-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    .qy-log-tool .result-table tr:hover { background: #f8f9fa; }
+    .qy-log-tool .result-table .field-name { font-weight: 600; color: #2c3e50; }
+    .qy-log-tool .result-table .hex-value { font-family: "Consolas","Monaco",monospace; background: #f1f2f6; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #e74c3c; }
+    .qy-log-tool .result-table .translated { color: #27ae60; font-weight: 500; }
+    .qy-log-tool .section-header td { font-weight: 600; color: #2980b9; padding: 8px 12px; }
+    .qy-log-tool .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .qy-log-tool .badge-readonly { background: #fff3cd; color: #856404; }
+    .qy-log-tool .badge-readwrite { background: #d1ecf1; color: #0c5460; }
+    .qy-log-tool .summary-box { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-top: 16px; border-left: 4px solid #3498db; }
+    .qy-log-tool .summary-box h3 { font-size: 16px; margin-bottom: 8px; color: #2c3e50; }
+    .qy-log-tool .summary-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #ddd; }
+    .qy-log-tool .summary-label { color: #666; }
+    .qy-log-tool .summary-value { font-weight: 500; color: #2c3e50; }
+    .qy-log-tool .error { color: #e74c3c; background: #fdf2f2; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 4px solid #e74c3c; }
+    .qy-log-tool .success { color: #27ae60; background: #eafaf1; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 4px solid #27ae60; }
+    .qy-log-tool .warning { color: #f39c12; background: #fef9e7; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 4px solid #f39c12; }
+    .qy-log-tool .protocol-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+    .qy-log-tool .protocol-table th,.qy-log-tool .protocol-table td { padding: 8px 10px; border: 1px solid #e0e0e0; text-align: left; }
+    .qy-log-tool .protocol-table th { background: #f5f5f5; font-weight: 600; color: #444; }
+    .qy-log-tool .protocol-table tr:nth-child(even) { background: #fafafa; }
+    .qy-log-tool .hidden { display: none; }
+    .qy-log-tool .toggle-btn { background: none; border: none; color: #3498db; cursor: pointer; font-size: 13px; text-decoration: underline; margin-top: 8px; }
+    .qy-log-tool .raw-bytes { font-family: "Consolas","Monaco",monospace; font-size: 12px; background: #2d3436; color: #dfe6e9; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; line-height: 2; }
+    .qy-log-tool .raw-bytes .byte-pos { color: #74b9ff; font-weight: 600; }
+    .qy-log-tool .raw-bytes .byte-hex { color: #55efc4; }
+    .qy-log-tool .raw-bytes .byte-ascii { color: #a29bfe; }
+    .qy-log-tool .legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: #666; }
+    .qy-log-tool .legend-item { display: flex; align-items: center; gap: 4px; }
+    .qy-log-tool .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+    </style>
+
+    <div class="qy-log-tool">
+      <h2 style="text-align:center;color:#2c3e50;margin-bottom:4px;font-size:22px;">🔧 TCP通讯报文解析</h2>
+      <p style="text-align:center;color:#7f8c8d;margin-bottom:20px;font-size:13px;">80字节定长报文 · 自动解析 · 中文白话翻译</p>
+
+      <div class="card">
+        <div class="card-title">📥 报文输入</div>
+        <label for="packetInput">粘贴十六进制报文（每行一条，支持空格、连字符分隔）：</label>
+        <textarea id="packetInput" rows="6" placeholder="例如: AA55 00 00002739 ...
+AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 00 0B-00-0000-00-16-04 00-00-00-01 0F-0A-032A-01 00000008-04E2-0672 00-00-00 0000-00000000-003C-0044-1D7E-1F40 00000000 000000000000 0A66</textarea>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="parsePacket()">🔍 解析报文</button>
+          <button class="btn btn-secondary" onclick="clearPacketInput()">🗑️ 清空</button>
+          <button class="btn btn-success" onclick="loadExample()">📋 加载示例</button>
+        </div>
+        <div id="messageArea"></div>
+      </div>
+
+      <div id="resultArea" class="hidden">
+        <div class="card">
+          <div class="card-title">📊 解析结果</div>
+          <div class="summary-box"><h3>📋 报文概览</h3><div id="summaryContent"></div></div>
+          <div style="margin-top:20px;">
+            <div class="card-title" style="border-bottom:none;padding-bottom:0;">🔍 字段详情</div>
+            <div id="resultBody"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📖 通讯协议参考表</div>
+        <button class="toggle-btn" onclick="toggleProtocol()">👆 点击展开/收起协议详情</button>
+        <div id="protocolTableContainer" class="hidden">
+          <table class="protocol-table">
+            <thead><tr><th>字节位置</th><th>字段名称</th><th>长度</th><th>类型</th><th>说明</th></tr></thead>
+            <tbody id="protocolBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    </section>
+
+    <section id="photoEnhanceTool" class="calculator scan-tool" style="display: none;">
+        <header>
+            <h1>📷 拍照强化图片打印处理</h1>
+            <p class="sub">
+                拖入图片或整个文件夹，自动生成黑白打印优化的扫描件效果，去除杂色与背景噪点。
+                全程在本地浏览器完成，图片不会上传到任何服务器。
+            </p>
+            <div class="cv-bar">
+                <span id="cvStatus" class="cv-status cv-loading">方案 B：正在加载 OpenCV.js…</span>
+                <button id="cvRetry" class="btn btn-sm" hidden>重试加载</button>
+            </div>
+            <details id="cvHelp" class="cv-help" hidden>
+                <summary>方案 B 加载失败怎么办？</summary>
+                <p>方案 B 依赖 OpenCV.js（约 9MB），常见失败原因与对策：</p>
+                <ol>
+                    <li><strong>直接双击打开的 <code>file://</code> 页面</strong>：浏览器会拦截跨域脚本。
+                        请通过本地服务器访问本页面（如在本目录执行 <code>python -m http.server 8000</code>，再访问
+                        <code>http://localhost:8000</code>）。</li>
+                    <li><strong>网络受限或 CDN 被墙</strong>：点上方「重试加载」会依次尝试多个镜像源。</li>
+                    <li><strong>想彻底离线使用</strong>：下载
+                        <code>https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js</code>
+                        另存为 <code>vendor/opencv.js</code>，刷新即可，之后不再需要联网。</li>
+                </ol>
+                <p>方案 A 为纯 Canvas 实现，任何情况下都能正常使用，不受此影响。</p>
+            </details>
+        </header>
+
+        <!-- 上传区 -->
+        <div id="dropzone" class="dropzone">
+            <p class="dz-title">把图片或文件夹拖到这里</p>
+            <p class="dz-hint">支持 JPG / PNG / BMP / WebP / TIFF，可一次拖入多层子文件夹</p>
+            <div class="dz-btns">
+                <button id="pickFiles" class="btn">选择图片</button>
+                <button id="pickDir" class="btn">选择文件夹</button>
+            </div>
+            <input id="fileInput" type="file" accept="image/*" multiple hidden>
+            <input id="dirInput" type="file" webkitdirectory directory multiple hidden>
+        </div>
+
+        <!-- 参数与操作 -->
+        <div class="panel">
+            <div class="controls">
+
+                <div class="field">
+                    <label for="mode">输出模式</label>
+                    <select id="mode">
+                        <option value="bw" selected>黑白二值（打印推荐）</option>
+                        <option value="gray">灰度增强（保留层次）</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="blockSize">阈值窗口</label>
+                    <div class="range-row">
+                        <input id="blockSize" type="range" min="0" max="121" step="2" value="0">
+                        <span id="blockSizeVal" class="range-val">自动</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="threshC">阈值强度 C</label>
+                    <div class="range-row">
+                        <input id="threshC" type="range" min="0" max="40" step="1" value="12">
+                        <span id="threshCVal" class="range-val">12</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="denoise">噪点清理</label>
+                    <div class="range-row">
+                        <input id="denoise" type="range" min="0" max="2" step="1" value="1">
+                        <span id="denoiseVal" class="range-val">标准</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>处理选项</label>
+                    <div class="checks">
+                        <label><input id="removeChroma" type="checkbox" checked> 去除彩色杂色（方案 A）</label>
+                        <label><input id="normalize" type="checkbox" checked> 光照均衡（方案 A）</label>
+                        <label><input id="autoCrop" type="checkbox" checked> 自动裁边校正（方案 B）</label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="format">导出格式</label>
+                    <select id="format">
+                        <option value="png" selected>PNG（无损）</option>
+                        <option value="jpeg">JPG（体积小）</option>
+                    </select>
+                </div>
+
+                <div class="actions">
+                    <button id="runBtn" class="btn btn-primary" disabled>开始处理</button>
+                    <button id="dlA" class="btn btn-a" disabled>打包下载 · 方案 A</button>
+                    <button id="dlB" class="btn btn-b" disabled>打包下载 · 方案 B</button>
+                    <button id="clearBtn" class="btn" disabled>清空</button>
+                </div>
+            </div>
+
+            <div id="progress" class="progress" hidden>
+                <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+                <p id="progressText" class="progress-text">0/0</p>
+            </div>
+        </div>
+
+        <!-- 结果列表 -->
+        <div class="list-head">
+            <h2>处理结果</h2>
+            <span class="num">共 <span id="count">0</span> 张</span>
+        </div>
+
+        <div id="empty" class="empty">还没有图片，先从上方添加吧</div>
+        <div id="list"></div>
+
+        <!-- 说明 -->
+        <div class="footnote">
+            <p><strong>方案 A · DocScanner 算法</strong>（移植自 Nat30/nat30.github.io 的 <code>cv-engine.js</code>）：
+                灰度化 → 光照均衡 → 均值自适应阈值 <code>adaptiveThreshold(MEAN_C)</code> → 3×3 多数表决去噪。
+                纯 Canvas 实现，<strong>零依赖、完全离线可用</strong>，不改变原图构图，适合已经拍正的文档。</p>
+            <p><strong>方案 B · jscanify 算法</strong>（复刻自 jscanify v1.4.0 的 <code>findPaperContour / getCornerPoints / extractPaper</code>）：
+                Canny(50,200) → 高斯模糊 → OTSU 阈值 → 最大轮廓 → 四象限取角点 → 透视变换拉正 →
+                高斯自适应阈值 <code>adaptiveThreshold(GAUSSIAN_C)</code>。
+                会<strong>自动裁掉桌面背景并把倾斜的纸张拉正</strong>，依赖 OpenCV.js（约 9MB，首次需联网）。</p>
+            <p><strong>调参建议：</strong>字迹发虚就调低 C；背景出现灰色麻点就调高 C 或加大噪点清理；
+                细小文字粘连成块时把阈值窗口调小。点击任意预览图可查看大图对比。</p>
+        </div>
+    </section>
+
+        <section id="tutorialTool" class="calculator" style="display: none;">
+            <h2 style="margin: 0 0 6px;">文档中心</h2>
+            <p class="desc">常用平台与产品文档入口，点击在新窗口打开。</p>
+            <div class="tutorial-links">
+                <a class="tutorial-link" href="http://docx.yuelongxinxi.com/login.html" target="_blank" rel="noopener">🔑 登录</a>
+                <a class="tutorial-link" href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=63&amp;sign=e21406567970f804d6aef89bd77d6c19" target="_blank" rel="noopener">📘 平台教程目录</a>
+                <a class="tutorial-link" href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=62&amp;sign=9aa417293f0f3753fad23457f5fb6973" target="_blank" rel="noopener">📗 公众号教程目录</a>
+                <a class="tutorial-link" href="http://docx.yuelongxinxi.com/static/views/doc_content/index.html?doc_content_id=134&amp;sign=ef12fc1f6bd4d2491f3db21ab5cd3e3f" target="_blank" rel="noopener">🛠 硬件产品备忘录</a>
+            </div>
+        </section>
+
+        <section id="countdownTool" class="calculator cd-tool" style="display: none;">
+            <style>
+                .cd-tool .cd-container {
+                    background: rgba(255, 255, 255, 0.95);
+                    border-radius: 20px;
+                    padding: 40px;
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                    text-align: center;
+                    max-width: 500px;
+                    width: 100%;
+                    margin: 0 auto;
+                }
+                .cd-tool h1 { color: #333; margin-bottom: 30px; font-size: 2.5rem; }
+                .cd-tool .cd-display {
+                    font-size: 8rem; font-weight: bold; color: #667eea;
+                    margin: 30px 0; font-family: 'Courier New', monospace;
+                    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+                }
+                .cd-tool .cd-controls { display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
+                .cd-tool button {
+                    padding: 15px 30px; font-size: 1.2rem; font-weight: 600; border: none;
+                    border-radius: 50px; cursor: pointer; transition: all 0.3s ease; min-width: 120px;
+                }
+                .cd-tool .cd-btn-start { background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%); color: white; }
+                .cd-tool .cd-btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(86, 171, 47, 0.4); }
+                .cd-tool .cd-btn-stop { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; }
+                .cd-tool .cd-btn-stop:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255, 65, 108, 0.4); }
+                .cd-tool .cd-settings { margin: 20px 0; }
+                .cd-tool .cd-setting-item { margin: 15px 0; }
+                .cd-tool label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+                .cd-tool input[type="number"] {
+                    padding: 12px; font-size: 1.1rem; border: 2px solid #e1e5e9; border-radius: 10px;
+                    width: 100%; max-width: 200px; text-align: center; transition: all 0.3s ease;
+                }
+                .cd-tool input[type="number"]:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+                .cd-tool .cd-status { margin-top: 20px; padding: 15px; border-radius: 10px; font-weight: 600; font-size: 1.1rem; }
+                .cd-tool .cd-status.cd-running { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); color: #1565c0; }
+                .cd-tool .cd-status.cd-stopped { background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); color: #856404; }
+                @media (max-width: 768px) {
+                    .cd-tool .cd-container { padding: 30px 20px; }
+                    .cd-tool h1 { font-size: 2rem; }
+                    .cd-tool .cd-display { font-size: 6rem; }
+                    .cd-tool .cd-controls { flex-direction: column; align-items: center; }
+                    .cd-tool button { width: 100%; max-width: 200px; }
+                }
+                @media (max-width: 480px) {
+                    .cd-tool .cd-display { font-size: 4rem; }
+                    .cd-tool h1 { font-size: 1.5rem; }
+                }
+            </style>
+            <div class="cd-container">
+                <h1>⏰ 倒计时工具</h1>
+                <div class="cd-settings">
+                    <div class="cd-setting-item">
+                        <label for="cdTime">倒计时秒数：</label>
+                        <input type="number" id="cdTime" min="1" value="6">
+                    </div>
+                    <div class="cd-setting-item">
+                        <label>倒计时次数：</label>
+                        <div id="cdCount" style="font-size: 1.5rem; font-weight: bold; color: #667eea;">0</div>
+                    </div>
+                </div>
+                <div class="cd-display" id="cdDisplay">6</div>
+                <div class="cd-controls">
+                    <button class="cd-btn-start" id="cdStartBtn">▶️ 开始</button>
+                    <button class="cd-btn-stop" id="cdStopBtn" disabled>⏹️ 停止</button>
+                </div>
+                <div class="cd-status cd-stopped" id="cdStatus">已停止</div>
+            </div>
+            <audio id="cdSound" preload="auto">
+                <source src="tishiyin.mp3" type="audio/mpeg">
+            </audio>
+            <script>
+                window.initCountdownTool = function () {
+                    if (window.__cdInited) return;
+                    window.__cdInited = true;
+                    var display = document.getElementById('cdDisplay');
+                    var startBtn = document.getElementById('cdStartBtn');
+                    var stopBtn = document.getElementById('cdStopBtn');
+                    var timeInput = document.getElementById('cdTime');
+                    var countEl = document.getElementById('cdCount');
+                    var status = document.getElementById('cdStatus');
+                    var sound = document.getElementById('cdSound');
+                    var timer = null, current = 6, initial = 6, running = false, paused = false, count = 0;
+                    function updateDisplay() {
+                        var t = parseInt(timeInput.value, 10) || 6;
+                        display.textContent = t; initial = t;
+                        if (!running) current = t;
+                    }
+                    function start() {
+                        running = true; paused = false;
+                        startBtn.textContent = '⏸️ 暂停'; stopBtn.disabled = false;
+                        status.textContent = '运行中'; status.className = 'cd-status cd-running';
+                        timeInput.disabled = true;
+                        current = parseInt(timeInput.value, 10) || 6; initial = current;
+                        display.textContent = current; run();
+                    }
+                    function run() {
+                        timer = setInterval(function () {
+                            current--; display.textContent = current;
+                            if (current <= 0) {
+                                clearInterval(timer); playSound();
+                                count++; countEl.textContent = count;
+                                setTimeout(function () {
+                                    current = initial; display.textContent = current; run();
+                                }, 1000);
+                            }
+                        }, 1000);
+                    }
+                    function pause() {
+                        paused = true; clearInterval(timer);
+                        startBtn.textContent = '▶️ 继续'; status.textContent = '已暂停'; status.className = 'cd-status cd-stopped';
+                    }
+                    function resume() {
+                        paused = false;
+                        startBtn.textContent = '⏸️ 暂停'; status.textContent = '运行中'; status.className = 'cd-status cd-running';
+                        run();
+                    }
+                    function stop() {
+                        running = false; paused = false; clearInterval(timer);
+                        count = 0; countEl.textContent = count;
+                        startBtn.textContent = '▶️ 开始'; startBtn.disabled = false; stopBtn.disabled = true;
+                        status.textContent = '已停止'; status.className = 'cd-status cd-stopped';
+                        timeInput.disabled = false; updateDisplay();
+                    }
+                    function toggle() {
+                        if (!running) start();
+                        else if (paused) resume();
+                        else pause();
+                    }
+                    function playSound() {
+                        try { sound.currentTime = 0; sound.play().catch(function (e) { console.error('播放音频失败:', e); }); }
+                        catch (e) { console.error('播放音频失败:', e); }
+                    }
+                    startBtn.addEventListener('click', toggle);
+                    stopBtn.addEventListener('click', stop);
+                    timeInput.addEventListener('input', updateDisplay);
+                    updateDisplay();
+                };
+            </script>
+        </section>
+    </div>
+  </main>
+</div>
+
+<div class="yl-toast-host" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ============================================================
+     旧版外壳占位节点
+     原内联脚本中的 handleResize() / initElements() 等会直接读取这些
+     节点（部分无空值保护）。新版外壳已改用侧边栏 + 抽屉，
+     这里保留同名隐藏节点，使旧代码安全空转，不影响任何业务功能。
+     ============================================================ -->
+<div id="legacyStash" aria-hidden="true" style="display:none!important">
+  <div class="tool-switcher" id="mainToolSwitcher"></div>
+  <button type="button" id="mobileMenuBtn"></button>
+  <div id="mobileMenu" class="mobile-menu"></div>
+  <button type="button" id="topToolSwitchBtn"></button>
+  <button type="button" id="toggleToolsBtn"></button>
+  <div id="toolModal"><div id="toolSwitcherGrid"></div><button id="closeToolModalBtn"></button></div>
+  <span id="currentToolName"></span>
+</div>
+
+<!-- ======== 第三方依赖（加载顺序与原版完全一致：本地优先 / CDN 兜底） ======== -->
+<script src="js/jquery-3.6.0.min.js"
+        onerror="(function(){document.write('\x3Cscript src=\'https://code.jquery.com/jquery-3.6.0.min.js\'>\x3C/script>');})()"></script>
+<script src="js/xlsx.full.min.js"
+        onerror="(function(){var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);})()"></script>
+<script src="js/logDecode.js"></script>
+<script src="js/zxing.min.js"
+        onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';document.head.appendChild(s);})()"></script>
+<script src="js/tesseract.min.js"
+        onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js';document.head.appendChild(s);})()"></script>
+<script src="js/ocrad.js"
+        onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/ocrad.js@0.0.1/ocrad.js';document.head.appendChild(s);})()"></script>
+<script src="js/jszip.min.js"
+        onerror="(function(){var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';document.head.appendChild(s);})()"></script>
+
+<!-- ======== 工具元数据 + 外壳 ======== -->
+<script src="js/tools.meta.js"></script>
+<script src="js/app.shell.js"></script>
+
+<!-- ======== 业务逻辑（自原版逐字抽离，顺序与原版一致） ======== -->
+<script src="js/tools.main-a.js"></script>
+<script src="js/tools.qrbatch-init.js"></script>
+<script src="js/tools.main-b.js"></script>
+
+<!-- ======== 兼容层（必须最后） ======== -->
+<script src="js/app.compat.js"></script>
+
+<!-- ======== qy日志分析：TCP报文解析 ======== -->
+<script>
+// 协议字段定义
+var qyProtocolFields = [
+  { pos: "0-1", name: "起始符", len: 2, type: "hex", rw: "只读", desc: "固定0xAA55" },
+  { pos: "2", name: "任务", len: 1, type: "enum", rw: "只读", desc: "0x00查询/0x01初始化/0x02设置参数/0x03锁机/0x04解锁/0x05充值/0x06滤芯寿命修改/0x07电解槽寿命修改/0x08用时同步" },
+  { pos: "3-6", name: "任务号/设备ID", len: 4, type: "uint32", rw: "只读", desc: "设备唯一标识" },
+  { pos: "7-14", name: "IMEI", len: 8, type: "bcd", rw: "只读", desc: "设备IMEI号" },
+  { pos: "15-24", name: "ICCID", len: 10, type: "bcd", rw: "只读", desc: "设备ICCID号" },
+  { pos: "25", name: "CSQ", len: 1, type: "uint8", rw: "只读", desc: "信号强度 0-31" },
+  { pos: "26", name: "设备状态", len: 1, type: "enum", rw: "只读", desc: "工作状态" },
+  { pos: "27", name: "工作压差", len: 1, type: "uint8", rw: "只读", desc: "0.1公斤/单位" },
+  { pos: "28", name: "槽TDS", len: 1, type: "uint8", rw: "只读", desc: "1ppm/单位" },
+  { pos: "29-30", name: "槽电压", len: 2, type: "uint16", rw: "只读", desc: "0.01V/单位" },
+  { pos: "31", name: "出水温度", len: 1, type: "uint8", rw: "只读", desc: "1°C/单位" },
+  { pos: "32", name: "出水流速", len: 1, type: "uint8", rw: "只读", desc: "0.1升/单位" },
+  { pos: "33", name: "循环流速", len: 1, type: "uint8", rw: "只读", desc: "0.1升/单位" },
+  { pos: "34", name: "厂商设置", len: 1, type: "enum", rw: "可读写", desc: "0通用/1水爱/2汇才/3好录" },
+  { pos: "35", name: "场景模式设置", len: 1, type: "enum", rw: "可读写", desc: "0吸机/1饮水机" },
+  { pos: "36", name: "运营模式设置", len: 1, type: "enum", rw: "可读写", desc: "0零售/1时长/2流量/3耗材" },
+  { pos: "37", name: "工作模式设置", len: 1, type: "enum", rw: "可读写", desc: "短泡机:0淋浴/1泡浴; 饮水机:0有压泵/1无压水源" },
+  { pos: "38", name: "工作压差值设置", len: 1, type: "uint8", rw: "可读写", desc: "0.1公斤/单位 范围1-25" },
+  { pos: "39", name: "槽TDS报警值设置", len: 1, type: "uint8", rw: "可读写", desc: "1ppm 范围5-20" },
+  { pos: "40-41", name: "槽电压报警值设置", len: 2, type: "uint16", rw: "可读写", desc: "0.01V 范围300-1200" },
+  { pos: "42", name: "漏水功能设置", len: 1, type: "enum", rw: "可读写", desc: "0禁用/1启用" },
+  { pos: "43-46", name: "已用流量设置", len: 4, type: "uint32", rw: "可读写", desc: "1升/单位" },
+  { pos: "47-48", name: "出水流量脉冲设置", len: 2, type: "uint16", rw: "可读写", desc: "脉冲/升" },
+  { pos: "49-50", name: "循环流量脉冲设置", len: 2, type: "uint16", rw: "可读写", desc: "脉冲/升" },
+  { pos: "51", name: "温度传感器设置", len: 1, type: "enum", rw: "可读写", desc: "0禁用/1启用" },
+  { pos: "52", name: "压力传感器/高压开关设置", len: 1, type: "enum", rw: "可读写", desc: "0压力传感器/1高压开关" },
+  { pos: "53", name: "卸压压差设置", len: 1, type: "uint8", rw: "可读写", desc: "0.1公斤 范围0-10" },
+  { pos: "54-55", name: "剩余天数修改", len: 2, type: "uint16", rw: "可读写", desc: "1天/单位" },
+  { pos: "56-59", name: "剩余流量修改", len: 4, type: "uint32", rw: "可读写", desc: "短泡机:吨 饮水机:升" },
+  { pos: "60-61", name: "滤芯剩余寿命修改", len: 2, type: "uint16", rw: "可读写", desc: "短泡机:吨 饮水机:升" },
+  { pos: "62-63", name: "滤芯寿命最大值修改", len: 2, type: "uint16", rw: "可读写", desc: "" },
+  { pos: "64-65", name: "电解槽剩余寿命修改", len: 2, type: "uint16", rw: "可读写", desc: "小时 默认8000" },
+  { pos: "66-67", name: "电解槽寿命最大值修改", len: 2, type: "uint16", rw: "可读写", desc: "小时 默认8000" },
+  { pos: "68-71", name: "北京时间", len: 4, type: "timestamp", rw: "可读写", desc: "秒级时间戳" },
+  { pos: "72-77", name: "备用", len: 6, type: "hex", rw: "备用", desc: "保留" },
+  { pos: "78-79", name: "校验和", len: 2, type: "checksum", rw: "只读", desc: "0-77字节累加和" }
+];
+
+var qyEnumMaps = {
+  "任务": {0x00:"查询",0x01:"初始化",0x02:"设置参数",0x03:"锁机",0x04:"解锁",0x05:"充值",0x06:"滤芯寿命修改",0x07:"电解槽寿命修改",0x08:"用时同步"},
+  "设备状态": {0x00:"龙头关",0x01:"龙头开",0x02:"锁机/待激活",0x03:"欠费",0x04:"漏水",0x05:"液位",0x06:"循环",0x07:"槽TDS",0x08:"槽端电压",0x09:"压差传感器",0x0A:"短路",0x0B:"制氢超时",0x0C:"二氧化碳高压",0x0D:"二氧化碳低压",0x0E:"预留"},
+  "厂商设置": {0x00:"通用",0x01:"水爱",0x02:"汇才",0x03:"好录"},
+  "场景模式设置": {0x00:"吸机",0x01:"饮水机"},
+  "运营模式设置": {0x00:"零售",0x01:"时长",0x02:"流量",0x03:"耗材"},
+  "漏水功能设置": {0x00:"禁用",0x01:"启用"},
+  "温度传感器设置": {0x00:"禁用",0x01:"启用"},
+  "压力传感器/高压开关设置": {0x00:"压力传感器",0x01:"高压开关"}
+};
+
+function qyCleanHex(input) { return input.replace(/[^0-9A-Fa-f]/g,"").toUpperCase(); }
+function qyHexToBytes(hex) {
+  var bytes=[]; for(var i=0;i<hex.length;i+=2) bytes.push(parseInt(hex.substr(i,2),16)); return bytes;
+}
+function qyFormatValue(v,u) { if(v===undefined||v===null) return "-"; return v+" "+u; }
+
+function qyParseField(field,bytes,startPos) {
+  var len=field.len, fieldBytes=bytes.slice(startPos,startPos+len);
+  var hexStr=fieldBytes.map(function(b){return b.toString(16).padStart(2,"0").toUpperCase()}).join(" ");
+  var value=null, translated="";
+  switch(field.type){
+    case "hex":
+      value="0x"+fieldBytes.map(function(b){return b.toString(16).padStart(2,"0").toUpperCase()}).join("");
+      translated=(field.name==="起始符")?(value==="0xAA55"?"✅ 正确":"❌ 错误"):(field.name==="备用"?"保留备用":value); break;
+    case "uint8":
+      value=fieldBytes[0];
+      if(field.name==="CSQ") translated="信号强度 "+value+"/31 ("+(value<=10?"弱":value<=20?"中":"强")+")";
+      else if(field.name==="工作压差") translated=(value*0.1).toFixed(1)+" 公斤";
+      else if(field.name==="槽TDS") translated=value+" ppm";
+      else if(field.name==="出水温度") translated=value+" °C";
+      else if(field.name==="出水流速"||field.name==="循环流速") translated=(value*0.1).toFixed(1)+" 升";
+      else if(field.name==="工作压差值设置") translated=(value*0.1).toFixed(1)+" 公斤 (范围1-25)";
+      else if(field.name==="槽TDS报警值设置") translated=value+" ppm (范围5-20)";
+      else if(field.name==="卸压压差设置") translated=(value*0.1).toFixed(1)+" 公斤 (范围0-10)";
+      else translated=String(value); break;
+    case "uint16":
+      value=(fieldBytes[0]<<8)|fieldBytes[1];
+      if(field.name==="槽电压") translated=(value*0.01).toFixed(2)+" V";
+      else if(field.name==="槽电压报警值设置") translated=(value*0.01).toFixed(2)+" V (范围300-1200)";
+      else if(field.name.indexOf("脉冲")!==-1) translated=value+" 脉冲/升";
+      else if(field.name==="剩余天数修改") translated=value+" 天";
+      else if(field.name.indexOf("滤芯")!==-1) translated=value+" (短泡机:吨 / 饮水机:升)";
+      else if(field.name.indexOf("电解槽")!==-1) translated=value+" 小时 (默认8000)";
+      else translated=String(value); break;
+    case "uint32":
+      value=((fieldBytes[0]<<24)|(fieldBytes[1]<<16)|(fieldBytes[2]<<8)|fieldBytes[3])>>>0;
+      if(field.name==="任务号/设备ID") translated="设备ID: "+value;
+      else if(field.name==="已用流量设置") translated=value+" 升";
+      else if(field.name==="剩余流量修改") translated=value+" (短泡机:吨 / 饮水机:升)";
+      else translated=String(value); break;
+    case "bcd":
+      value=""; for(var bi=0;bi<fieldBytes.length;bi++){value+=(fieldBytes[bi]>>4).toString(16)+(fieldBytes[bi]&0x0F).toString(16);}
+      translated=value.toUpperCase(); break;
+    case "enum":
+      value=fieldBytes[0]; var em=qyEnumMaps[field.name];
+      translated=(em&&em[value]!==undefined)?em[value]:"未知值 (0x"+value.toString(16).padStart(2,"0").toUpperCase()+")";
+      if(field.name==="工作模式设置"){var sm=bytes[35];if(sm===0x00){var m={0x00:"淋浴",0x01:"泡浴",0x02:"厨房"};translated=(m[value]||value)+" (短泡机)";}else if(sm===0x01){var m2={0x00:"有水压泵",0x01:"无压水源"};translated=(m2[value]||value)+" (饮水机)";}}
+      break;
+    case "timestamp":
+      value=((fieldBytes[0]<<24)|(fieldBytes[1]<<16)|(fieldBytes[2]<<8)|fieldBytes[3])>>>0;
+      translated=value+" 秒 → "+new Date(value*1000).toLocaleString("zh-CN"); break;
+    case "checksum":
+      value=(fieldBytes[0]<<8)|fieldBytes[1]; var sum=0;for(var ci=0;ci<78;ci++) sum+=bytes[ci]; sum=sum&0xFFFF;
+      translated=(sum===value)?"✅ 校验通过 (计算值: 0x"+sum.toString(16).toUpperCase().padStart(4,"0")+")":"❌ 校验失败 (计算值: 0x"+sum.toString(16).toUpperCase().padStart(4,"0")+", 报文值: 0x"+value.toString(16).toUpperCase().padStart(4,"0")+")"; break;
+    default:value=hexStr;translated=hexStr;
+  }
+  return {hexStr:hexStr,value:value,translated:translated};
+}
+
+function parsePacket() {
+  var input=document.getElementById("packetInput").value;
+  var msgArea=document.getElementById("messageArea");
+  var resArea=document.getElementById("resultArea");
+  if(!input.trim()){msgArea.innerHTML='<div class="error">⚠️ 请输入报文内容</div>';resArea.classList.add("hidden");return;}
+  // 多行：每行一条报文
+  var lines=input.split(/\r?\n/).map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  if(lines.length===0){msgArea.innerHTML='<div class="error">⚠️ 请输入报文内容</div>';resArea.classList.add("hidden");return;}
+  var allResultHtml="", allSummary="", allMsg="";
+  for(var li=0;li<lines.length;li++){
+    var hexStr=qyCleanHex(lines[li]);
+    if(hexStr.length===0){allMsg+='<div class="error">⚠️ 第 '+(li+1)+' 行：未能提取到有效的十六进制数据</div>';continue;}
+    if(hexStr.length%2!==0){allMsg+='<div class="error">⚠️ 第 '+(li+1)+' 行：十六进制数据长度为奇数</div>';continue;}
+    var bytes=qyHexToBytes(hexStr), expectedLen=80;
+    allMsg+=(bytes.length!==expectedLen)?'<div class="warning">⚠️ 第 '+(li+1)+' 条报文长度 '+bytes.length+' 字节，期望 '+expectedLen+'</div>':'<div class="success">✅ 第 '+(li+1)+' 条报文长度正确: '+bytes.length+' 字节</div>';
+    var cp=0, resultHtml="", summaryData=[];
+    for(var fi=0;fi<qyProtocolFields.length;fi++){
+      if(cp>=bytes.length)break;
+      var f=qyProtocolFields[fi], r=qyParseField(f,bytes,cp);
+      var rwClass=(f.rw==="只读")?"badge-readonly":(f.rw==="可读写")?"badge-readwrite":"";
+      var rwText=(f.rw==="只读")?"只读 ↑":(f.rw==="可读写")?"可读写 ↕":f.rw;
+      if(["任务","设备状态","CSQ","工作压差","槽TDS","槽电压","出水温度"].indexOf(f.name)!==-1) summaryData.push({name:f.name,value:r.translated});
+      resultHtml+="<tr><td>"+f.pos+"</td><td><span class='field-name'>"+f.name+"</span></td><td><span class='hex-value'>"+r.hexStr+"</span></td><td>"+(r.value!==null?r.value:"-")+"</td><td><span class='translated'>"+r.translated+"</span></td><td><span class='badge "+rwClass+"'>"+rwText+"</span></td></tr>";
+      cp+=f.len;
+    }
+    allResultHtml+="<div class='packet-block'><div class='packet-title'>📦 第 "+(li+1)+" 条报文</div><table class='result-table'><thead><tr><th>字节位置</th><th>字段名称</th><th>原始十六进制</th><th>解析值</th><th>中文白话说明</th><th>读写</th></tr></thead><tbody>"+resultHtml+"</tbody></table></div>";
+    var sh=""; for(var si=0;si<summaryData.length;si++) sh+="<div class='summary-item'><span class='summary-label'>"+summaryData[si].name+"</span><span class='summary-value'>"+summaryData[si].value+"</span></div>";
+    allSummary+=sh;
+  }
+  msgArea.innerHTML=allMsg;
+  if(allResultHtml===""){resArea.classList.add("hidden");return;}
+  document.getElementById("resultBody").innerHTML=allResultHtml;
+  document.getElementById("summaryContent").innerHTML=allSummary;
+  resArea.classList.remove("hidden");
+}
+
+function clearPacketInput(){
+  document.getElementById("packetInput").value="";
+  document.getElementById("messageArea").innerHTML="";
+  document.getElementById("resultArea").classList.add("hidden");
+}
+function loadExample(){document.getElementById("packetInput").value="AA55 00 00002739 8609290899913420-898608421525C0315984-1B 00 0B-00-0000-00-16-04 00-00-00-01 0F-0A-032A-01 00000008-04E2-0672 00-00-00 0000-00000000-003C-0044-1D7E-1F40 00000000 000000000000 0A66";parsePacket();}
+function toggleProtocol(){document.getElementById("protocolTableContainer").classList.toggle("hidden");}
+function initQyProtocolTable(){
+  var html=""; for(var i=0;i<qyProtocolFields.length;i++) html+="<tr><td>"+qyProtocolFields[i].pos+"</td><td>"+qyProtocolFields[i].name+"</td><td>"+qyProtocolFields[i].len+"</td><td>"+qyProtocolFields[i].type+"</td><td>"+qyProtocolFields[i].desc+"</td></tr>";
+  document.getElementById("protocolBody").innerHTML=html;
+}
+
+window.QyLogInit=function(){initQyProtocolTable();parsePacket();};
+</script>
+
+</body>
+</html>

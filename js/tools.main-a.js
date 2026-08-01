@@ -1677,8 +1677,8 @@
                     updateProcessButton();
                 });
 
-                // 默认显示脉冲计算器工具
-                showTool('pulseTool');
+                // 默认显示入库参数生成工具
+                showTool('stockParamTool');
             });
             
             // 入库参数生成器相关函数

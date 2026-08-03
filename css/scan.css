@@ -308,10 +308,10 @@
 .scan-tool .row-name {
   font-size: 13px;
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-all;
   flex: 1;
+  min-width: 0;
 }
 
 .scan-tool .badge {

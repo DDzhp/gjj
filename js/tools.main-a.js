@@ -1076,6 +1076,46 @@
                 showIccidToast('已清空输入和结果', 'info');
             }
 
+            // 数据分裂：将原始数据的有效行按每份 N 行分裂成多个输出框
+            function splitIccidData() {
+                const lines = getIccidSourceLines().filter(s => s.length > 0);
+                if (lines.length === 0) {
+                    showIccidToast('没有可分裂的数据', 'error');
+                    return;
+                }
+                const sizeInput = document.getElementById('iccidSplitSize');
+                let size = parseInt(sizeInput.value, 10);
+                if (!size || size < 1) { size = 300; sizeInput.value = 300; }
+                const wrap = document.getElementById('iccidSplitWrap');
+                const info = document.getElementById('iccidSplitInfo');
+                wrap.innerHTML = '';
+                const chunks = Math.ceil(lines.length / size);
+                for (let i = 0; i < chunks; i++) {
+                    const part = lines.slice(i * size, (i + 1) * size);
+                    const start = i * size + 1;
+                    const end = start + part.length - 1;
+                    const box = document.createElement('div');
+                    box.style.cssText = 'border:1px solid #dfe6e9;border-radius:8px;padding:8px;background:#fff;display:flex;flex-direction:column;';
+                    const title = document.createElement('div');
+                    title.style.cssText = 'font-size:12px;color:#0984e3;font-weight:600;margin-bottom:6px;';
+                    title.textContent = `第 ${i + 1}/${chunks} 份（第 ${start}-${end} 行）`;
+                    const ta = document.createElement('textarea');
+                    ta.value = part.join('\n');
+                    ta.style.cssText = 'width:100%;height:160px;padding:6px;font-size:13px;border:1px solid #e0e0e0;border-radius:6px;resize:vertical;font-family:Consolas,Monaco,monospace;';
+                    box.appendChild(title);
+                    box.appendChild(ta);
+                    wrap.appendChild(box);
+                }
+                info.textContent = `共 ${lines.length} 条有效数据，已分裂为 ${chunks} 份（每份 ${size} 行）`;
+                showIccidToast(`数据分裂完成，共 ${chunks} 份`, 'success');
+            }
+
+            // 清空数据分裂区域
+            function clearIccidSplit() {
+                document.getElementById('iccidSplitWrap').innerHTML = '';
+                document.getElementById('iccidSplitInfo').textContent = '';
+            }
+
             // 3. 批量转换为查询格式：删除所有换行，每行用英文逗号拼接为单行输出
             function convertToQueryFormat() {
                 const items = getIccidSourceLines().filter(s => s.length > 0);

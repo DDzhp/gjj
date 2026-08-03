@@ -1097,12 +1097,22 @@
                     const box = document.createElement('div');
                     box.style.cssText = 'border:1px solid #dfe6e9;border-radius:8px;padding:8px;background:#fff;display:flex;flex-direction:column;';
                     const title = document.createElement('div');
-                    title.style.cssText = 'font-size:12px;color:#0984e3;font-weight:600;margin-bottom:6px;';
+                    title.style.cssText = 'font-size:12px;color:#0984e3;font-weight:600;margin-bottom:4px;';
                     title.textContent = `第 ${i + 1}/${chunks} 份（第 ${start}-${end} 行）`;
                     const ta = document.createElement('textarea');
                     ta.value = part.join('\n');
                     ta.style.cssText = 'width:100%;height:160px;padding:6px;font-size:13px;border:1px solid #e0e0e0;border-radius:6px;resize:vertical;font-family:Consolas,Monaco,monospace;';
+                    // 转换查询格式按钮
+                    const btnRow = document.createElement('div');
+                    btnRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+                    const convertBtn = document.createElement('button');
+                    convertBtn.textContent = '📋 转换查询格式';
+                    convertBtn.title = '将该份数据的每行用英文逗号拼接为单行查询格式';
+                    convertBtn.style.cssText = 'font-size:11px;padding:3px 10px;background:#00b894;color:#fff;border:none;border-radius:4px;cursor:pointer;';
+                    convertBtn.onclick = function() { convertSplitBoxToQuery(ta); };
+                    btnRow.appendChild(convertBtn);
                     box.appendChild(title);
+                    box.appendChild(btnRow);
                     box.appendChild(ta);
                     wrap.appendChild(box);
                 }
@@ -1114,6 +1124,24 @@
             function clearIccidSplit() {
                 document.getElementById('iccidSplitWrap').innerHTML = '';
                 document.getElementById('iccidSplitInfo').textContent = '';
+            }
+
+            // 将单个分裂输出框的内容转换为查询格式（逗号拼接）
+            function convertSplitBoxToQuery(ta) {
+                const lines = ta.value.split('\n').filter(s => s.trim().length > 0);
+                if (lines.length === 0) {
+                    showIccidToast('该份数据为空，无需转换', 'info');
+                    return;
+                }
+                const cleaned = lines
+                    .map(s => s.replace(/[,'";]+/g, '').trim())
+                    .filter(s => s.length > 0);
+                if (cleaned.length === 0) {
+                    showIccidToast('该份数据清洗后为空', 'info');
+                    return;
+                }
+                ta.value = cleaned.join(',');
+                showIccidToast(`已转换，共 ${cleaned.length} 条`, 'success');
             }
 
             // 3. 批量转换为查询格式：删除所有换行，每行用英文逗号拼接为单行输出

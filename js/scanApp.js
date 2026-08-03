@@ -6,7 +6,7 @@
   'use strict';
 
   const MAX_EDGE = 2200;        // 处理时的最长边上限，防止大图卡死
-  const THUMB_EDGE = 420;       // 列表缩略图尺寸
+  const THUMB_EDGE = 700;       // 列表缩略图尺寸（大型缩略图，点击可放大）
   const ACCEPT = /\.(jpe?g|png|bmp|webp|gif|tiff?)$/i;
 
   /** @type {Array<{id,name,file,url,image,thumb,resultA,resultB,status}>} */
@@ -318,6 +318,8 @@
     img.src = item.url;
     img.alt = item.name;
     img.loading = 'lazy';
+    img.title = '点击放大查看原图';
+    img.addEventListener('click', () => openLightboxImg(item.url, item.name));
     row.querySelector('[data-role="src"]').appendChild(img);
 
     row.querySelector('[data-role="remove"]').addEventListener('click', () => {
@@ -404,6 +406,23 @@
     cap.className = 'lightbox-cap';
     cap.textContent = `${name} · 方案 ${key} · ${canvas.width}×${canvas.height}`;
     mask.appendChild(clone);
+    mask.appendChild(cap);
+    mask.addEventListener('click', () => mask.remove());
+    document.body.appendChild(mask);
+  }
+
+  // 放大查看原图（基于 <img> 的 lightbox）
+  function openLightboxImg(url, name) {
+    const mask = document.createElement('div');
+    mask.className = 'lightbox';
+    const big = document.createElement('img');
+    big.className = 'lightbox-img';
+    big.src = url;
+    big.alt = name;
+    const cap = document.createElement('div');
+    cap.className = 'lightbox-cap';
+    cap.textContent = `${name} · 原图`;
+    mask.appendChild(big);
     mask.appendChild(cap);
     mask.addEventListener('click', () => mask.remove());
     document.body.appendChild(mask);

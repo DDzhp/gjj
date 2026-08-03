@@ -952,31 +952,28 @@ AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 
                     </select>
                 </div>
 
-                <div class="field thresh-field">
-                    <label for="blockSize">阈值窗口</label>
-                    <div class="range-row">
-                        <input id="blockSize" type="range" min="0" max="121" step="2" value="0">
-                        <span id="blockSizeVal" class="range-val">自动</span>
+                <div class="field thresh-group">
+                    <label>阈值参数</label>
+                    <div class="range-group">
+                        <div class="range-row">
+                            <span class="range-name">窗口</span>
+                            <input id="blockSize" type="range" min="0" max="121" step="2" value="0">
+                            <span id="blockSizeVal" class="range-val">自动</span>
+                        </div>
+                        <div class="range-row">
+                            <span class="range-name">强度 C</span>
+                            <input id="threshC" type="range" min="0" max="40" step="1" value="12">
+                            <span id="threshCVal" class="range-val">12</span>
+                        </div>
+                        <div class="range-row">
+                            <span class="range-name">噪点</span>
+                            <input id="denoise" type="range" min="0" max="2" step="1" value="1">
+                            <span id="denoiseVal" class="range-val">标准</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="field thresh-field">
-                    <label for="threshC">阈值强度 C</label>
-                    <div class="range-row">
-                        <input id="threshC" type="range" min="0" max="40" step="1" value="12">
-                        <span id="threshCVal" class="range-val">12</span>
-                    </div>
-                </div>
-
-                <div class="field thresh-field">
-                    <label for="denoise">噪点清理</label>
-                    <div class="range-row">
-                        <input id="denoise" type="range" min="0" max="2" step="1" value="1">
-                        <span id="denoiseVal" class="range-val">标准</span>
-                    </div>
-                </div>
-
-                <div class="field">
+                <div class="field checks-field">
                     <label>处理选项</label>
                     <div class="checks">
                         <label><input id="removeChroma" type="checkbox" checked> 去除彩色杂色（方案 A）</label>

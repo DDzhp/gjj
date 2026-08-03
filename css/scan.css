@@ -150,6 +150,31 @@
 }
 .scan-tool .field.thresh-field { min-width: 0; }
 
+/* 阈值组合：三个参数（窗口/强度C/噪点）放一行，横向 flex，每个占一段 */
+.scan-tool .field.thresh-group { flex: 1 1 100%; max-width: 100%; }
+.scan-tool .range-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.scan-tool .range-group .range-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7f9fc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.scan-tool .range-group .range-name {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.scan-tool .range-group input[type=range] { width: 130px; }
+
 /* 处理选项：横向排列，多个勾选框一行放下 */
 .scan-tool .checks { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
 .scan-tool .checks label {
@@ -161,6 +186,8 @@
   white-space: nowrap;
 }
 .scan-tool .checks input { accent-color: var(--primary); }
+/* 处理选项容器：撑满一行，便于子项横向并排 */
+.scan-tool .field.checks-field { flex: 1 1 100%; max-width: 100%; }
 
 .scan-tool .actions {
   display: flex;

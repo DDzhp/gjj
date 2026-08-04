@@ -311,6 +311,13 @@
                         <button onclick="splitIccidData()" style="background:#0984e3; color:white; padding:8px 20px; border:none; border-radius:6px; cursor:pointer;">✂️ 确定分裂</button>
                         <button onclick="clearIccidSplit()" style="background:#dfe6e9; color:#2d3436; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">🗑️ 清空</button>
                     </div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                        <span style="font-size:12px; color:#636e72; font-weight:600;">对每份数据批量：</span>
+                        <button onclick="batchConvertSplitToQuery()" style="background:#00b894; color:white; padding:6px 14px; border:none; border-radius:6px; cursor:pointer;">📋 转查询</button>
+                        <button onclick="batchConvertSplitToExcel()" style="background:#17a2b8; color:white; padding:6px 14px; border:none; border-radius:6px; cursor:pointer;">📊 转Excel</button>
+                        <button onclick="batchPreventSplitScientific()" style="background:#f39c12; color:white; padding:6px 14px; border:none; border-radius:6px; cursor:pointer;">🛡 防计数</button>
+                        <button onclick="batchAddQuotesToSplit()" style="background:#8e44ad; color:white; padding:6px 14px; border:none; border-radius:6px; cursor:pointer;">🧾 加引号</button>
+                    </div>
                     <div id="iccidSplitInfo" style="font-size:12px; color:#636e72; margin-bottom:8px;"></div>
                     <div id="iccidSplitWrap" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px;"></div>
                 </div>

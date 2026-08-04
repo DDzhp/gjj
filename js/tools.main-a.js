@@ -1102,15 +1102,21 @@
                     const ta = document.createElement('textarea');
                     ta.value = part.join('\n');
                     ta.style.cssText = 'width:100%;height:160px;padding:6px;font-size:13px;border:1px solid #e0e0e0;border-radius:6px;resize:vertical;font-family:Consolas,Monaco,monospace;';
-                    // 转换查询格式按钮
+                    // 每个输出框的操作按钮：转查询 / 转Excel / 防计数 / 加引号
                     const btnRow = document.createElement('div');
-                    btnRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
-                    const convertBtn = document.createElement('button');
-                    convertBtn.textContent = '📋 转换查询格式';
-                    convertBtn.title = '将该份数据的每行用英文逗号拼接为单行查询格式';
-                    convertBtn.style.cssText = 'font-size:11px;padding:3px 10px;background:#00b894;color:#fff;border:none;border-radius:4px;cursor:pointer;';
-                    convertBtn.onclick = function() { convertSplitBoxToQuery(ta); };
-                    btnRow.appendChild(convertBtn);
+                    btnRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;';
+                    const mkBtn = (txt, tip, bg, fn) => {
+                        const b = document.createElement('button');
+                        b.textContent = txt;
+                        b.title = tip;
+                        b.style.cssText = `font-size:11px;padding:3px 8px;background:${bg};color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;`;
+                        b.onclick = () => fn(ta);
+                        btnRow.appendChild(b);
+                    };
+                    mkBtn('转查询', '将该份数据每行用英文逗号拼接为单行查询格式', '#00b894', convertSplitBoxToQuery);
+                    mkBtn('转Excel', '每个数据独占一行，自动删除空白行与分隔符', '#17a2b8', convertSplitBoxToExcel);
+                    mkBtn('防计数', '每行末尾追加单引号，防止科学计数法', '#f39c12', preventSplitBoxScientific);
+                    mkBtn('加引号', '每行添加单引号并用英文逗号隔开', '#8e44ad', addQuotesToSplitBox);
                     box.appendChild(title);
                     box.appendChild(btnRow);
                     box.appendChild(ta);
@@ -1131,17 +1137,95 @@
                 const lines = ta.value.split('\n').filter(s => s.trim().length > 0);
                 if (lines.length === 0) {
                     showIccidToast('该份数据为空，无需转换', 'info');
-                    return;
+                    return false;
                 }
                 const cleaned = lines
                     .map(s => s.replace(/[,'";]+/g, '').trim())
                     .filter(s => s.length > 0);
                 if (cleaned.length === 0) {
                     showIccidToast('该份数据清洗后为空', 'info');
-                    return;
+                    return false;
                 }
                 ta.value = cleaned.join(',');
                 showIccidToast(`已转换，共 ${cleaned.length} 条`, 'success');
+                return true;
+            }
+
+            // 将单个分裂输出框转换为 Excel 格式：每个数据独占一行，清除分隔符与空白行
+            function convertSplitBoxToExcel(ta) {
+                const items = ta.value.split(/[,'";\t]+/).map(s => s.trim()).filter(s => s.length > 0);
+                if (items.length === 0) {
+                    showIccidToast('该份数据为空，无需转换', 'info');
+                    return false;
+                }
+                ta.value = items.join('\n');
+                showIccidToast(`已转换为Excel格式，共 ${items.length} 条`, 'success');
+                return true;
+            }
+
+            // 防止科学计数法：对单个分裂输出框每行末尾追加单引号
+            function preventSplitBoxScientific(ta) {
+                const items = ta.value.split(/[\n\r]+/).map(s => s.trim()).filter(s => s.length > 0);
+                if (items.length === 0) {
+                    showIccidToast('请先转换格式再追加单引号', 'error');
+                    return false;
+                }
+                ta.value = items.map(s => s.endsWith("'") ? s : s + "'").join('\n');
+                showIccidToast(`已追加单引号防止科学计数法，共 ${items.length} 条`, 'success');
+                return true;
+            }
+
+            // 新增：批量添加单引号并用英文逗号隔开（单个分裂输出框）
+            function addQuotesToSplitBox(ta) {
+                const lines = ta.value.split(/[\n\r,]+/).map(s => s.trim()).filter(s => s.length > 0);
+                if (lines.length === 0) {
+                    showIccidToast('该份数据为空', 'info');
+                    return false;
+                }
+                const cleaned = lines.map(s => s.replace(/^'+|'+$/g, '').trim()).filter(s => s.length > 0);
+                if (cleaned.length === 0) {
+                    showIccidToast('清洗后无有效数据', 'info');
+                    return false;
+                }
+                ta.value = cleaned.map(s => `'${s}'`).join(',');
+                showIccidToast(`已添加单引号并用逗号隔开，共 ${cleaned.length} 条`, 'success');
+                return true;
+            }
+
+            // 批量：对每个分裂输出框都应用同一转换函数
+            function forEachSplitBox(fn) {
+                const tas = document.querySelectorAll('#iccidSplitWrap textarea');
+                if (tas.length === 0) {
+                    showIccidToast('请先执行「确定分裂」', 'error');
+                    return false;
+                }
+                let done = 0;
+                tas.forEach(ta => { if (fn(ta)) done++; });
+                return done;
+            }
+
+            // 批量转换为查询格式（所有分裂输出框）
+            function batchConvertSplitToQuery() {
+                const done = forEachSplitBox(convertSplitBoxToQuery);
+                if (done) showIccidToast(`已批量转换查询格式，共处理 ${done} 份`, 'success');
+            }
+
+            // 批量转换为 Excel 格式（所有分裂输出框）
+            function batchConvertSplitToExcel() {
+                const done = forEachSplitBox(convertSplitBoxToExcel);
+                if (done) showIccidToast(`已批量转换Excel格式，共处理 ${done} 份`, 'success');
+            }
+
+            // 批量防止科学计数法（所有分裂输出框）
+            function batchPreventSplitScientific() {
+                const done = forEachSplitBox(preventSplitBoxScientific);
+                if (done) showIccidToast(`已批量防止科学计数法，共处理 ${done} 份`, 'success');
+            }
+
+            // 批量添加单引号并用逗号隔开（所有分裂输出框）
+            function batchAddQuotesToSplit() {
+                const done = forEachSplitBox(addQuotesToSplitBox);
+                if (done) showIccidToast(`已批量加引号，共处理 ${done} 份`, 'success');
             }
 
             // 3. 批量转换为查询格式：删除所有换行，每行用英文逗号拼接为单行输出

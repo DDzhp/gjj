@@ -372,6 +372,7 @@ def json_response(handler, obj, status=200):
     handler.send_header("Access-Control-Allow-Origin", "*")
     handler.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     handler.send_header("Access-Control-Allow-Headers", "Content-Type")
+    handler.send_header("Access-Control-Allow-Private-Network", "true")  # Chrome/Edge PNA：允许 https 线上页访问本机代理
     handler.end_headers()
     handler.wfile.write(body)
 
@@ -387,6 +388,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Private-Network", "true")  # PNA 预检放行
         self.send_header("Content-Length", "0")
         self.end_headers()
 

@@ -3,6 +3,9 @@
 .playwright-cli/
 zxtest/
 
+# 编辑器本地配置
+.vscode/
+
 # 系统文件
 Thumbs.db
 Desktop.ini

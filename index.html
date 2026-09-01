@@ -680,11 +680,12 @@
             
             <div class="info-box">
                 <strong>📋 功能说明：</strong><br>
-                1. 选择文件夹（自动递归包含子目录图片）或多张图片<br>
-                2. 逐图用 ZXing 解码二维码（支持一图多码），进度实时显示<br>
-                3. 完成后可一键导出 MD / CSV（浏览器下载）<br>
-                4. 结果区支持二次提取：链接去重 / IMEI(设备ID)去重 / 批量格式转换<br>
-                5. ZXing 支持单图识别多个二维码，并更好兼容模糊 / 畸变 / 光照不均
+                1. 选择文件夹（自动递归包含子目录图片）或多张图片，支持拖拽<br>
+                2. 逐图用 jsQR 网格分块解码二维码（一图多码），ZXing 兜底，进度实时显示<br>
+                3. 可选 OCR 文字识别 IMEI（Tesseract，识别二维码下方印刷数字；首次需下载语言包 ~10MB）<br>
+                4. 完成后可一键导出 MD / CSV（浏览器下载）<br>
+                5. 结果区支持二次提取：链接去重 / IMEI(设备ID)去重（重复信息单独显示）/ 批量格式转换<br>
+                6. 纯本地处理，图片不上传
             </div>
             
             <!-- 数据汇总信息显示区域 -->
@@ -709,10 +710,18 @@
                 <button class="btn btn-success" id="qrBatchExportMdBtn" disabled>📄 导出 MD</button>
                 <button class="btn btn-success" id="qrBatchExportCsvBtn" disabled>📊 导出 CSV</button>
                 <button class="btn btn-info" id="qrBatchExtractLinksBtn" disabled>🔗 提取链接去重</button>
-                <button class="btn btn-info" id="qrBatchExtractImeiBtn" disabled>🆔 提取IMEI/设备ID</button>
+                <button class="btn btn-info" id="qrBatchExtractImeiBtn" disabled>🆔 提取IMEI/设备ID(去重)</button>
                 <button class="btn btn-secondary" id="qrBatchBatchFmtBtn" disabled>📝 批量格式转换</button>
                 <button class="btn btn-secondary" id="qrBatchCopyBtn" disabled>📋 复制结果</button>
                 <button class="btn btn-danger" id="qrBatchClearBtn">🗑️ 清空</button>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:8px; margin:8px 0 4px;">
+                <label style="display:flex; align-items:center; gap:6px; font-weight:500; cursor:pointer;">
+                    <input type="checkbox" id="qrBatchOcr" checked>
+                    📝 OCR 文字识别 IMEI（Tesseract，识别二维码下方印刷数字，补全二维码扫不到的）
+                </label>
+                <span id="qrBatchOcrStatus" style="font-size:12px; color:#888;"></span>
             </div>
             
             <div class="status-section" id="qrBatchStatus" style="display: none;"></div>
@@ -726,6 +735,11 @@
             <div class="form-group">
                 <label for="qrBatchResult">识别结果（可编辑 · 支持二次提取）：</label>
                 <textarea id="qrBatchResult" class="result-area" rows="18" readonly placeholder="识别结果将显示在这里..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="qrBatchDup" style="color:#b45309;">🔁 重复信息（去重时被剔除）：</label>
+                <textarea id="qrBatchDup" class="result-area" rows="3" readonly placeholder="提取IMEI/设备ID(去重)后，被剔除的重复项显示在这里"></textarea>
             </div>
         </section>
 
@@ -1217,6 +1231,8 @@ AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 
 <script src="js/logDecode.js"></script>
 <script src="js/zxing.min.js"
         onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';document.head.appendChild(s);})()"></script>
+<script src="js/jsQR.min.js"
+        onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';document.head.appendChild(s);})()"></script>
 <script src="js/tesseract.min.js"
         onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js';document.head.appendChild(s);})()"></script>
 <script src="js/ocrad.js"

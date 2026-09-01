@@ -10,3 +10,9 @@ zxtest/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# 云密钥配置（绝不提交）
+config.json
+
+# Python 缓存
+__pycache__/

@@ -22,6 +22,71 @@
 
   var IMG_EXTS = /\.(jpe?g|png|bmp|gif|tiff?|webp|ico)$/i;
 
+  /* ---------- 云引擎（本地代理转发百度/腾讯云，密钥不出本机） ---------- */
+  var PROXY_BASE = 'http://localhost:8765';
+
+  function currentQrEngine() {
+    var s = el('qrBatchQrEngine');
+    return s ? s.value : 'local';
+  }
+  function currentOcrEngine() {
+    var s = el('qrBatchOcrEngine');
+    return s ? s.value : 'local';
+  }
+  function needProxy() {
+    return currentOcrEngine() !== 'local' || currentQrEngine() !== 'local';
+  }
+  function checkProxy() {
+    return fetch(PROXY_BASE + '/ping', { mode: 'cors' })
+      .then(function (r) { return r.ok; })
+      .catch(function () { return false; });
+  }
+  function canvasToBlob(cv, type) {
+    return new Promise(function (resolve, reject) {
+      cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('图片转码失败')); }, type || 'image/jpeg', 0.9);
+    });
+  }
+  function uploadToProxy(path, cv) {
+    return canvasToBlob(cv).then(function (blob) {
+      var fd = new FormData();
+      fd.append('file', blob, 'img.jpg');
+      return fetch(PROXY_BASE + path, { method: 'POST', body: fd, mode: 'cors' })
+        .then(function (r) { return r.json(); });
+    });
+  }
+
+  /* 云二维码：根据 currentQrEngine 选百度（/qr_baidu）或腾讯（/qr），返回 [{data,x,y,w,h}]（原图坐标） */
+  async function cloudDecodeQr(canvas) {
+    var st = scaled(canvas, 2400);
+    var path = currentQrEngine() === 'baidu' ? '/qr_baidu' : '/qr';
+    var data = await uploadToProxy(path, st.cv);
+    if (!data) { throw new Error('云二维码识别无响应（代理未启动？）'); }
+    if (data.error) { throw new Error('云二维码错误：' + data.error); }
+    var scale = st.scale;
+    return (data.codes || []).map(function (c) {
+      return {
+        data: c.data,
+        x: Math.round(c.x / scale),
+        y: Math.round(c.y / scale),
+        w: Math.max(20, Math.round(c.w / scale)),
+        h: Math.max(20, Math.round(c.h / scale))
+      };
+    });
+  }
+
+  /* 云 OCR：根据 currentOcrEngine 选腾讯（/ocr_tencent）或百度（/ocr），
+     整图上传一次，自动纠偏旋转；返回 {imeis, raw} */
+  async function cloudOcrWholeImage(canvas) {
+    var st = scaled(canvas, 2400);
+    var path = currentOcrEngine() === 'tencent' ? '/ocr_tencent' : '/ocr';
+    var data = await uploadToProxy(path, st.cv);
+    if (!data) { throw new Error('云 OCR 无响应（代理未启动？）'); }
+    if (data.error) { throw new Error('云 OCR 错误：' + data.error); }
+    var text = (data.text || '').replace(/\s+/g, ' ').trim();
+    var imeis = extractImeisFromText(text);
+    return { imeis: imeis, raw: imeis.length ? '' : text.slice(0, 60) };
+  }
+
   function el(id) { return document.getElementById(id); }
 
   function toast(msg, color) {
@@ -266,6 +331,9 @@
   }
 
   async function decodeCodes(canvas) {
+    if (currentQrEngine() !== 'local') {
+      return await cloudDecodeQr(canvas);
+    }
     var boxes = decodeJsQRGrid(canvas);
     if (!boxes.length) {
       boxes = await decodeZXing(canvas);
@@ -363,8 +431,24 @@
     el('qrBatchFailed').style.display = 'none';
     el('qrBatchProgress').value = 0;
     var useOcr = el('qrBatchOcr').checked;
+    var ocrEng = currentOcrEngine();
     if (useOcr) {
-      el('qrBatchOcrStatus').textContent = 'OCR 引擎就绪，首次识别需下载语言包(~10MB)，之后复用...';
+      el('qrBatchOcrStatus').textContent = (ocrEng === 'baidu')
+        ? 'OCR 引擎：百度云（自动纠偏旋转，竖排 IMEI 识别率高）'
+        : (ocrEng === 'tencent')
+          ? 'OCR 引擎：腾讯云 GeneralBasicOCR（与二维码共享密钥不同 Action）'
+          : 'OCR 引擎：本地 Tesseract，首次识别需下载语言包(~10MB)，之后复用...';
+    }
+    if (needProxy()) {
+      el('qrBatchOcrStatus').textContent = '正在检查本地云代理 (localhost:8765)...';
+      var proxyOk = await checkProxy();
+      if (!proxyOk) {
+        el('qrBatchOcrStatus').textContent = '';
+        setBusy(false);
+        toast('云代理未连接：请先启动 cloud_ocr_proxy.py（详见「云OCR与云二维码接入方案.md」）', '#f8d7da');
+        return;
+      }
+      el('qrBatchOcrStatus').textContent = '云代理已连接 ✅';
     }
 
     var total = S.files.length;
@@ -381,12 +465,20 @@
         var boxes = await decodeCodes(canvas);
         res.qrCodes = boxes.map(function (b) { return b.data; });
         res.qrBoxes = boxes;
-        if (useOcr && boxes.length) {
-          el('qrBatchOcrStatus').textContent = 'OCR ' + f.name + ' ...';
-          var ocrRes = await ocrImeis(canvas, boxes);
-          res.ocrImeis = ocrRes.imeis;
-          res.ocrRaw = ocrRes.raws.join(' | ');
-          el('qrBatchOcrStatus').textContent = '';
+        if (useOcr) {
+          if (ocrEng === 'baidu' || ocrEng === 'tencent') {
+            el('qrBatchOcrStatus').textContent = '云 OCR ' + f.name + ' ...';
+            var ocrRes = await cloudOcrWholeImage(canvas);
+            res.ocrImeis = ocrRes.imeis;
+            res.ocrRaw = ocrRes.raw;
+            el('qrBatchOcrStatus').textContent = '';
+          } else if (boxes.length) {
+            el('qrBatchOcrStatus').textContent = 'OCR ' + f.name + ' ...';
+            var ocrRes2 = await ocrImeis(canvas, boxes);
+            res.ocrImeis = ocrRes2.imeis;
+            res.ocrRaw = ocrRes2.raws.join(' | ');
+            el('qrBatchOcrStatus').textContent = '';
+          }
         }
         if (!res.qrCodes.length && !res.ocrImeis.length) { res.failed = true; failed.push(f.name); }
       } catch (e) {
@@ -639,13 +731,18 @@
     el('qrBatchCopyBtn').addEventListener('click', onCopy);
     el('qrBatchClearBtn').addEventListener('click', onClear);
 
-    // 检测识别引擎支持
+    // 检测识别引擎支持（本地引擎 + 云代理状态）
     var detNote = document.createElement('div');
     detNote.style.cssText = 'font-size:12px;color:#888;margin-top:4px;';
-    detNote.textContent = '识别引擎：' +
-      (typeof window.jsQR !== 'undefined' ? 'jsQR(网格多码) + ZXing 兜底' : 'ZXing') +
-      (typeof window.Tesseract !== 'undefined' ? ' + Tesseract OCR' : '（OCR 不可用）');
+    function engineText(proxyOk) {
+      return '本地引擎：' +
+        (typeof window.jsQR !== 'undefined' ? 'jsQR(网格多码) + ZXing 兜底' : 'ZXing') +
+        (typeof window.Tesseract !== 'undefined' ? ' + Tesseract OCR' : '（OCR 不可用）') +
+        ' ｜ 云代理：' + (proxyOk === null ? '检测中...' : (proxyOk ? '✅ 已连接（可切百度 OCR / 腾讯二维码）' : '❌ 未启动（云引擎需先启动 cloud_ocr_proxy.py）'));
+    }
+    detNote.textContent = engineText(null);
     drop.parentNode.insertBefore(detNote, drop.nextSibling);
+    checkProxy().then(function (ok) { detNote.textContent = engineText(ok); });
 
     setBusy(false);
   }

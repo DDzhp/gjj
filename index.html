@@ -681,11 +681,11 @@
             <div class="info-box">
                 <strong>📋 功能说明：</strong><br>
                 1. 选择文件夹（自动递归包含子目录图片）或多张图片，支持拖拽<br>
-                2. 逐图用 jsQR 网格分块解码二维码（一图多码），ZXing 兜底，进度实时显示<br>
-                3. 可选 OCR 文字识别 IMEI（Tesseract，识别二维码下方印刷数字；首次需下载语言包 ~10MB）<br>
+                2. 逐图解码二维码（一图多码）：二维码引擎可选【本地 jsQR+ZXing】（离线）/【百度云二维码】（500/月免费）/【腾讯云 QrcodeOCR】（1000/月免费），进度实时显示<br>
+                3. 可选 OCR 识别 IMEI：OCR 引擎可选【本地 Tesseract】（离线）/【百度云 OCR】（自动纠偏旋转）/【腾讯云 GeneralBasicOCR】（均需本地代理）；首次本地识别需下载语言包 ~10MB<br>
                 4. 完成后可一键导出 MD / CSV（浏览器下载）<br>
                 5. 结果区支持二次提取：链接去重 / IMEI(设备ID)去重（重复信息单独显示）/ 批量格式转换<br>
-                6. 纯本地处理，图片不上传
+                6. 图片本地/代理处理，云引擎需先启动本地代理 <code>cloud_ocr_proxy.py</code>（密钥不出本机，详见「云OCR与云二维码接入方案.md」）
             </div>
             
             <!-- 数据汇总信息显示区域 -->
@@ -716,10 +716,26 @@
                 <button class="btn btn-danger" id="qrBatchClearBtn">🗑️ 清空</button>
             </div>
             
-            <div style="display:flex; align-items:center; gap:8px; margin:8px 0 4px;">
+            <div style="display:flex; align-items:center; gap:14px; margin:8px 0 4px; flex-wrap:wrap;">
                 <label style="display:flex; align-items:center; gap:6px; font-weight:500; cursor:pointer;">
                     <input type="checkbox" id="qrBatchOcr" checked>
-                    📝 OCR 文字识别 IMEI（Tesseract，识别二维码下方印刷数字，补全二维码扫不到的）
+                    📝 OCR 识别 IMEI
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; font-weight:500;">
+                    OCR 引擎：
+                    <select id="qrBatchOcrEngine" style="padding:4px 6px; border-radius:4px; border:1px solid #ccc; background:#fff;">
+                        <option value="local">本地 Tesseract（离线）</option>
+                        <option value="baidu">百度云 OCR（自动纠偏）</option>
+                        <option value="tencent">腾讯云 OCR（GeneralBasicOCR）</option>
+                    </select>
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; font-weight:500;">
+                    二维码引擎：
+                    <select id="qrBatchQrEngine" style="padding:4px 6px; border-radius:4px; border:1px solid #ccc; background:#fff;">
+                        <option value="local">本地 jsQR+ZXing（离线）</option>
+                        <option value="baidu">百度云二维码（500/月免费）</option>
+                        <option value="tencent">腾讯云 QrcodeOCR（1000/月免费）</option>
+                    </select>
                 </label>
                 <span id="qrBatchOcrStatus" style="font-size:12px; color:#888;"></span>
             </div>

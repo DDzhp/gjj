@@ -291,38 +291,65 @@
   function ocrImeiFromBox(canvas, box) {
     return new Promise(function (resolve) {
       try {
-        if (typeof window.Tesseract === 'undefined') { resolve([]); return; }
+        if (typeof window.Tesseract === 'undefined') { resolve({ imeis: [], raw: '' }); return; }
+        // 精准裁剪：贴纸二维码下方/侧方（PCB IMEI 通常紧贴贴纸，不再扩 3 倍）
         var qh = Math.max(40, box.h || 100);
         var y0 = Math.min(canvas.height, box.y + box.h);
-        var y1 = Math.min(canvas.height, box.y + box.h + qh * 3 + 40);
+        var y1 = Math.min(canvas.height, box.y + box.h + qh);
         var x0 = Math.max(0, box.x - Math.floor((box.w || 100) * 0.3));
         var x1 = Math.min(canvas.width, box.x + (box.w || 100) + Math.floor((box.w || 100) * 0.3));
-        if (y1 - y0 < 20 || x1 - x0 < 20) { resolve([]); return; }
+        if (y1 - y0 < 20 || x1 - x0 < 20) {
+          // 兜底：直接用码区
+          y0 = Math.max(0, box.y); y1 = Math.min(canvas.height, box.y + qh);
+          x0 = Math.max(0, box.x); x1 = Math.min(canvas.width, box.x + (box.w || 100));
+        }
+        if (y1 - y0 < 20 || x1 - x0 < 20) { resolve({ imeis: [], raw: '' }); return; }
         var crop = document.createElement('canvas');
         crop.width = x1 - x0; crop.height = y1 - y0;
         crop.getContext('2d').drawImage(canvas, x0, y0, crop.width, crop.height, 0, 0, crop.width, crop.height);
-        var big = document.createElement('canvas');
-        big.width = crop.width * 2; big.height = crop.height * 2;
-        big.getContext('2d').drawImage(crop, 0, 0, crop.width, crop.height, 0, 0, big.width, big.height);
-        window.Tesseract.recognize(big, 'eng').then(function (r2) {
-          var txt = (r2 && r2.data && r2.data.text) ? r2.data.text : '';
-          resolve(extractImeisFromText(txt));
-        }).catch(function () { resolve([]); });
-      } catch (e) { resolve([]); }
+        // 旋转 90°（覆盖垂直 IMEI：贴纸右侧竖排数字）
+        var rot = document.createElement('canvas');
+        rot.width = crop.height; rot.height = crop.width;
+        var rctx = rot.getContext('2d');
+        rctx.translate(rot.width, 0);
+        rctx.rotate(Math.PI / 2);
+        rctx.drawImage(crop, 0, 0);
+        // 放大（OCR 对大图更准）
+        function big(cv) {
+          var out = document.createElement('canvas');
+          out.width = cv.width * 2; out.height = cv.height * 2;
+          out.getContext('2d').drawImage(cv, 0, 0, cv.width, cv.height, 0, 0, out.width, out.height);
+          return out;
+        }
+        function ocr(img) {
+          return window.Tesseract.recognize(img, 'eng', { tessedit_pageseg_mode: '6' })
+            .then(function (r) { return (r && r.data && r.data.text) ? r.data.text : ''; })
+            .catch(function () { return ''; });
+        }
+        // 双角度：原方向（水平 IMEI）+ 旋转 90°（垂直 IMEI）
+        Promise.all([ocr(big(crop)), ocr(big(rot))]).then(function (texts) {
+          var combined = (texts[0] + ' ' + texts[1]).trim();
+          var imeis = extractImeisFromText(combined);
+          // 透明化：把原始文本片段返回，调用方决定是否显示
+          resolve({ imeis: imeis, raw: imeis.length ? '' : combined.slice(0, 60) });
+        });
+      } catch (e) { resolve({ imeis: [], raw: '' }); }
     });
   }
 
   async function ocrImeis(canvas, boxes) {
-    if (typeof window.Tesseract === 'undefined') { return []; }
+    if (typeof window.Tesseract === 'undefined') { return { imeis: [], raws: [] }; }
     var imeis = [];
+    var raws = [];
     var boxesToScan = (boxes && boxes.length) ? boxes.slice(0, 12) : [];
-    if (!boxesToScan.length) { return []; }
+    if (!boxesToScan.length) { return { imeis: [], raws: [] }; }
     for (var i = 0; i < boxesToScan.length; i++) {
       if (S.cancelled) { break; }
       var one = await ocrImeiFromBox(canvas, boxesToScan[i]);
-      one.forEach(function (im) { if (imeis.indexOf(im) < 0) { imeis.push(im); } });
+      one.imeis.forEach(function (im) { if (imeis.indexOf(im) < 0) { imeis.push(im); } });
+      if (one.raw) { raws.push(one.raw); }
     }
-    return imeis;
+    return { imeis: imeis, raws: raws };
   }
 
   /* ---------- 识别主循环 ---------- */
@@ -356,7 +383,9 @@
         res.qrBoxes = boxes;
         if (useOcr && boxes.length) {
           el('qrBatchOcrStatus').textContent = 'OCR ' + f.name + ' ...';
-          res.ocrImeis = await ocrImeis(canvas, boxes);
+          var ocrRes = await ocrImeis(canvas, boxes);
+          res.ocrImeis = ocrRes.imeis;
+          res.ocrRaw = ocrRes.raws.join(' | ');
           el('qrBatchOcrStatus').textContent = '';
         }
         if (!res.qrCodes.length && !res.ocrImeis.length) { res.failed = true; failed.push(f.name); }
@@ -389,8 +418,12 @@
       parts.push('- 二维码' + (i + 1) + ': ' + short);
     });
     res.ocrImeis.forEach(function (im, i) {
-      parts.push('- OCR-IMEI' + (i + 1) + ': ' + im + '（二维码下方印刷文字识别）');
+      parts.push('- OCR-IMEI' + (i + 1) + ': ' + im + '（二维码下方/侧方印刷文字识别）');
     });
+    // 透明化：识别到 0 个 IMEI 但 OCR 实际跑了 → 显示原始文本片段
+    if (!res.ocrImeis.length && res.ocrRaw) {
+      parts.push('- ⚠️ OCR 已识别但未匹配 IMEI：' + res.ocrRaw);
+    }
     if (res.failed && !res.qrCodes.length && !res.ocrImeis.length) {
       parts.push('- ⚠️ 未识别到二维码/文字');
     }

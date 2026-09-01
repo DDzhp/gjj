@@ -2,11 +2,30 @@
 
 > 适用面板：📱 二维码批量识别
 > 目的：解决 PCB 电路板图 IMEI 竖排（旋转 90°）导致 Tesseract 本地 OCR 识别率低的问题；同时提供二维码识别的云端备选。
-> 设计原则：**本地引擎（Tesseract / jsQR+ZXing）保留为备选**，网页版可选「本地 / 云接口」双引擎；云接口密钥只保存在本机，通过本地代理转发，浏览器不直接接触密钥。
+> 设计原则：**本地引擎（Tesseract / jsQR+ZXing）保留为备选**，网页版可选「本地 / 云接口」双引擎；云接口密钥只在代理侧（云端 Worker 或本机），浏览器不直接接触密钥。
+>
+> **推荐路线（免本地代理）**：Cloudflare Workers 云端代理（详见《Cloudflare Workers 部署指南.md》），部署一次永久使用；
+> 本地代理 `cloud_ocr_proxy.py` 保留为备选。两种代理端点完全兼容，网页版「云端代理地址」填谁用谁。
 
 ---
 
 ## 一、总体架构
+
+### 方案 A（推荐）：Cloudflare Workers 云端代理 — 免本地代理
+
+```
+┌─────────────┐  fetch https://xxx.workers.dev  ┌──────────────────┐   HTTPS   ┌─────────┐
+│  浏览器网页版 │ ──────────────────────────────▶ │ cloud_ocr_worker │ ────────▶ │ 百度/腾讯│
+│ (GitHub Pages)│                                │  (Workers 免费)   │            │  云 API  │
+│  选「云」引擎 │ ◀────────────────────────────── │  密钥=环境变量    │ ◀────────  └─────────┘
+└─────────────┘          JSON 返回               └──────────────────┘
+```
+
+- 密钥放在 Worker **环境变量**（Settings → Variables），不进入网页代码、不公开
+- 部署一次永久使用；免费 10 万请求/天，远超日常用量
+- 部署步骤见《Cloudflare Workers 部署指南.md》（注册 → 创建 Worker → 粘贴 `cloud_ocr_worker.mjs` → 填 4 个环境变量 → 部署）
+
+### 方案 B（备选）：本地代理
 
 ```
 ┌─────────────┐   fetch http://localhost:8765   ┌──────────────────┐
@@ -19,8 +38,9 @@
                                                 └──────────────────┘
 ```
 
-- **为什么需要本地代理**：百度/腾讯云 OCR 接口带签名鉴权，浏览器直接调会被 CORS 拦截，且密钥会暴露在网页里。本地代理用 Python 标准库（`http.server` + `urllib`）实现，**零第三方依赖**，密钥放在代理同目录 `config.json`（或环境变量），只在本机生效。
-- Chrome / Edge 对 HTTPS 页面（GitHub Pages）请求 `http://localhost` 有白名单豁免，可直接跨域访问本地代理。
+- **为什么不能浏览器直连云 API**：实测百度 token/OCR 接口与腾讯云 API 均**不带 CORS 响应头**，浏览器跨域请求会被拦截——必须有服务端中转
+- 本地代理用 Python 标准库（`http.server` + `urllib`）实现，**零第三方依赖**，密钥放在代理同目录 `config.json`（或环境变量），只在本机生效
+- Chrome / Edge 对 HTTPS 页面（GitHub Pages）请求 `http://localhost` 有白名单豁免（需代理响应 `Access-Control-Allow-Private-Network: true`，已实现）
 
 ---
 

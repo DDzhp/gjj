@@ -22,8 +22,12 @@
 
   var IMG_EXTS = /\.(jpe?g|png|bmp|gif|tiff?|webp|ico)$/i;
 
-  /* ---------- 云引擎（本地代理转发百度/腾讯云，密钥不出本机） ---------- */
-  var PROXY_BASE = 'http://localhost:8765';
+  /* ---------- 云引擎（云端代理：Cloudflare Worker 或本地 cloud_ocr_proxy.py，地址可配置） ---------- */
+  var PROXY_BASE_KEY = 'qrbatch_proxy_base';
+  function proxyBase() {
+    var v = (localStorage.getItem(PROXY_BASE_KEY) || '').trim().replace(/\/+$/, '');
+    return v;
+  }
 
   function currentQrEngine() {
     var s = el('qrBatchQrEngine');
@@ -37,7 +41,9 @@
     return currentOcrEngine() !== 'local' || currentQrEngine() !== 'local';
   }
   function checkProxy() {
-    return fetch(PROXY_BASE + '/ping', { mode: 'cors' })
+    var base = proxyBase();
+    if (!base) { return Promise.resolve(false); }
+    return fetch(base + '/ping', { mode: 'cors' })
       .then(function (r) { return r.ok; })
       .catch(function () { return false; });
   }
@@ -47,10 +53,11 @@
     });
   }
   function uploadToProxy(path, cv) {
+    var base = proxyBase();
     return canvasToBlob(cv).then(function (blob) {
       var fd = new FormData();
       fd.append('file', blob, 'img.jpg');
-      return fetch(PROXY_BASE + path, { method: 'POST', body: fd, mode: 'cors' })
+      return fetch(base + path, { method: 'POST', body: fd, mode: 'cors' })
         .then(function (r) { return r.json(); });
     });
   }
@@ -440,15 +447,16 @@
           : 'OCR 引擎：本地 Tesseract，首次识别需下载语言包(~10MB)，之后复用...';
     }
     if (needProxy()) {
-      el('qrBatchOcrStatus').textContent = '正在检查本地云代理 (localhost:8765)...';
+      var base = proxyBase() || '（未配置）';
+      el('qrBatchOcrStatus').textContent = '正在检查云端代理 (' + base + ')...';
       var proxyOk = await checkProxy();
       if (!proxyOk) {
         el('qrBatchOcrStatus').textContent = '';
         setBusy(false);
-        toast('云代理未连接：请先启动 cloud_ocr_proxy.py（详见「云OCR与云二维码接入方案.md」）', '#f8d7da');
+        toast('云端代理不可用：请在本工具「云端代理地址」输入框填写代理地址并保存（Cloudflare Worker 或本地代理均可）', '#f8d7da');
         return;
       }
-      el('qrBatchOcrStatus').textContent = '云代理已连接 ✅';
+      el('qrBatchOcrStatus').textContent = '云端代理已连接 ✅';
     }
 
     var total = S.files.length;
@@ -731,18 +739,45 @@
     el('qrBatchCopyBtn').addEventListener('click', onCopy);
     el('qrBatchClearBtn').addEventListener('click', onClear);
 
-    // 检测识别引擎支持（本地引擎 + 云代理状态）
+    // 检测识别引擎支持（本地引擎 + 云端代理状态）
     var detNote = document.createElement('div');
     detNote.style.cssText = 'font-size:12px;color:#888;margin-top:4px;';
     function engineText(proxyOk) {
+      var base = proxyBase();
       return '本地引擎：' +
         (typeof window.jsQR !== 'undefined' ? 'jsQR(网格多码) + ZXing 兜底' : 'ZXing') +
         (typeof window.Tesseract !== 'undefined' ? ' + Tesseract OCR' : '（OCR 不可用）') +
-        ' ｜ 云代理：' + (proxyOk === null ? '检测中...' : (proxyOk ? '✅ 已连接（可切百度 OCR / 腾讯二维码）' : '❌ 未启动（云引擎需先启动 cloud_ocr_proxy.py）'));
+        (base
+          ? ' ｜ 云端代理：' + (proxyOk === null ? '检测中...' : (proxyOk ? '✅ 已连接' : '❌ 无法连接（检查地址或代理服务）'))
+          : ' ｜ 云端代理：未配置（上方输入框填代理地址后保存）');
     }
     detNote.textContent = engineText(null);
     drop.parentNode.insertBefore(detNote, drop.nextSibling);
     checkProxy().then(function (ok) { detNote.textContent = engineText(ok); });
+
+    // 云端代理地址：保存 + 测试连接
+    var proxyInput = el('qrBatchProxyBase');
+    if (proxyInput) {
+      proxyInput.value = localStorage.getItem(PROXY_BASE_KEY) || '';
+      el('qrBatchProxySave').addEventListener('click', function () {
+        var v = proxyInput.value.trim().replace(/\/+$/, '');
+        proxyInput.value = v;
+        localStorage.setItem(PROXY_BASE_KEY, v);
+        toast('云端代理地址已保存');
+        detNote.textContent = engineText(null);
+        checkProxy().then(function (ok) { detNote.textContent = engineText(ok); });
+      });
+      el('qrBatchProxyTest').addEventListener('click', function () {
+        var v = proxyInput.value.trim().replace(/\/+$/, '');
+        proxyInput.value = v;
+        localStorage.setItem(PROXY_BASE_KEY, v);
+        detNote.textContent = engineText(null);
+        checkProxy().then(function (ok) {
+          detNote.textContent = engineText(ok);
+          toast(ok ? '代理连接成功 ✅' : '代理连接失败 ❌（请核对地址，或以 /ping 结尾测试）', ok ? '#d4edda' : '#f8d7da');
+        });
+      });
+    }
 
     setBusy(false);
   }

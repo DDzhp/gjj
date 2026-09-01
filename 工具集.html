@@ -680,11 +680,12 @@
             
             <div class="info-box">
                 <strong>📋 功能说明：</strong><br>
-                1. 选择文件夹（自动递归包含子目录图片）或多张图片<br>
-                2. 逐图用 ZXing 解码二维码（支持一图多码），进度实时显示<br>
-                3. 完成后可一键导出 MD / CSV（浏览器下载）<br>
-                4. 结果区支持二次提取：链接去重 / IMEI(设备ID)去重 / 批量格式转换<br>
-                5. ZXing 支持单图识别多个二维码，并更好兼容模糊 / 畸变 / 光照不均
+                1. 选择文件夹（自动递归包含子目录图片）或多张图片，支持拖拽<br>
+                2. 逐图解码二维码（一图多码）：二维码引擎可选【本地 jsQR+ZXing】（离线）/【百度云二维码】（500/月免费）/【腾讯云 QrcodeOCR】（1000/月免费），进度实时显示<br>
+                3. 可选 OCR 识别 IMEI：OCR 引擎可选【本地 Tesseract】（离线）/【百度云 OCR】（自动纠偏旋转）/【腾讯云 GeneralBasicOCR】（云引擎需先配置下方「云端代理地址」）；首次本地识别需下载语言包 ~10MB<br>
+                4. 完成后可一键导出 MD / CSV（浏览器下载）<br>
+                5. 结果区支持二次提取：链接去重 / IMEI(设备ID)去重（重复信息单独显示）/ 批量格式转换<br>
+                6. 云引擎经「云端代理」转发（Cloudflare Worker 或本地 cloud_ocr_proxy.py），密钥在代理侧，不出浏览器；代理地址保存后自动检测连通
             </div>
             
             <!-- 数据汇总信息显示区域 -->
@@ -709,10 +710,42 @@
                 <button class="btn btn-success" id="qrBatchExportMdBtn" disabled>📄 导出 MD</button>
                 <button class="btn btn-success" id="qrBatchExportCsvBtn" disabled>📊 导出 CSV</button>
                 <button class="btn btn-info" id="qrBatchExtractLinksBtn" disabled>🔗 提取链接去重</button>
-                <button class="btn btn-info" id="qrBatchExtractImeiBtn" disabled>🆔 提取IMEI/设备ID</button>
+                <button class="btn btn-info" id="qrBatchExtractImeiBtn" disabled>🆔 提取IMEI/设备ID(去重)</button>
                 <button class="btn btn-secondary" id="qrBatchBatchFmtBtn" disabled>📝 批量格式转换</button>
                 <button class="btn btn-secondary" id="qrBatchCopyBtn" disabled>📋 复制结果</button>
                 <button class="btn btn-danger" id="qrBatchClearBtn">🗑️ 清空</button>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:14px; margin:8px 0 4px; flex-wrap:wrap;">
+                <label style="display:flex; align-items:center; gap:6px; font-weight:500; cursor:pointer;">
+                    <input type="checkbox" id="qrBatchOcr" checked>
+                    📝 OCR 识别 IMEI
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; font-weight:500;">
+                    OCR 引擎：
+                    <select id="qrBatchOcrEngine" style="padding:4px 6px; border-radius:4px; border:1px solid #ccc; background:#fff;">
+                        <option value="local">本地 Tesseract（离线）</option>
+                        <option value="baidu">百度云 OCR（自动纠偏）</option>
+                        <option value="tencent">腾讯云 OCR（GeneralBasicOCR）</option>
+                    </select>
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; font-weight:500;">
+                    二维码引擎：
+                    <select id="qrBatchQrEngine" style="padding:4px 6px; border-radius:4px; border:1px solid #ccc; background:#fff;">
+                        <option value="local">本地 jsQR+ZXing（离线）</option>
+                        <option value="baidu">百度云二维码（500/月免费）</option>
+                        <option value="tencent">腾讯云 QrcodeOCR（1000/月免费）</option>
+                    </select>
+                </label>
+                <span id="qrBatchOcrStatus" style="font-size:12px; color:#888;"></span>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:8px; margin:6px 0 4px; flex-wrap:wrap;">
+                <label for="qrBatchProxyBase" style="font-weight:500;">云端代理地址：</label>
+                <input type="url" id="qrBatchProxyBase" placeholder="https://你的worker名.workers.dev（云引擎需先配置；本地代理可填 http://localhost:8765）" style="flex:1; min-width:280px; padding:4px 8px; border-radius:4px; border:1px solid #ccc; font-size:13px;">
+                <button class="btn btn-primary" id="qrBatchProxySave" style="padding:4px 12px; font-size:13px;">保存</button>
+                <button class="btn btn-secondary" id="qrBatchProxyTest" style="padding:4px 12px; font-size:13px;">测试连接</button>
+                <span style="font-size:12px; color:#999;">密钥在代理侧，不出浏览器</span>
             </div>
             
             <div class="status-section" id="qrBatchStatus" style="display: none;"></div>
@@ -726,6 +759,11 @@
             <div class="form-group">
                 <label for="qrBatchResult">识别结果（可编辑 · 支持二次提取）：</label>
                 <textarea id="qrBatchResult" class="result-area" rows="18" readonly placeholder="识别结果将显示在这里..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="qrBatchDup" style="color:#b45309;">🔁 重复信息（去重时被剔除）：</label>
+                <textarea id="qrBatchDup" class="result-area" rows="3" readonly placeholder="提取IMEI/设备ID(去重)后，被剔除的重复项显示在这里"></textarea>
             </div>
         </section>
 
@@ -1217,6 +1255,8 @@ AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 
 <script src="js/logDecode.js"></script>
 <script src="js/zxing.min.js"
         onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';document.head.appendChild(s);})()"></script>
+<script src="js/jsQR.min.js"
+        onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';document.head.appendChild(s);})()"></script>
 <script src="js/tesseract.min.js"
         onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js';document.head.appendChild(s);})()"></script>
 <script src="js/ocrad.js"

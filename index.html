@@ -747,6 +747,9 @@
                 <button class="btn btn-primary" id="qrBatchProxySave" style="padding:4px 12px; font-size:13px;">保存</button>
                 <button class="btn btn-secondary" id="qrBatchProxyTest" style="padding:4px 12px; font-size:13px;">测试连接</button>
                 <span style="font-size:12px; color:#999;">密钥在代理侧，不出浏览器</span>
+                <!-- 内置云端代理地址（白底白字=默认视觉隐藏，需要时选中复制或供自动化读取）。
+                     地址1=腾讯云 SCF（在用）；地址2=Cloudflare Worker 占位，若不再使用可整行删除或替换为实际地址 -->
+                <span id="qrBatchProxyBuiltin" style="display:block; width:100%; color:#ffffff; font-size:12px; line-height:1.7;">云端代理①（腾讯云 SCF，在用）：https://1318636345-gylpu3x5zl.ap-guangzhou.tencentscf.com　云端代理②（Cloudflare Worker，备用）：https://ocr-proxy.你的子域.workers.dev</span>
             </div>
             
             <div class="status-section" id="qrBatchStatus" style="display: none;"></div>

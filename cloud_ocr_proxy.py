@@ -6,6 +6,7 @@ cloud_ocr_proxy.py — 工具集网页版「云 OCR / 云二维码」本地代�
 功能：
   GET  /ping        健康检查 -> {"ok": true, "engine": "cloud"}
   POST /ocr         图片 -> 百度通用文字识别(general_basic + detect_direction 自动纠偏) -> {"text": "..."}
+  POST /ocr_numbers 图片 -> 百度数字识别(v1/numbers，仅返回数字，自动过滤非数字，99%+ 准确率；免费 200 次/天) -> {"text": "..."}
   POST /qr          图片 -> 腾讯云 QrcodeOCR(TC3-HMAC-SHA256 签名) -> {"codes": [{"data","x","y","w","h"}]}
 
 用途：
@@ -57,6 +58,7 @@ CONFIG_PATH = os.path.join(SCRIPT_DIR, "config.json")
 
 BAIDU_TOKEN_URL = "https://aip.baidubce.com/oauth/2.0/token"
 BAIDU_OCR_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic"
+BAIDU_NUMBERS_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/numbers"
 BAIDU_QR_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/qrcode"
 TENCENT_OCR_HOST = "ocr.tencentcloudapi.com"
 TENCENT_ACTION = "QrcodeOCR"
@@ -200,6 +202,34 @@ def baidu_ocr(img_bytes, s):
     if "words_result" not in data:
         err = data.get("error_msg") or data.get("error") or str(data)
         raise RuntimeError("百度 OCR 识别失败: %s" % err)
+    words = [w.get("words", "") for w in (data.get("words_result") or [])]
+    return "\n".join([w for w in words if w])
+
+
+def baidu_ocr_numbers(img_bytes, s):
+    """百度智能云「数字识别」:https://aip.baidubce.com/rest/2.0/ocr/v1/numbers
+    仅提取图片中的数字并返回（自动过滤字母/符号/中文），数字识别准确率 >99%；
+    免费额度 200 次/天（2023-05-30 上线计费后调整），适合 IMEI 等纯数字小批量高精度识别。
+    支持 detect_direction=true 自动纠偏旋转（解决 PCB 竖排 IMEI）。
+    响应: { words_result: [ { words: "860929..." }, ... ] }"""
+    if not s["baidu_ak"] or not s["baidu_sk"]:
+        raise RuntimeError("百度密钥未配置：请在 config.json 填写 baidu_api_key / baidu_secret_key，或设置环境变量 BAIDU_API_KEY / BAIDU_SECRET_KEY")
+    token = baidu_access_token(s)
+    b64 = base64.b64encode(img_bytes).decode("ascii")
+    payload = urllib.parse.urlencode({
+        "image": b64,
+        "detect_direction": "true",   # 自动纠偏旋转，竖排 IMEI 也能识别
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        BAIDU_NUMBERS_URL + "?access_token=" + urllib.parse.quote(token),
+        data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    if "words_result" not in data:
+        err = data.get("error_msg") or data.get("error") or str(data)
+        raise RuntimeError("百度数字识别失败: %s" % err)
     words = [w.get("words", "") for w in (data.get("words_result") or [])]
     return "\n".join([w for w in words if w])
 
@@ -410,6 +440,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if path == "/ocr":
                 text = baidu_ocr(img, s)
                 json_response(self, {"text": text})
+            elif path == "/ocr_numbers":
+                text = baidu_ocr_numbers(img, s)
+                json_response(self, {"text": text})
             elif path == "/ocr_tencent":
                 text = tencent_ocr(img, s)
                 json_response(self, {"text": text})
@@ -447,6 +480,7 @@ def main():
     print(" Cloud OCR Proxy running on http://%s:%d" % (args.host, args.port))
     print("   /ping          健康检查")
     print("   /ocr           百度 OCR   (general_basic + detect_direction 自动纠偏)")
+    print("   /ocr_numbers   百度数字识别 (v1/numbers，纯数字，免费 200 次/天)")
     print("   /ocr_tencent   腾讯云 OCR (GeneralBasicOCR)")
     print("   /qr            腾讯云二维码 (QrcodeOCR)")
     print("   /qr_baidu      百度云二维码 (v1/qrcode)")

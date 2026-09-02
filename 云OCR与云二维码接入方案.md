@@ -86,6 +86,25 @@
    → 返回 { words_result: [ { words: "..." } ] }
 ```
 
+### 4. 数字识别（v1/numbers）—— 新增选项，适合 IMEI 纯数字场景
+
+> 网页版 OCR 引擎下拉新增【百度云数字识别】，走代理 `/ocr_numbers` 端点；**原有引擎全部保留**，仅新增。
+
+| 项目 | 说明 |
+|---|---|
+| 接口 | `https://aip.baidubce.com/rest/2.0/ocr/v1/numbers`（与通用版同 token） |
+| 免费额度 | **200 次/天**（2023-05-30 上线计费后调整；通用版为 50000 次/天，注意额度差异） |
+| 特点 | 只返回数字内容，**自动过滤字母/符号/中文**，数字识别准确率 >99%；支持 `detect_direction=true` 自动纠偏（竖排 IMEI 友好） |
+| 适用 | PCB 电路板贴纸上的 IMEI/设备号等**纯数字**小批量高精度识别 |
+| 不适用 | 含字母/中文混合内容（如 SN 批次号、型号）——会被过滤，此时请用通用版 |
+
+调用示例（代理已封装，网页版无需关心）：
+```
+POST https://aip.baidubce.com/rest/2.0/ocr/v1/numbers?access_token=xxx
+body: image=<图片base64>&detect_direction=true
+→ 返回 { words_result: [ { "words": "8609290991342015" }, ... ] }
+```
+
 ---
 
 ## 三、腾讯云 QrcodeOCR（二维码/条形码识别）
@@ -182,6 +201,7 @@ start /b python cloud_ocr_proxy.py
 |---|---|---|
 | GET | `/ping` | 健康检查，返回 `{ok:true, engine:"cloud"}` |
 | POST | `/ocr` | multipart 图片 → 百度通用文字识别 → `{text:"..."}` |
+| POST | `/ocr_numbers` | multipart 图片 → 百度数字识别 v1/numbers（仅返回数字）→ `{text:"..."}` |
 | POST | `/qr` | multipart 图片 → 腾讯 QrcodeOCR → `{codes:[{data,x,y,w,h}]}` |
 
 ---

@@ -1,11 +1,13 @@
 /* ============================================================
- * 二维码批量识别（工具集面板业务逻辑）v1.5.56
+ * 二维码批量识别（工具集面板业务逻辑）v1.5.57
  * 功能对齐工作台 exe：
  *   - 文件夹/多图批量识别（jsQR 网格分块多码 + ZXing 兜底）
  *   - OCR 文字识别 IMEI（Tesseract v4：按二维码位置裁剪码下方区域识别）
+ *   - OCR 引擎新增「百度云数字识别」（v1/numbers，仅返回数字、99%+ 准确率、免费 200 次/天）
  *   - 提取链接去重 / 提取IMEI/设备ID(去重)（合并 OCR，重复信息单独框）
  *   - 导出 MD / CSV / 批量格式转换 / 复制 / 清空
  * 纯本地处理：识别与 OCR 全部在浏览器内完成，图片不上传
+ * （云引擎除外：经云端代理转发，密钥在代理侧）
  * ============================================================ */
 (function () {
   'use strict';
@@ -54,12 +56,18 @@
   }
   function uploadToProxy(path, cv) {
     var base = proxyBase();
-    return canvasToBlob(cv).then(function (blob) {
-      var fd = new FormData();
-      fd.append('file', blob, 'img.jpg');
-      return fetch(base + path, { method: 'POST', body: fd, mode: 'cors' })
-        .then(function (r) { return r.json(); });
-    });
+    // 统一用 base64 文本上传（图片已缩放 2400px 内）：
+    // 腾讯云 SCF 函数 URL 对二进制 multipart/form-data 请求体会破坏图片字节（实测 image format error），
+    // base64 为纯 ASCII 文本、无损直达；Cloudflare Worker / 本地代理 / SCF 均兼容此格式。
+    var b64 = cv.toDataURL('image/jpeg', 0.9).split(',')[1] || '';
+    if (!b64) { return Promise.reject(new Error('图片转码失败')); }
+    return fetch(base + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: b64,
+        mode: 'cors'
+      })
+      .then(function (r) { return r.json(); });
   }
 
   /* 云二维码：根据 currentQrEngine 选百度（/qr_baidu）或腾讯（/qr），返回 [{data,x,y,w,h}]（原图坐标） */
@@ -81,11 +89,14 @@
     });
   }
 
-  /* 云 OCR：根据 currentOcrEngine 选腾讯（/ocr_tencent）或百度（/ocr），
+  /* 云 OCR：根据 currentOcrEngine 选腾讯（/ocr_tencent）或百度（/ocr 通用 /ocr_numbers 数字），
      整图上传一次，自动纠偏旋转；返回 {imeis, raw} */
   async function cloudOcrWholeImage(canvas) {
     var st = scaled(canvas, 2400);
-    var path = currentOcrEngine() === 'tencent' ? '/ocr_tencent' : '/ocr';
+    var eng = currentOcrEngine();
+    var path = eng === 'tencent' ? '/ocr_tencent'
+             : eng === 'baidu-numbers' ? '/ocr_numbers'
+             : '/ocr';
     var data = await uploadToProxy(path, st.cv);
     if (!data) { throw new Error('云 OCR 无响应（代理未启动？）'); }
     if (data.error) { throw new Error('云 OCR 错误：' + data.error); }
@@ -442,9 +453,11 @@
     if (useOcr) {
       el('qrBatchOcrStatus').textContent = (ocrEng === 'baidu')
         ? 'OCR 引擎：百度云（自动纠偏旋转，竖排 IMEI 识别率高）'
-        : (ocrEng === 'tencent')
-          ? 'OCR 引擎：腾讯云 GeneralBasicOCR（与二维码共享密钥不同 Action）'
-          : 'OCR 引擎：本地 Tesseract，首次识别需下载语言包(~10MB)，之后复用...';
+        : (ocrEng === 'baidu-numbers')
+          ? 'OCR 引擎：百度云数字识别（仅返回数字，99%+ 准确率，免费 200 次/天）'
+          : (ocrEng === 'tencent')
+            ? 'OCR 引擎：腾讯云 GeneralBasicOCR（与二维码共享密钥不同 Action）'
+            : 'OCR 引擎：本地 Tesseract，首次识别需下载语言包(~10MB)，之后复用...';
     }
     if (needProxy()) {
       var base = proxyBase() || '（未配置）';
@@ -474,7 +487,7 @@
         res.qrCodes = boxes.map(function (b) { return b.data; });
         res.qrBoxes = boxes;
         if (useOcr) {
-          if (ocrEng === 'baidu' || ocrEng === 'tencent') {
+          if (ocrEng === 'baidu' || ocrEng === 'tencent' || ocrEng === 'baidu-numbers') {
             el('qrBatchOcrStatus').textContent = '云 OCR ' + f.name + ' ...';
             var ocrRes = await cloudOcrWholeImage(canvas);
             res.ocrImeis = ocrRes.imeis;

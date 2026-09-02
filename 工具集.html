@@ -682,7 +682,7 @@
                 <strong>📋 功能说明：</strong><br>
                 1. 选择文件夹（自动递归包含子目录图片）或多张图片，支持拖拽<br>
                 2. 逐图解码二维码（一图多码）：二维码引擎可选【本地 jsQR+ZXing】（离线）/【百度云二维码】（500/月免费）/【腾讯云 QrcodeOCR】（1000/月免费），进度实时显示<br>
-                3. 可选 OCR 识别 IMEI：OCR 引擎可选【本地 Tesseract】（离线）/【百度云 OCR】（自动纠偏旋转）/【腾讯云 GeneralBasicOCR】（云引擎需先配置下方「云端代理地址」）；首次本地识别需下载语言包 ~10MB<br>
+                3. 可选 OCR 识别 IMEI：OCR 引擎可选【本地 Tesseract】（离线）/【百度云 OCR】（自动纠偏旋转）/【百度云数字识别】（仅返回数字·99%+准确率·免费200次/天）/【腾讯云 GeneralBasicOCR】（云引擎需先配置下方「云端代理地址」）；首次本地识别需下载语言包 ~10MB<br>
                 4. 完成后可一键导出 MD / CSV（浏览器下载）<br>
                 5. 结果区支持二次提取：链接去重 / IMEI(设备ID)去重（重复信息单独显示）/ 批量格式转换<br>
                 6. 云引擎经「云端代理」转发（Cloudflare Worker 或本地 cloud_ocr_proxy.py），密钥在代理侧，不出浏览器；代理地址保存后自动检测连通
@@ -726,6 +726,7 @@
                     <select id="qrBatchOcrEngine" style="padding:4px 6px; border-radius:4px; border:1px solid #ccc; background:#fff;">
                         <option value="local">本地 Tesseract（离线）</option>
                         <option value="baidu">百度云 OCR（自动纠偏）</option>
+                        <option value="baidu-numbers">百度云数字识别（纯数字·99%+）</option>
                         <option value="tencent">腾讯云 OCR（GeneralBasicOCR）</option>
                     </select>
                 </label>

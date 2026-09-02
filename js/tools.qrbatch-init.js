@@ -1,5 +1,7 @@
 /* ============================================================
- * 二维码批量识别（工具集面板业务逻辑）v1.5.57
+ * 二维码批量识别（工具集面板业务逻辑）v1.5.58
+ * v1.5.58 云端免费额度本地统计：腾讯/百度共 4 项计数、每月 1 号自动清零，
+ *   控制台直达链接 + 额度用尽自动提示（本地估算，实际余量以厂商控制台为准）
  * 功能对齐工作台 exe：
  *   - 文件夹/多图批量识别（jsQR 网格分块多码 + ZXing 兜底）
  *   - OCR 文字识别 IMEI（Tesseract v4：按二维码位置裁剪码下方区域识别）
@@ -49,6 +51,92 @@
       .then(function (r) { return r.ok; })
       .catch(function () { return false; });
   }
+  /* ---------- 云端免费额度本地统计（A+B+C）
+     背景：百度云 / 腾讯云均无「剩余量查询」公共 API（实测 console 才有），
+     故用 localStorage 按月本地计数（A）+ 控制台直达链接（B）+ 用尽提示（C）。
+     免费额度（个人认证，每月 1 号重置、不结转）：
+       腾讯云：OCR + 二维码 共享 1000 次/月（超出后自动按量计费，不会停用）
+       百度云：通用文字识别 1000/月、数字识别 1000/月、二维码识别 500/月
+     注意：计数为「本浏览器内估算」（成功/失败调用都会消耗），真实余量以控制台为准。
+   ---------- */
+  var QUOTA_KEY_PREFIX = 'qrbatch_quota_';
+  var QUOTA_LIMITS = {
+    tencent_ocr_qr: 1000,
+    baidu_ocr: 1000,
+    baidu_numbers: 1000,
+    baidu_qr: 500
+  };
+  var QUOTA_LABELS = {
+    tencent_ocr_qr: '腾讯 OCR+二维码(共享)',
+    baidu_ocr: '百度 通用OCR',
+    baidu_numbers: '百度 数字识别',
+    baidu_qr: '百度 二维码'
+  };
+
+  function quotaMonthKey() {
+    var d = new Date();
+    var m = d.getMonth() + 1;
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : '' + m);
+  }
+  function quotaGet() {
+    try {
+      var raw = localStorage.getItem(QUOTA_KEY_PREFIX + quotaMonthKey());
+      return raw ? (JSON.parse(raw) || {}) : {};
+    } catch (e) { return {}; }
+  }
+  function quotaSave(q) {
+    try { localStorage.setItem(QUOTA_KEY_PREFIX + quotaMonthKey(), JSON.stringify(q)); } catch (e) { }
+  }
+  /* 清理历史月份残留计数（防止 localStorage 无限增长） */
+  function quotaPrune() {
+    try {
+      var cur = QUOTA_KEY_PREFIX + quotaMonthKey();
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(QUOTA_KEY_PREFIX) === 0 && k !== cur) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch (e) { }
+  }
+  /* 每次云调用到达厂商后计数（无论成功/失败都消耗） */
+  function quotaInc(field) {
+    var q = quotaGet();
+    q[field] = (q[field] || 0) + 1;
+    quotaSave(q);
+    renderQuota();
+  }
+  function quotaUsed(field) { return quotaGet()[field] || 0; }
+
+  /* C：厂商返回「额度用尽」类错误时，红色长提示（百度错误码 17/18/19 等） */
+  function quotaWarnIfExhausted(msg) {
+    if (!msg) { return; }
+    if (/(免费|额度|余量|用完|耗尽|套餐|重置|quota|limit|error_code.?[:：] ?(17|18|19))/i.test(msg)) {
+      toast('⚠️ ' + msg + '（本月免费额度可能已用尽：百度下月 1 号自动重置；腾讯超出 1000 次/月后按量计费。也可点面板里控制台链接购买资源包）', '#f8d7da', 7000);
+    }
+  }
+
+  /* 渲染额度行：本月已用 / 总量，>90% 黄、用尽红；仅配置了云端代理时显示 */
+  function renderQuota() {
+    var box = el('qrBatchQuotaBox');
+    if (!box) { return; }
+    box.style.display = proxyBase() ? 'block' : 'none';
+    var line = el('qrBatchQuotaLine');
+    if (!line) { return; }
+    var parts = [];
+    var keys = ['tencent_ocr_qr', 'baidu_ocr', 'baidu_numbers', 'baidu_qr'];
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var used = quotaUsed(k);
+      var lim = QUOTA_LIMITS[k] || 1;
+      var pct = Math.round(used / lim * 100);
+      var color = pct >= 100 ? '#c0392b' : (pct >= 90 ? '#e67e22' : '#27ae60');
+      var tag = pct >= 100 ? ' ⚠️已用尽' : (pct >= 90 ? ' 即将用尽' : '');
+      parts.push('<span style="white-space:nowrap;">' + QUOTA_LABELS[k] + '：<b style="color:' + color + ';">' + used + '</b>/' + lim + tag + '</span>');
+    }
+    line.innerHTML = parts.join('　');
+  }
+
   function canvasToBlob(cv, type) {
     return new Promise(function (resolve, reject) {
       cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('图片转码失败')); }, type || 'image/jpeg', 0.9);
@@ -76,7 +164,9 @@
     var path = currentQrEngine() === 'baidu' ? '/qr_baidu' : '/qr';
     var data = await uploadToProxy(path, st.cv);
     if (!data) { throw new Error('云二维码识别无响应（代理未启动？）'); }
-    if (data.error) { throw new Error('云二维码错误：' + data.error); }
+    // 已达云端即消耗厂商免费额度（成功/失败都计）：本地计数
+    quotaInc(path === '/qr_baidu' ? 'baidu_qr' : 'tencent_ocr_qr');
+    if (data.error) { quotaWarnIfExhausted('云二维码错误：' + data.error); throw new Error('云二维码错误：' + data.error); }
     var scale = st.scale;
     return (data.codes || []).map(function (c) {
       return {
@@ -107,7 +197,7 @@
 
   function el(id) { return document.getElementById(id); }
 
-  function toast(msg, color) {
+  function toast(msg, color, ms) {
     var t = el('qrBatchToast');
     t.textContent = msg;
     t.style.display = 'block';
@@ -115,7 +205,7 @@
     t.style.color = '#004085';
     t.style.border = '1px solid #b8daff';
     clearTimeout(t._tm);
-    t._tm = setTimeout(function () { t.style.display = 'none'; }, 1500);
+    t._tm = setTimeout(function () { t.style.display = 'none'; }, ms || 1500);
   }
 
   function setSummary() {
@@ -768,6 +858,10 @@
     drop.parentNode.insertBefore(detNote, drop.nextSibling);
     checkProxy().then(function (ok) { detNote.textContent = engineText(ok); });
 
+    // 云端免费额度统计：初始渲染 + 清理历史月份残留
+    quotaPrune();
+    renderQuota();
+
     // 云端代理地址：保存 + 测试连接
     var proxyInput = el('qrBatchProxyBase');
     if (proxyInput) {
@@ -778,6 +872,7 @@
         localStorage.setItem(PROXY_BASE_KEY, v);
         toast('云端代理地址已保存');
         detNote.textContent = engineText(null);
+        renderQuota();
         checkProxy().then(function (ok) { detNote.textContent = engineText(ok); });
       });
       el('qrBatchProxyTest').addEventListener('click', function () {
@@ -785,6 +880,7 @@
         proxyInput.value = v;
         localStorage.setItem(PROXY_BASE_KEY, v);
         detNote.textContent = engineText(null);
+        renderQuota();
         checkProxy().then(function (ok) {
           detNote.textContent = engineText(ok);
           toast(ok ? '代理连接成功 ✅' : '代理连接失败 ❌（请核对地址，或以 /ping 结尾测试）', ok ? '#d4edda' : '#f8d7da');

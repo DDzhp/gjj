@@ -844,6 +844,11 @@
     .qy-log-tool .summary-box { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-top: 16px; border-left: 4px solid #3498db; }
     .qy-log-tool .summary-box h3 { font-size: 16px; margin-bottom: 8px; color: #2c3e50; }
     .qy-log-tool .summary-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #ddd; }
+    .qy-log-tool td.cmp-same { color: #999; background: #fbfbfb; }
+    .qy-log-tool td.cmp-diff { background: #fff3cd; }
+    .qy-log-tool .cmp-row-flag { font-weight: 600; white-space: nowrap; }
+    .qy-log-tool #qyCompareTable td { font-size: 12px; vertical-align: top; }
+    .qy-log-tool #qyCompareTable td span { display: block; line-height: 1.6; }
     .qy-log-tool .summary-label { color: #666; }
     .qy-log-tool .summary-value { font-weight: 500; color: #2c3e50; }
     .qy-log-tool .error { color: #e74c3c; background: #fdf2f2; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 4px solid #e74c3c; }
@@ -926,7 +931,7 @@
 
       <div class="card">
         <div class="card-title">📥 报文输入</div>
-        <label for="packetInput">粘贴十六进制报文（每行一条，支持空格、连字符分隔）：</label>
+        <label for="packetInput">粘贴十六进制报文（支持多行，每行一条；可带行首时间戳/收发标记自动剥离；≥2 条自动出对比视图）：</label>
         <textarea id="packetInput" rows="6" placeholder="例如: AA55 00 00002739 ...
 AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 00 0B-00-0000-00-16-04 00-00-00-01 0F-0A-032A-01 00000008-04E2-0672 00-00-00 0000-00000000-003C-0044-1D7E-1F40 00000000 000000000000 0A66</textarea>
         <div class="btn-group">
@@ -941,7 +946,19 @@ AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 
         <div class="card">
           <div class="card-title">📊 解析结果</div>
           <div class="summary-box"><h3>📋 报文概览</h3><div id="summaryContent"></div></div>
-          <div style="margin-top:20px;">
+        </div>
+
+        <div class="card hidden" id="qyCompareCard">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:none;padding-bottom:0;">
+            <span>📊 多报文对比（行=报文 · 列=字段）</span>
+            <label style="font-size:13px;font-weight:400;margin:0;display:inline-flex;align-items:center;gap:4px;color:#666;cursor:pointer;"><input type="checkbox" id="qyCmpOnlyDiff"> 仅显示差异行/列</label>
+          </div>
+          <div style="overflow-x:auto;margin-top:10px;"><table class="result-table" id="qyCompareTable"><thead></thead><tbody></tbody></table></div>
+          <div style="font-size:12px;color:#888;margin-top:6px;">🟡 黄底 = 该字段在报文间存在差异（与第 1 条比较）；灰字 = 所有报文相同；悬停单元格可看白话说明。勾选上方复选框可只留差异，方便抓关键区别。</div>
+        </div>
+
+        <div class="card">
+          <div style="margin-top:0;">
             <div class="card-title" style="border-bottom:none;padding-bottom:0;">🔍 字段详情</div>
             <div id="resultBody"></div>
           </div>
@@ -956,6 +973,40 @@ AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 
             <thead><tr><th>字节位置</th><th>字段名称</th><th>长度</th><th>类型</th><th>说明</th></tr></thead>
             <tbody id="protocolBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+    </section>
+
+    <section id="ylLogTool" class="calculator" style="display: none;">
+    <div class="yl-shell">
+      <h2 style="text-align:center;color:#2c3e50;margin:0 0 4px;font-size:22px;">📡 跃龙4.0 TCP通讯解析</h2>
+      <p style="text-align:center;color:#7f8c8d;margin:0 0 16px;font-size:13px;">心跳4字节 · 指令58字节定长（兼容52字节旧版）· 逐字段白话翻译</p>
+
+      <div class="card">
+        <div class="card-title">📥 粘贴 TCP 原始传输数据</div>
+        <textarea id="ylPacketInput" rows="7" placeholder="粘贴十六进制原始数据，可多行（每行一包）。支持空格 / 连字符 / 冒号分隔与 0x 前缀，自动剥离行首日志时间戳与「发送/接收」前缀。例如：&#10;00002739&#10;00002739010060 0000 00000000 0000 00002710 ...&#10;按 Ctrl+Enter 快速解析"></textarea>
+        <div class="hint">支持格式：<b>4 字节心跳包</b>（仅设备ID）、<b>58 字节标准指令包</b>、<b>52 字节旧版指令包</b>。依据《跃龙4.0 通信协议》逐字段解析并给出中文白话解读（设备上报/平台下发内容随命令不同而变化）。</div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-primary" id="ylParseBtn">🔍 解析报文</button>
+          <button type="button" class="btn btn-secondary" id="ylClearBtn">🗑️ 清空</button>
+          <button type="button" class="btn btn-success" id="ylExampleBtn">📋 载入示例(心跳+用水同步+查询回执)</button>
+        </div>
+        <div id="ylMsgArea"></div>
+      </div>
+
+      <div id="ylResultArea" class="hidden">
+        <div class="card">
+          <div class="card-title">📊 报文概览</div>
+          <div id="ylSummary" class="hidden"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💬 白话解读</div>
+          <div id="ylSpeak"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔍 字段明细</div>
+          <div id="ylBody"></div>
         </div>
       </div>
     </div>
@@ -1295,6 +1346,9 @@ AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 
 <!-- ======== 兼容层（必须最后） ======== -->
 <script src="js/app.compat.js"></script>
 
+<!-- ======== 跃龙4.0 TCP通讯解析 ======== -->
+<script src="js/yulongDecode.js"></script>
+
 <!-- ======== qy日志分析：TCP报文解析 ======== -->
 <script>
 // 协议字段定义
@@ -1407,55 +1461,143 @@ function qyParseField(field,bytes,startPos) {
   return {hexStr:hexStr,value:value,translated:translated};
 }
 
-function parsePacket() {
-  var input=document.getElementById("packetInput").value;
-  var msgArea=document.getElementById("messageArea");
-  var resArea=document.getElementById("resultArea");
-  if(!input.trim()){msgArea.innerHTML='<div class="error">⚠️ 请输入报文内容</div>';resArea.classList.add("hidden");return;}
-  // 多行：每行一条报文
-  var lines=input.split(/\r?\n/).map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-  if(lines.length===0){msgArea.innerHTML='<div class="error">⚠️ 请输入报文内容</div>';resArea.classList.add("hidden");return;}
-  var allResultHtml="", allSummary="", allMsg="";
-  for(var li=0;li<lines.length;li++){
-    var hexStr=qyCleanHex(lines[li]);
-    if(hexStr.length===0){allMsg+='<div class="error">⚠️ 第 '+(li+1)+' 行：未能提取到有效的十六进制数据</div>';continue;}
-    if(hexStr.length%2!==0){allMsg+='<div class="error">⚠️ 第 '+(li+1)+' 行：十六进制数据长度为奇数</div>';continue;}
-    var bytes=qyHexToBytes(hexStr), expectedLen=80;
-    allMsg+=(bytes.length!==expectedLen)?'<div class="warning">⚠️ 第 '+(li+1)+' 条报文长度 '+bytes.length+' 字节，期望 '+expectedLen+'</div>':'<div class="success">✅ 第 '+(li+1)+' 条报文长度正确: '+bytes.length+' 字节</div>';
-    var cp=0, resultHtml="", summaryData=[];
-    for(var fi=0;fi<qyProtocolFields.length;fi++){
-      if(cp>=bytes.length)break;
-      var f=qyProtocolFields[fi], r=qyParseField(f,bytes,cp);
-      var rwClass=(f.rw==="只读")?"badge-readonly":(f.rw==="可读写")?"badge-readwrite":"";
-      var rwText=(f.rw==="只读")?"只读 ↑":(f.rw==="可读写")?"可读写 ↕":f.rw;
-      if(["任务","设备状态","CSQ","工作压差","槽TDS","槽电压","出水温度"].indexOf(f.name)!==-1) summaryData.push({name:f.name,value:r.translated});
-      resultHtml+="<tr><td>"+f.pos+"</td><td><span class='field-name'>"+f.name+"</span></td><td><span class='hex-value'>"+r.hexStr+"</span></td><td>"+(r.value!==null?r.value:"-")+"</td><td><span class='translated'>"+r.translated+"</span></td><td><span class='badge "+rwClass+"'>"+rwText+"</span></td></tr>";
-      cp+=f.len;
-    }
-    allResultHtml+="<div class='packet-block'><div class='packet-title'>📦 第 "+(li+1)+" 条报文</div><table class='result-table'><thead><tr><th>字节位置</th><th>字段名称</th><th>原始十六进制</th><th>解析值</th><th>中文白话说明</th><th>读写</th></tr></thead><tbody>"+resultHtml+"</tbody></table></div>";
-    var sh=""; for(var si=0;si<summaryData.length;si++) sh+="<div class='summary-item'><span class='summary-label'>"+summaryData[si].name+"</span><span class='summary-value'>"+summaryData[si].value+"</span></div>";
-    allSummary+=sh;
+var __qyFrames = [];   // 最近一次成功解析的报文字段矩阵，供对比视图使用
+
+/* 从一行日志里挑选最像报文的十六进制段：
+   自动剥离行首时间戳 / 「发送 接收 上行 下行」/ 中文备注等前缀 */
+function qyPickHex(lineText) {
+  var segs = [], re = /(?:0x)?([0-9A-Fa-f]{2,}(?:[\s\-:]*(?:0x)?[0-9A-Fa-f]{2,})*)/g, m;
+  while ((m = re.exec(lineText)) !== null) {
+    var h = m[0].replace(/0x/gi, '').replace(/[^0-9A-Fa-f]/g, '');
+    if (h.length >= 6 && h.length % 2 === 0) segs.push(h);
   }
-  msgArea.innerHTML=allMsg;
-  if(allResultHtml===""){resArea.classList.add("hidden");return;}
-  document.getElementById("resultBody").innerHTML=allResultHtml;
-  document.getElementById("summaryContent").innerHTML=allSummary;
-  resArea.classList.remove("hidden");
+  if (segs.length === 0) {
+    var all = lineText.replace(/[^0-9A-Fa-f]/g, '');
+    if (all.length % 2 === 0 && all.length >= 6) segs.push(all);
+  }
+  if (segs.length === 0) return '';
+  segs.sort(function (a, b) { return Math.abs(a.length - 160) - Math.abs(b.length - 160); });
+  return segs[0];
+}
+
+/* 渲染「多报文对比」表：行=报文，列=字段；与第1条不同处黄底高亮 */
+function renderQyCompare() {
+  var frames = __qyFrames;
+  var card = document.getElementById('qyCompareCard');
+  if (!card) return;
+  if (frames.length < 2) { card.classList.add('hidden'); return; }
+  var only = document.getElementById('qyCmpOnlyDiff') && document.getElementById('qyCmpOnlyDiff').checked;
+  var fields = frames[0];
+  // 行 hex 指纹
+  var hexs = frames.map(function (fr) { return fr.map(function (c) { return c.hex; }).join('|'); });
+  var base = hexs[0];
+  // 每列是否全部相同 / 每行是否与第1条相同
+  var colSame = [];
+  for (var ci = 0; ci < fields.length; ci++) {
+    var v0 = frames[0][ci].hex, same = true;
+    for (var r = 1; r < frames.length; r++) { if (frames[r][ci].hex !== v0) { same = false; break; } }
+    colSame.push(same);
+  }
+  var rowSame = [true];
+  for (var r2 = 1; r2 < frames.length; r2++) rowSame.push(hexs[r2] === base);
+  // 行列过滤
+  var showRows = [];
+  for (var a = 0; a < frames.length; a++) { if (only && rowSame[a] && a !== 0) continue; showRows.push(a); }
+  var showCols = [];
+  for (var b = 0; b < fields.length; b++) { if (only && colSame[b]) continue; showCols.push(b); }
+  if (showRows.length < 2 && !only) { /* 至少2条 */ }
+  var th = '<tr><th>报文</th>';
+  for (var c = 0; c < showCols.length; c++) th += '<th>' + fields[showCols[c]].name + '<br><span style="font-weight:400;color:#999;font-size:11px;">' + fields[showCols[c]].pos + '</span></th>';
+  th += '</tr>';
+  var tb = '';
+  for (var rr = 0; rr < showRows.length; rr++) {
+    var i2 = showRows[rr];
+    var flag = (i2 === 0) ? '① 基准' : (rowSame[i2] ? '= 与第1条相同' : '≠ 与第1条不同');
+    tb += '<tr><td class="cmp-row-flag">' + flag + '<span style="color:#999;font-weight:400;font-size:11px;">第 ' + (i2 + 1) + ' 条</span></td>';
+    for (var cc = 0; cc < showCols.length; cc++) {
+      var ci2 = showCols[cc];
+      var cell = frames[i2][ci2];
+      var diff = cell.hex !== frames[0][ci2].hex;
+      var cls = only ? (diff ? 'cmp-diff' : '') : (colSame[ci2] ? 'cmp-same' : (diff ? 'cmp-diff' : ''));
+      var txt = diff ? cell.translated : cell.translated;
+      tb += '<td class="' + cls + '" title="' + cell.name + '：' + cell.translated + '">' + cell.hex + '<span style="' + (cls === 'cmp-same' ? 'color:#999;' : 'color:#2c3e50;') + '">' + txt + '</span></td>';
+    }
+    tb += '</tr>';
+  }
+  var tbl = document.getElementById('qyCompareTable');
+  if (tbl) { tbl.querySelector('thead').innerHTML = th; tbl.querySelector('tbody').innerHTML = tb; }
+  card.classList.remove('hidden');
+}
+
+function parsePacket() {
+  var input = document.getElementById('packetInput').value;
+  var msgArea = document.getElementById('messageArea');
+  var resArea = document.getElementById('resultArea');
+  __qyFrames = [];
+  if (!input.trim()) { msgArea.innerHTML = '<div class="error">⚠️ 请输入报文内容</div>'; resArea.classList.add('hidden'); return; }
+  // 多行：每行一条报文
+  var lines = input.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+  if (lines.length === 0) { msgArea.innerHTML = '<div class="error">⚠️ 请输入报文内容</div>'; resArea.classList.add('hidden'); return; }
+  var allResultHtml = '', allSummary = '', allMsg = '';
+  for (var li = 0; li < lines.length; li++) {
+    var picked = qyPickHex(lines[li]);
+    var hexStr = picked || qyCleanHex(lines[li]);
+    if (hexStr.length === 0) { allMsg += '<div class="error">⚠️ 第 ' + (li + 1) + ' 行：未能提取到有效的十六进制数据</div>'; continue; }
+    if (hexStr.length % 2 !== 0) { allMsg += '<div class="error">⚠️ 第 ' + (li + 1) + ' 行：十六进制数据长度为奇数</div>'; continue; }
+    var bytes = qyHexToBytes(hexStr), expectedLen = 80;
+    var lenOk = bytes.length === expectedLen;
+    allMsg += (!lenOk) ? '<div class="warning">⚠️ 第 ' + (li + 1) + ' 条报文长度 ' + bytes.length + ' 字节，期望 ' + expectedLen + '（该条不参与对比，请检查是否漏/多字符）</div>' : '<div class="success">✅ 第 ' + (li + 1) + ' 条报文长度正确: ' + bytes.length + ' 字节</div>';
+    if (picked && qyCleanHex(lines[li]) !== picked) allMsg += '<div style="color:#7f8c8d;font-size:12px;margin:-2px 0 2px 0;">　↳ 第 ' + (li + 1) + ' 行已自动剥离行首日志前缀/备注</div>';
+    if (bytes.length > expectedLen) allMsg += '<div style="color:#7f8c8d;font-size:12px;margin:-2px 0 2px 0;">　↳ 若为多包拼接（粘包），请拆成多行，每行一包。</div>';
+    var cp = 0, resultHtml = '', summaryData = [], frameFields = [];
+    for (var fi = 0; fi < qyProtocolFields.length; fi++) {
+      if (cp >= bytes.length) break;
+      var f = qyProtocolFields[fi], r = qyParseField(f, bytes, cp);
+      var rwClass = (f.rw === '只读') ? 'badge-readonly' : (f.rw === '可读写') ? 'badge-readwrite' : '';
+      var rwText = (f.rw === '只读') ? '只读 ↑' : (f.rw === '可读写') ? '可读写 ↕' : f.rw;
+      if (['任务', '设备状态', 'CSQ', '工作压差', '槽TDS', '槽电压', '出水温度'].indexOf(f.name) !== -1) summaryData.push({ name: f.name, value: r.translated });
+      resultHtml += '<tr><td>' + f.pos + '</td><td><span class="field-name">' + f.name + '</span></td><td><span class="hex-value">' + r.hexStr + '</span></td><td>' + (r.value !== null ? r.value : '-') + '</td><td><span class="translated">' + r.translated + '</span></td><td><span class="badge ' + rwClass + '">' + rwText + '</span></td></tr>';
+      frameFields.push({ pos: f.pos, name: f.name, hex: r.hexStr.replace(/ /g, ''), value: r.value, translated: r.translated });
+      cp += f.len;
+    }
+    allResultHtml += '<div class="packet-block"><div class="packet-title">📦 第 ' + (li + 1) + ' 条报文' + (lenOk ? '' : '（长度异常，仅按前 80 字节展示）') + '</div><table class="result-table"><thead><tr><th>字节位置</th><th>字段名称</th><th>原始十六进制</th><th>解析值</th><th>中文白话说明</th><th>读写</th></tr></thead><tbody>' + resultHtml + '</tbody></table></div>';
+    var sh = ''; for (var si = 0; si < summaryData.length; si++) sh += '<div class="summary-item"><span class="summary-label">' + summaryData[si].name + '</span><span class="summary-value">' + summaryData[si].value + '</span></div>';
+    allSummary += sh;
+    if (lenOk) __qyFrames.push(frameFields);
+  }
+  msgArea.innerHTML = allMsg;
+  if (allResultHtml === '') { resArea.classList.add('hidden'); return; }
+  document.getElementById('resultBody').innerHTML = allResultHtml;
+  document.getElementById('summaryContent').innerHTML = allSummary;
+  resArea.classList.remove('hidden');
+  renderQyCompare();
 }
 
 function clearPacketInput(){
   document.getElementById("packetInput").value="";
   document.getElementById("messageArea").innerHTML="";
   document.getElementById("resultArea").classList.add("hidden");
+  __qyFrames=[];
+  var card=document.getElementById("qyCompareCard"); if(card) card.classList.add("hidden");
 }
-function loadExample(){document.getElementById("packetInput").value="AA55 00 00002739 8609290899913420-898608421525C0315984-1B 00 0B-00-0000-00-16-04 00-00-00-01 0F-0A-032A-01 00000008-04E2-0672 00-00-00 0000-00000000-003C-0044-1D7E-1F40 00000000 000000000000 0A66";parsePacket();}
+function loadExample(){
+  var ex1="AA55 00 00002739 8609290899913420-898608421525C0315984-1B 00 0B-00-0000-00-16-04 00-00-00-01 0F-0A-032A-01 00000008-04E2-0672 00-00-00 0000-00000000-003C-0044-1D7E-1F40 00000000 000000000000 0A66";
+  var ex2=ex1.replace("00002739","0000273A");
+  document.getElementById("packetInput").value=ex1+"\n"+ex2+"\n"+"14:23:45 发送 "+ex1;
+  parsePacket();
+}
 function toggleProtocol(){document.getElementById("protocolTableContainer").classList.toggle("hidden");}
 function initQyProtocolTable(){
   var html=""; for(var i=0;i<qyProtocolFields.length;i++) html+="<tr><td>"+qyProtocolFields[i].pos+"</td><td>"+qyProtocolFields[i].name+"</td><td>"+qyProtocolFields[i].len+"</td><td>"+qyProtocolFields[i].type+"</td><td>"+qyProtocolFields[i].desc+"</td></tr>";
   document.getElementById("protocolBody").innerHTML=html;
 }
 
-window.QyLogInit=function(){initQyProtocolTable();parsePacket();};
+window.QyLogInit=function(){
+  initQyProtocolTable();
+  var cb=document.getElementById("qyCmpOnlyDiff");
+  if(cb) cb.addEventListener("change",renderQyCompare);
+  parsePacket();
+};
 </script>
 
 </body>

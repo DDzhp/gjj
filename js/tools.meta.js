@@ -84,6 +84,13 @@ window.YL_TOOLS = [
     "desc": "TCP通讯80字节报文解析与中文白话翻译"
   },
   {
+    "id": "ylLogTool",
+    "name": "跃龙4.0日志解析",
+    "icon": "📡",
+    "cat": "日志",
+    "desc": "跃龙4.0 TCP通讯报文解析(58/52/4字节)与白话翻译"
+  },
+  {
     "id": "qrBatchTool",
     "name": "二维码批量识别",
     "icon": "📱",

@@ -826,12 +826,6 @@
     input.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); parse(); }
     });
-    if (typeof window.YLInitDone === 'undefined') { window.YLInitDone = true; }
-    // 初次进入带示例（便于体验）
-    if (!input.value.trim()) {
-      input.value = buildSample();
-      parse();
-    }
   }
 
   function injectStyle() {

@@ -933,7 +933,7 @@
         <div class="card-title">📥 报文输入</div>
         <label for="packetInput">粘贴十六进制报文（支持多行，每行一条；可带行首时间戳/收发标记自动剥离；≥2 条自动出对比视图）：</label>
         <textarea id="packetInput" rows="6" placeholder="例如: AA55 00 00002739 ...
-AA55 00 0000273A ...">AA55 00 00002739 8609290899913420-898608421525C0315984-1B 00 0B-00-0000-00-16-04 00-00-00-01 0F-0A-032A-01 00000008-04E2-0672 00-00-00 0000-00000000-003C-0044-1D7E-1F40 00000000 000000000000 0A66</textarea>
+AA55 00 0000273A ..."></textarea>
         <div class="btn-group">
           <button class="btn btn-primary" onclick="parsePacket()">🔍 解析报文</button>
           <button class="btn btn-secondary" onclick="clearPacketInput()">🗑️ 清空</button>
@@ -1639,7 +1639,6 @@ window.QyLogInit=function(){
   initQyProtocolTable();
   var cb=document.getElementById("qyCmpOnlyDiff");
   if(cb) cb.addEventListener("change",renderQyCompare);
-  parsePacket();
 };
 </script>
 

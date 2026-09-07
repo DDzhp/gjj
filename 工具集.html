@@ -1462,6 +1462,7 @@ function qyParseField(field,bytes,startPos) {
 }
 
 var __qyFrames = [];   // 最近一次成功解析的报文字段矩阵，供对比视图使用
+var __qyFrameNums = []; // 与 __qyFrames 同步：各帧在原始输入中的行号(第 N 条)
 
 /* 从一行日志里挑选最像报文的十六进制段：
    自动剥离行首时间戳 / 「发送 接收 上行 下行」/ 中文备注等前缀 */
@@ -1528,16 +1529,49 @@ function renderQyCompare() {
   card.classList.remove('hidden');
 }
 
+/* 多条(≥2 条长度正确)时：字段明细合并为一张表。行=字段(协议固定顺序)，列=报文；
+   单元格并排展示该包该字段 hex/解析值/白话；黄底=与该字段第 1 条不同。 */
+function qyMergedDetailHtml() {
+  var frames = __qyFrames, nums = __qyFrameNums, n = frames.length;
+  var fields = frames[0];
+  var rwOf = {};
+  for (var pi = 0; pi < qyProtocolFields.length; pi++) rwOf[qyProtocolFields[pi].name] = qyProtocolFields[pi].rw || '';
+  var h = '<div class="packet-block"><div class="packet-title">🧾 字段明细（合并 ' + n + ' 条：行=字段，列=报文；黄底 = 与该字段第 1 条不同）</div>';
+  h += '<div style="overflow-x:auto;"><table class="result-table"><thead><tr><th>字节<br>位置</th><th>字段名称</th><th>读写</th>';
+  for (var c = 0; c < n; c++) h += '<th>第 ' + nums[c] + ' 条</th>';
+  h += '</tr></thead><tbody>';
+  for (var ri = 0; ri < fields.length; ri++) {
+    var f0 = fields[ri];
+    var rw = rwOf[f0.name] || '';
+    var rwCls = (rw === '只读') ? 'badge-readonly' : (rw === '可读写') ? 'badge-readwrite' : '';
+    var rwTxt = (rw === '只读') ? '只读 ↑' : (rw === '可读写') ? '可读写 ↕' : '';
+    h += '<tr><td style="white-space:nowrap;color:#666;">' + f0.pos + '</td><td><span class="field-name">' + f0.name + '</span></td><td>' + (rwTxt ? '<span class="badge ' + rwCls + '">' + rwTxt + '</span>' : '') + '</td>';
+    for (var cc2 = 0; cc2 < n; cc2++) {
+      var cell = frames[cc2][ri];
+      var diff = (cc2 > 0 && cell.hex !== frames[0][ri].hex);
+      h += '<td' + (diff ? ' class="cmp-diff"' : '') + '><span class="hex-value">' + cell.hex + '</span><br>';
+      if (cell.value !== null && cell.value !== undefined && String(cell.value) !== '') h += '<span style="color:#2c3e50;">' + cell.value + '</span><br>';
+      h += '<span class="translated">' + cell.translated + '</span></td>';
+    }
+    h += '</tr>';
+  }
+  h += '</tbody></table></div>';
+  h += '<div style="font-size:12px;color:#999;margin-top:6px;line-height:1.7;">💡 逐包补充信息：报文概览在上方卡片，「多报文对比」卡片为逐包完整纵向表，白话解读在下方。</div>';
+  h += '</div>';
+  return h;
+}
+
 function parsePacket() {
   var input = document.getElementById('packetInput').value;
   var msgArea = document.getElementById('messageArea');
   var resArea = document.getElementById('resultArea');
   __qyFrames = [];
+  __qyFrameNums = [];
   if (!input.trim()) { msgArea.innerHTML = '<div class="error">⚠️ 请输入报文内容</div>'; resArea.classList.add('hidden'); return; }
   // 多行：每行一条报文
   var lines = input.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
   if (lines.length === 0) { msgArea.innerHTML = '<div class="error">⚠️ 请输入报文内容</div>'; resArea.classList.add('hidden'); return; }
-  var allResultHtml = '', allSummary = '', allMsg = '';
+  var allSummary = '', allMsg = '', detailBlocks = [];
   for (var li = 0; li < lines.length; li++) {
     var picked = qyPickHex(lines[li]);
     var hexStr = picked || qyCleanHex(lines[li]);
@@ -1559,14 +1593,23 @@ function parsePacket() {
       frameFields.push({ pos: f.pos, name: f.name, hex: r.hexStr.replace(/ /g, ''), value: r.value, translated: r.translated });
       cp += f.len;
     }
-    allResultHtml += '<div class="packet-block"><div class="packet-title">📦 第 ' + (li + 1) + ' 条报文' + (lenOk ? '' : '（长度异常，仅按前 80 字节展示）') + '</div><table class="result-table"><thead><tr><th>字节位置</th><th>字段名称</th><th>原始十六进制</th><th>解析值</th><th>中文白话说明</th><th>读写</th></tr></thead><tbody>' + resultHtml + '</tbody></table></div>';
+    var blockHtml = '<div class="packet-block"><div class="packet-title">📦 第 ' + (li + 1) + ' 条报文' + (lenOk ? '' : '（长度异常，仅按前 80 字节展示）') + '</div><table class="result-table"><thead><tr><th>字节位置</th><th>字段名称</th><th>原始十六进制</th><th>解析值</th><th>中文白话说明</th><th>读写</th></tr></thead><tbody>' + resultHtml + '</tbody></table></div>';
+    detailBlocks.push({ ok: lenOk, block: blockHtml });
     var sh = ''; for (var si = 0; si < summaryData.length; si++) sh += '<div class="summary-item"><span class="summary-label">' + summaryData[si].name + '</span><span class="summary-value">' + summaryData[si].value + '</span></div>';
     allSummary += sh;
-    if (lenOk) __qyFrames.push(frameFields);
+    if (lenOk) { __qyFrames.push(frameFields); __qyFrameNums.push(li + 1); }
   }
   msgArea.innerHTML = allMsg;
-  if (allResultHtml === '') { resArea.classList.add('hidden'); return; }
-  document.getElementById('resultBody').innerHTML = allResultHtml;
+  if (detailBlocks.length === 0) { resArea.classList.add('hidden'); return; }
+  // 字段明细：多条(≥2 条长度正确)时合并为一张「行=字段 列=报文」对比表，长度异常的仍单独列出；单条保持原逐包纵向表
+  var finalHtml = '';
+  if (__qyFrames.length >= 2) {
+    finalHtml = qyMergedDetailHtml();
+    for (var db = 0; db < detailBlocks.length; db++) if (!detailBlocks[db].ok) finalHtml += detailBlocks[db].block;
+  } else {
+    for (var db2 = 0; db2 < detailBlocks.length; db2++) finalHtml += detailBlocks[db2].block;
+  }
+  document.getElementById('resultBody').innerHTML = finalHtml;
   document.getElementById('summaryContent').innerHTML = allSummary;
   resArea.classList.remove('hidden');
   renderQyCompare();
@@ -1577,6 +1620,7 @@ function clearPacketInput(){
   document.getElementById("messageArea").innerHTML="";
   document.getElementById("resultArea").classList.add("hidden");
   __qyFrames=[];
+  __qyFrameNums=[];
   var card=document.getElementById("qyCompareCard"); if(card) card.classList.add("hidden");
 }
 function loadExample(){

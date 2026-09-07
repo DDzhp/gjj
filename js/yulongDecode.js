@@ -585,6 +585,67 @@
     return hb + '\n' + sample06 + '\n' + sampleDD;
   }
 
+  /* ---------- 字段明细渲染（单条纵向 / 多条合并对比） ---------- */
+  /* 单条：保持原纵向表（字节位置/字段/十六进制/数值/白话） */
+  function singleDetailBlock(r, idx) {
+    var tbl = '<table class="result-table"><thead><tr><th>字节位置</th><th>字段名称</th><th>十六进制</th><th>数值</th><th>中文白话说明</th></tr></thead><tbody>';
+    for (var m = 0; m < r.rows.length; m++) {
+      var row = r.rows[m];
+      tbl += '<tr><td>' + row.pos + '</td><td><span class="field-name">' + row.name + '</span></td><td><span class="hex-value">' + row.hex + '</span></td><td>' + row.val + '</td><td><span class="translated">' + row.trans + '</span></td></tr>';
+    }
+    tbl += '</tbody></table>';
+    return '<div class="packet-block" style="margin-top:16px;"><div class="packet-title">🔍 第 ' + (idx + 1) + ' 条 · 字段明细' + (r.kind === 'heart' ? '（心跳包仅4字节：设备ID）' : '') + '</div>' + tbl + '</div>';
+  }
+
+  /* 多条：只输出一张合并明细表。行=字段（按出现顺序去重合并，同名字段视为同一字段），
+     列=每条报文；每个单元格并排展示该包该字段的 十六进制/数值/白话。
+     字段在某包不存在（如心跳包只有设备ID）→ 显示 —。黄底 = 与"该字段第 1 条"不同。 */
+  function multiDetailBlock(results) {
+    var n = results.length;
+    var order = [], posOf = {}, firstAt = {};
+    for (var j = 0; j < n; j++) {
+      for (var m = 0; m < results[j].rows.length; m++) {
+        var rw = results[j].rows[m];
+        if (posOf[rw.name] === undefined) { posOf[rw.name] = rw.pos; firstAt[rw.name] = j; order.push(rw.name); }
+      }
+    }
+    var cellOf = [];
+    for (var j2 = 0; j2 < n; j2++) {
+      var mp = {};
+      for (var m2 = 0; m2 < results[j2].rows.length; m2++) { var r2b = results[j2].rows[m2]; mp[r2b.name] = r2b; }
+      cellOf.push(mp);
+    }
+    function colTag(j3) {
+      var r3 = results[j3];
+      var s = (r3.kind === 'heart') ? '❤️4B心跳' : (r3.kind.indexOf('58') === 0 ? '58B' : '52B');
+      if (r3.F) { var c = r3.F.cmd.toString(16).toUpperCase(); if (c.length === 1) c = '0' + c; s += ' · 0x' + c; }
+      return s;
+    }
+    var h = '<div class="packet-block" style="margin-top:16px;"><div class="packet-title">🧾 字段明细（合并 ' + n + ' 条：行=字段，列=报文；黄底=与该字段第 1 条不同）</div>';
+    h += '<div class="yl-scroll"><table class="result-table yl-cmp">';
+    h += '<thead><tr><th>字节<br>位置</th><th>字段名称</th>';
+    for (var c = 0; c < n; c++) h += '<th>第 ' + (c + 1) + ' 条<br><span class="yl-tag">' + colTag(c) + '</span></th>';
+    h += '</tr></thead><tbody>';
+    for (var fi = 0; fi < order.length; fi++) {
+      var nm = order[fi];
+      var base = cellOf[firstAt[nm]][nm];
+      h += '<tr><td class="yl-pos">' + posOf[nm] + '</td><td><span class="field-name">' + nm + '</span></td>';
+      for (var cc = 0; cc < n; cc++) {
+        var cell = cellOf[cc][nm];
+        if (!cell) { h += '<td class="yl-na">—</td>'; continue; }
+        var diff = (cell.hex !== base.hex);
+        h += '<td class="' + (diff ? 'yl-diff' : '') + '">';
+        if (cell.pos !== posOf[nm]) h += '<span class="yl-tag">[' + cell.pos + ']</span><br>';
+        h += '<span class="hex-value">' + cell.hex + '</span><br>';
+        h += '<span class="yl-val">' + cell.val + '</span><br>';
+        h += '<span class="translated">' + cell.trans + '</span></td>';
+      }
+      h += '</tr>';
+    }
+    h += '</tbody></table></div></div>';
+    return h;
+  }
+
   /* ---------- 浏览器端 UI ---------- */
   function init() {
     var input = document.getElementById('ylPacketInput');
@@ -632,15 +693,11 @@
         allSummary += '</div></div>';
         // 白话
         allSpeak += '<div class="packet-block" style="margin-top:12px;"><div class="packet-title">💬 ' + (r2.kind === 'heart' ? '心跳解读' : '白话解读') + '</div><div class="yl-nl">' + r2.speak + '</div></div>';
-        // 字段表
-        var tbl = '<table class="result-table"><thead><tr><th>字节位置</th><th>字段名称</th><th>十六进制</th><th>数值</th><th>中文白话说明</th></tr></thead><tbody>';
-        for (var m = 0; m < r2.rows.length; m++) {
-          var row = r2.rows[m];
-          tbl += '<tr><td>' + row.pos + '</td><td><span class="field-name">' + row.name + '</span></td><td><span class="hex-value">' + row.hex + '</span></td><td>' + row.val + '</td><td><span class="translated">' + row.trans + '</span></td></tr>';
-        }
-        tbl += '</tbody></table>';
-        allHtml += '<div class="packet-block" style="margin-top:16px;"><div class="packet-title">🔍 第 ' + (j + 1) + ' 条 · 字段明细' + (r2.kind === 'heart' ? '（心跳包仅4字节：设备ID）' : '') + '</div>' + tbl + '</div>';
       }
+      // 字段明细：单条 = 原纵向明细表；多条 = 合并成一张「行=字段，列=报文」的对比表
+      allHtml += (results.length > 1)
+        ? multiDetailBlock(results)
+        : singleDetailBlock(results[0], 0);
       // 概览框放顶部
       var summaryWrap = document.getElementById('ylSummary');
       if (summaryWrap) { summaryWrap.innerHTML = allSummary; summaryWrap.classList.remove('hidden'); }
@@ -710,6 +767,14 @@
       '.yl-shell .hidden{display:none;}' +
       '.yl-shell .card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:18px 20px;margin-bottom:14px;}' +
       '.yl-shell .card-title{font-size:16px;font-weight:600;color:#2c3e50;margin-bottom:10px;padding-bottom:10px;border-bottom:2px solid #e8e8e8;}' +
+      '.yl-shell .yl-scroll{overflow-x:auto;max-width:100%;}' +
+      '.yl-shell .yl-cmp th{min-width:92px;vertical-align:top;line-height:1.5;white-space:normal;}' +
+      '.yl-shell .yl-cmp td{vertical-align:top;line-height:1.7;}' +
+      '.yl-shell .yl-cmp td.yl-diff{background:#fff3cd;}' +
+      '.yl-shell .yl-cmp .yl-na{color:#c8cdd2;text-align:center;}' +
+      '.yl-shell .yl-tag{font-weight:400;color:#999;font-size:11px;}' +
+      '.yl-shell .yl-pos{white-space:nowrap;color:#666;}' +
+      '.yl-shell .yl-val{color:#2c3e50;font-weight:500;font-size:12px;}' +
       '@media (max-width:640px){.yl-shell .result-table{font-size:12px;}.yl-shell .btn{flex:1;}}';
     if (document.getElementById('ylDecodeStyle')) return;
     var st = document.createElement('style');

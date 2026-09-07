@@ -415,7 +415,9 @@
       if (isUp && cmdHex === '0C' && (F.state === 9 || F.state === 3)) {
         return '本次制水平均流速：' + ((v >> 16) & 0xFFFF) + ' ml/min（水满状态时52-53字节为流速）';
       }
-      return '北京时间：' + secToHMS(v) + '（当日秒数 ' + v + '，0-86399）';
+      var daySec = v % 86400;
+      var note = (v > 86399) ? '（原始数值 ' + v + ' 超出当日秒范围，已按24小时取模=当日秒 ' + daySec + '）' : '（当日秒数 ' + v + '）';
+      return '北京时间：' + secToHMS(v) + note;
     }
     function tType() { return '机器类型：' + (TYPES[F.type] || F.type) + (isDown ? '（下发时该位为0）' : ''); }
     function tCs() {
@@ -498,6 +500,8 @@
           case 'd0': s.push(head + '上报键盘输入的手机号与密码（无卡取水），手机号=' + hexOf(bytes, off.f3, 6) + '。'); break;
           case '5e': s.push(head + '上报自动校准流量系数完成：冷水流量计脉冲 ' + F.rcf + ' 脉冲/升、热水流量计脉冲 ' + F.f3 + ' 脉冲/升，放水阀1(热水) ' + F.m2 + ' 秒/升、放水阀2(冷水) ' + F.rcd + ' 秒/升，后台请同步更新。'); break;
           case 'cc': s.push(head + '上报错误包：此前收到的平台数据校验失败，平台应重发指令。'); break;
+          case '44': s.push(head + '上报「ID编码回执」——设备已获取到平台分配的 ID，请核对回执中的设备 ID（' + id + '）与平台下发分配的 ID 是否一致。'); break;
+          case 'dd': s.push(head + '回传「查询设备信息回执」，为设备当前最新数据快照（设备在线、可进行充值/滤芯复位等操作）。'); break;
           default: {
             var r = CMDS[cmdHex.toLowerCase()];
             s.push(head + '回传「' + (r ? r.n : '0x' + cmdHex) + '」' + (r && r.t ? '（' + r.t + '）' : '') + '。');
@@ -506,7 +510,7 @@
         if (cmdHex.toLowerCase() !== '00' && cmdHex.toLowerCase() !== '06' && cmdHex.toLowerCase() !== '0c' && cmdHex.toLowerCase() !== '04' && cmdHex.toLowerCase() !== 'ee' && cmdHex.toLowerCase() !== 'a0' && cmdHex.toLowerCase() !== 'd0' && cmdHex.toLowerCase() !== '5e' && cmdHex.toLowerCase() !== 'cc') {
           var cm = CMDS[cmdHex.toLowerCase()];
           if (cm && cm.d === 'up' && /回执$/.test(cm.n)) {
-            s.push('回执内容：剩余流量 ' + F.rmf + ' L、剩余 ' + F.rmd + ' 天、已用 ' + F.usf + ' L，北京时间 ' + secToHMS(F.time) + '。');
+            s.push(richEcho());
           }
         }
       } else {
@@ -530,6 +534,36 @@
       }
       s.push('（完整字段见下表）');
       return s.join('');
+    }
+
+    /* 通用回执内容白话补全：按协议字段逐个叙述（复用已按命令/方向特化的行翻译，避免口径不一）。
+       适用于所有无专属解读的上行回执包（44/55/77/88/99/AA/BB/DD/FF/11/22/33/92/93/94 等）。 */
+    function richEcho() {
+      var pts = [];
+      function rowByName(nm) { for (var i = 0; i < rowList.length; i++) if (rowList[i].name === nm) return rowList[i]; return null; }
+      function pushIf(nm, onlyNonZero) {
+        var r = rowByName(nm);
+        if (!r) return;
+        var v = parseInt(r.val, 10);
+        if (onlyNonZero && !(v > 0)) return;
+        pts.push(r.trans);
+      }
+      var headPt = '设备当前为「' + modeName + '」计费模式';
+      var st = rowByName('设备状态');
+      if (st) headPt += '，状态：' + st.trans.replace(/^设备状态：/, '');
+      pts.push(headPt);
+      pushIf('本次消费', true);
+      pushIf('剩余流量'); pushIf('剩余天数'); pushIf('已用流量'); pushIf('已用天数');
+      pushIf('纯水TDS'); pushIf('原水TDS');
+      var fNames = ['一滤实时值', '二滤实时值', '三滤实时值', '四滤实时值', '五滤实时值', '一滤最大值', '二滤最大值', '三滤最大值', '四滤最大值', '五滤最大值'];
+      var hasF = false;
+      for (var a = 0; a < fNames.length; a++) { var rr = rowByName(fNames[a]); if (rr && parseInt(rr.val, 10) > 0) { hasF = true; break; } }
+      if (hasF) {
+        for (var b = 0; b < fNames.length; b++) pushIf(fNames[b], true);
+        pts.push('滤芯寿命值单位按设备寿命计算方式（按流量计=升、按时间计=天）');
+      }
+      pushIf('机器类型码'); pushIf('北京时间'); pushIf('校验位');
+      return '回执携带：' + pts.join('；') + '。';
     }
   }
 

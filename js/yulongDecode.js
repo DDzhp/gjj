@@ -184,7 +184,7 @@
       out.ok = true; out.kind = 'heart';
       var id = u32(bytes, 0);
       out.rows = [
-        { pos: '01-04', name: '设备ID', hex: hexOf(bytes, 0, 4), val: id, trans: '设备ID：' + id }
+        { key: 'dev', pos: '01-04', name: '设备ID', hex: hexOf(bytes, 0, 4), val: id, trans: '设备ID：' + id }
       ];
       out.summary = [
         { name: '包类型', value: '心跳包（4字节，仅含设备ID）' },
@@ -219,7 +219,30 @@
     /* ============ 逐字段翻译（结合 命令/方向/模式） ============ */
     var rowList = [];
     function pushRow(fld, hexStr, val, trans) {
-      rowList.push({ pos: fld.pos, name: fld.name, hex: hexStr, val: val, trans: trans });
+      // key = 布局槽位(dev/cur/rcf/...)，name 随后按命令动态化为语义名
+      rowList.push({ key: fld.k, pos: fld.pos, name: fld.name, hex: hexStr, val: val, trans: trans });
+    }
+    /* 由白话串「语义标签：详情」提炼简洁字段名：取冒号前段落并去掉括号备注。
+       参考旧版 logDecode 平铺字段样式：字段名要短、不带(放水阀2…)/(1-1440)等说明，
+       单位/范围/备注保留在冒号后的白话详情里。 */
+    function fieldLabel(trans) {
+      var seg = String(trans || '');
+      var i = seg.indexOf('：');
+      if (i <= 0) return '';
+      seg = seg.slice(0, i);
+      // 去说明性括号备注：全角（）一律去；半角()仅去非“高/低×位/新”这类标识性内容（如 (放水阀2,2分灌装泵) 去除、IC卡号(高16位) 保留）
+      seg = seg.replace(/（[^（）]*）/g, '').replace(/\((?!(?:高|低)\d*位|新)[^()]*\)/g, '').replace(/\s+/g, '').trim();
+      return seg;
+    }
+    /* 取白话串冒号后的值部分（去掉「字段名：」前缀） */
+    function valPart(trans) {
+      var i = String(trans || '').indexOf('：');
+      return i >= 0 ? String(trans).slice(i + 1) : String(trans || '');
+    }
+    /* 按槽位 key 找行（name 动态化后不再按名查找） */
+    function rowByKey(k) {
+      for (var i = 0; i < rowList.length; i++) if (rowList[i].key === k) return rowList[i];
+      return null;
     }
     // 预定义偏移（按 layout 顺序累加）
     var off = {};
@@ -265,12 +288,12 @@
       return '命令 0x' + cmdHex + '「' + cmdInfo.n + '」' + (cmdInfo.d === 'up' ? '（设备→平台 上报）' : '（平台→设备 下发）');
     }
     function tState() {
-      if (param04 && !echo04) return '设备状态：滤芯寿命计算方式=' + (F.state === 1 ? '按流量(升)' : '按时间(天)') + '（0x04下发时该位含义）';
+      if (param04 && !echo04) return '滤芯寿命计算方式：' + (F.state === 1 ? '按流量（升）' : '按时间（天）') + '（0x04下发时该位含义，非设备状态）';
       if (isDown && cmdHex === '84') {
         var w = { 0: '冷水流量计(小通量/流量计2)脉冲', 1: '热水流量计(大通量/流量计1)脉冲', 2: '小通量(2分灌装泵)放水秒数', 3: '大通量(4分灌装泵)放水秒数' };
-        return '设备状态：校准对象=' + (w[F.state] || F.state);
+        return '校准对象：' + (w[F.state] || F.state) + '（0x84下发时该位含义）';
       }
-      if (isUp && cmdHex === 'EE') return '设备状态：滤芯寿命类型=' + (F.state === 1 ? '按流量' : '按时间') + '（0xEE上报含义）';
+      if (isUp && cmdHex === 'EE') return '滤芯寿命类型：' + (F.state === 1 ? '按流量' : '按时间') + '（0xEE上报含义）';
       return '设备状态：' + stateName + (F.state >= 30 ? '（故障类，需处理）' : '');
     }
     function tCur() {
@@ -311,7 +334,7 @@
       return '剩余流量：' + F.rmf + ' 升';
     }
     function tRmd() {
-      if (param04) return '水泵连续制水触发制水故障时间：' + F.rmd + ' 分钟（1-1440）';
+      if (param04) return '连续制水触发制水故障时间：' + F.rmd + ' 分钟（1-1440）';
       if (isDown && (cmdHex === '09' || cmdHex === '0B')) return '设备剩余使用时间：' + F.rmd + ' 天（默认10天）';
       if (isDown && cmdHex === '80') return '放水后暂停保留时间：' + F.rmd + ' 秒（超时结束放水）';
       if (isDown && cmdHex === '82') return '浴霸2启动温度：' + F.rmd + ' ℃';
@@ -436,11 +459,14 @@
       return '校验和：' + (ok ? '✅ 通过' : '❌ 不通过') + '（计算=0x' + sum.toString(16).toUpperCase().padStart(4, '0') + '，报文=0x' + F.cs.toString(16).toUpperCase().padStart(4, '0') + '）';
     }
 
-    /* 组装行 */
+    /* 组装行：白话串前缀(冒号前)即为该行动态字段名；命令/保留槽等无冒号时回退布局名 */
     function mk(k, fn) {
       var f = getField(k);
       var tr = fn();
       pushRow(f, fieldHex(k), F[k], tr);
+      var nm = fieldLabel(tr);
+      if (!nm && tr.indexOf('参数回显保留槽') !== -1) nm = '回显保留槽';
+      if (nm) rowList[rowList.length - 1].name = nm;
     }
     mk('dev', tDev);
     mk('mode', tMode);
@@ -549,50 +575,49 @@
     }
 
     /* 通用回执内容白话补全：按协议字段逐个叙述（复用已按命令/方向特化的行翻译，避免口径不一）。
-       适用于所有无专属解读的上行回执包（44/55/77/88/99/AA/BB/DD/FF/11/22/33/92/93/94 等）。 */
+       适用于所有无专属解读的上行回执包（44/55/77/88/99/AA/BB/DD/FF/11/22/33/92/93/94 等）。
+       行名已按命令动态化，这里一律按槽位 key 定位字段。 */
     function richEcho() {
       var pts = [];
-      function rowByName(nm) { for (var i = 0; i < rowList.length; i++) if (rowList[i].name === nm) return rowList[i]; return null; }
-      function pushIf(nm, onlyNonZero) {
-        var r = rowByName(nm);
+      function pushKeyIf(k, onlyNonZero) {
+        var r = rowByKey(k);
         if (!r) return;
         var v = parseInt(r.val, 10);
         if (onlyNonZero && !(v > 0)) return;
         pts.push(r.trans);
       }
       var headPt = '设备当前为「' + modeName + '」计费模式';
-      var st = rowByName('设备状态');
-      if (st) headPt += '，状态：' + st.trans.replace(/^设备状态：/, '');
+      var st = rowByKey('state');
+      if (st) headPt += '，状态：' + valPart(st.trans);
       pts.push(headPt);
-      pushIf('本次消费', true);
-      pushIf('剩余流量', true); pushIf('剩余天数', true); pushIf('已用流量', true); pushIf('已用天数', true);
-      pushIf('纯水TDS', true); pushIf('原水TDS', true);
-      var fNames = ['一滤实时值', '二滤实时值', '三滤实时值', '四滤实时值', '五滤实时值', '一滤最大值', '二滤最大值', '三滤最大值', '四滤最大值', '五滤最大值'];
+      pushKeyIf('cur', true);
+      pushKeyIf('rmf', true); pushKeyIf('rmd', true); pushKeyIf('usf', true); pushKeyIf('usd', true);
+      pushKeyIf('ptds', true); pushKeyIf('rTds', true);
+      var fKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'm1', 'm2', 'm3', 'm4', 'm5'];
       var hasF = false;
-      for (var a = 0; a < fNames.length; a++) { var rr = rowByName(fNames[a]); if (rr && parseInt(rr.val, 10) > 0 && rr.trans.indexOf('滤芯') !== -1) { hasF = true; break; } }
+      for (var a = 0; a < fKeys.length; a++) { var rr = rowByKey(fKeys[a]); if (rr && parseInt(rr.val, 10) > 0 && rr.trans.indexOf('滤芯') !== -1) { hasF = true; break; } }
       if (hasF) {
-        for (var b = 0; b < fNames.length; b++) pushIf(fNames[b], true);
+        for (var b = 0; b < fKeys.length; b++) pushKeyIf(fKeys[b], true);
         pts.push('滤芯寿命值单位按设备寿命计算方式（按流量计=升、按时间计=天）');
       }
       // 类型/时间/校验恒显示（值 0 也是合法数据）；其余字段只显示有数据的值
-      var pushAlways = function (nm) { var r = rowByName(nm); if (r) pts.push(r.trans); };
-      pushAlways('机器类型码'); pushAlways('北京时间'); pushAlways('校验位');
+      var pushAlways = function (k) { var r = rowByKey(k); if (r) pts.push(r.trans); };
+      pushAlways('type'); pushAlways('time'); pushAlways('cs');
       return '回执携带：' + pts.join('；') + '。';
     }
 
     /* 0x44「ID编码回执」专属：字段槽按 0x04 下发参数回显解读（0 值槽省略） */
     function echo044() {
       var pts = [];
-      var st = null;
-      for (var i = 0; i < rowList.length; i++) { if (rowList[i].name === '设备状态') st = rowList[i]; }
+      var st = rowByKey('state');
       var headPt = '设备当前为「' + modeName + '」计费模式';
-      if (st) headPt += '，状态：' + st.trans.replace(/^设备状态：/, '');
+      if (st) headPt += '，状态：' + valPart(st.trans);
       pts.push(headPt);
-      for (i = 0; i < rowList.length; i++) {
+      for (var i = 0; i < rowList.length; i++) {
         var r = rowList[i];
-        var nm = r.name;
-        if (nm === '设备ID' || nm === '命令' || nm === '计费模式' || nm === '设备状态') continue;
-        var always = (nm === '北京时间' || nm === '校验位' || nm === '机器类型码');
+        var k = r.key;
+        if (k === 'dev' || k === 'cmd' || k === 'mode' || k === 'state') continue;
+        var always = (k === 'time' || k === 'cs' || k === 'type');
         var v = parseInt(r.val, 10);
         if (!always && !(v > 0)) continue;
         pts.push(r.trans);
@@ -665,22 +690,25 @@
     return '<div class="packet-block" style="margin-top:16px;"><div class="packet-title">🔍 第 ' + (idx + 1) + ' 条 · 字段明细' + (r.kind === 'heart' ? '（心跳包仅4字节：设备ID）' : '') + '</div>' + tbl + '</div>';
   }
 
-  /* 多条：只输出一张合并明细表。行=字段（按出现顺序去重合并，同名字段视为同一字段），
-     列=每条报文；每个单元格并排展示该包该字段的 十六进制/数值/白话。
+  /* 多条：只输出一张合并明细表。行=字段（按 name@字节位 聚合：同一槽位且同义名视为同字段，
+     同包内同名不同位(如多处「回显保留槽」)不会被覆盖丢失），列=每条报文；
+     每个单元格并排展示该包该字段的 十六进制/数值/白话。
      字段在某包不存在（如心跳包只有设备ID）→ 显示 —。黄底 = 与"该字段第 1 条"不同。 */
   function multiDetailBlock(results) {
     var n = results.length;
-    var order = [], posOf = {}, firstAt = {};
+    var order = [], meta = {}, firstAt = {};
+    function mkey(rw) { return rw.name + '@' + rw.pos; }
     for (var j = 0; j < n; j++) {
       for (var m = 0; m < results[j].rows.length; m++) {
         var rw = results[j].rows[m];
-        if (posOf[rw.name] === undefined) { posOf[rw.name] = rw.pos; firstAt[rw.name] = j; order.push(rw.name); }
+        var k2 = mkey(rw);
+        if (meta[k2] === undefined) { meta[k2] = rw; firstAt[k2] = j; order.push(k2); }
       }
     }
     var cellOf = [];
     for (var j2 = 0; j2 < n; j2++) {
       var mp = {};
-      for (var m2 = 0; m2 < results[j2].rows.length; m2++) { var r2b = results[j2].rows[m2]; mp[r2b.name] = r2b; }
+      for (var m2 = 0; m2 < results[j2].rows.length; m2++) { var r2b = results[j2].rows[m2]; mp[mkey(r2b)] = r2b; }
       cellOf.push(mp);
     }
     function colTag(j3) {
@@ -695,15 +723,16 @@
     for (var c = 0; c < n; c++) h += '<th>第 ' + (c + 1) + ' 条<br><span class="yl-tag">' + colTag(c) + '</span></th>';
     h += '</tr></thead><tbody>';
     for (var fi = 0; fi < order.length; fi++) {
-      var nm = order[fi];
-      var base = cellOf[firstAt[nm]][nm];
-      h += '<tr><td class="yl-pos">' + posOf[nm] + '</td><td><span class="field-name">' + nm + '</span></td>';
+      var key3 = order[fi];
+      var base = cellOf[firstAt[key3]][key3];
+      var metaRow = meta[key3];
+      h += '<tr><td class="yl-pos">' + metaRow.pos + '</td><td><span class="field-name">' + metaRow.name + '</span></td>';
       for (var cc = 0; cc < n; cc++) {
-        var cell = cellOf[cc][nm];
+        var cell = cellOf[cc][key3];
         if (!cell) { h += '<td class="yl-na">—</td>'; continue; }
         var diff = (cell.hex !== base.hex);
         h += '<td class="' + (diff ? 'yl-diff' : '') + '">';
-        if (cell.pos !== posOf[nm]) h += '<span class="yl-tag">[' + cell.pos + ']</span><br>';
+        if (cell.pos !== metaRow.pos) h += '<span class="yl-tag">[' + cell.pos + ']</span><br>';
         h += '<span class="hex-value">' + cell.hex + '</span><br>';
         h += '<span class="yl-val">' + cell.val + '</span><br>';
         h += '<span class="translated">' + cell.trans + '</span></td>';

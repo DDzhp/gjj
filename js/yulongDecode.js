@@ -243,6 +243,10 @@
     var stateName = STATES[F.state] || ('未知(0x' + F.state.toString(16) + ')');
     var isUp = cmdInfo ? cmdInfo.d === 'up' : false;
     var isDown = cmdInfo ? cmdInfo.d === 'down' : false;
+    // 0x44「ID编码回执」= 设备获取到ID后回显 0x04 下发保存的参数：除 状态/北京时间/机型 外，
+    // 其余字段槽按 0x04【下发】语义解读（如 20-21 槽=连续制水触发制水故障时间，单位分钟）
+    var echo04 = isUp && cmdHex === '44';
+    var param04 = (isDown && cmdHex === '04') || echo04;
 
     /* ---- 通用解释函数：字段级 ---- */
     function tDev() { return '设备ID：' + F.dev + (F.dev === 0 ? '（未编码，出厂默认0，等待平台分配）' : ''); }
@@ -261,7 +265,7 @@
       return '命令 0x' + cmdHex + '「' + cmdInfo.n + '」' + (cmdInfo.d === 'up' ? '（设备→平台 上报）' : '（平台→设备 下发）');
     }
     function tState() {
-      if (isDown && cmdHex === '04') return '设备状态：滤芯寿命计算方式=' + (F.state === 1 ? '按流量(升)' : '按时间(天)') + '（0x04下发时该位含义）';
+      if (param04 && !echo04) return '设备状态：滤芯寿命计算方式=' + (F.state === 1 ? '按流量(升)' : '按时间(天)') + '（0x04下发时该位含义）';
       if (isDown && cmdHex === '84') {
         var w = { 0: '冷水流量计(小通量/流量计2)脉冲', 1: '热水流量计(大通量/流量计1)脉冲', 2: '小通量(2分灌装泵)放水秒数', 3: '大通量(4分灌装泵)放水秒数' };
         return '设备状态：校准对象=' + (w[F.state] || F.state);
@@ -271,6 +275,7 @@
     }
     function tCur() {
       // 08-09 本次消费
+      if (echo04) return '0x04 参数回显保留槽（该命令未定义，应发0，实际 0x' + hexOf(bytes, off.cur, 2) + '）';
       if (isDown && cmdHex === '84') return '自动校准流量：' + F.cur + ' 毫升';
       if (isDown) return '本次消费：' + F.cur + '（下发指令时应为0）';
       if (isUp && cmdHex === '06') return '本次出水总流量：' + F.cur + ' 毫升 ≈ ' + (F.cur / 1000).toFixed(3) + ' 升';
@@ -278,7 +283,7 @@
     }
     function tRcf() {
       var u = (F.rcf || 0);
-      if (isDown && cmdHex === '04') return '冷水流量计(小通量)每升脉冲数：' + u + ' 脉冲/升（范围100-10000，不按脉冲计则0）';
+      if (param04) return '冷水流量计(小通量)每升脉冲数：' + u + ' 脉冲/升（范围100-10000，不按脉冲计则0）';
       if (isDown && cmdHex === '05') return '充值流量：' + u + ' 升';
       if (isDown && cmdHex === '80') return '本次允许消费流量：' + u + ' 毫升（共享取水，流量用完即结束）';
       if (isDown && cmdHex === '82') return '设备启动节能时间：' + u + ' 分钟（0-1440）';
@@ -288,7 +293,7 @@
       return '充值流量：' + u + (cmdInfo && cmdInfo.d ? '' : '');
     }
     function tRcd() {
-      if (isDown && cmdHex === '04') return '冷水阀(放水阀2,2分灌装泵)放水一升时间：' + F.rcd + ' 秒/升（范围10-800）';
+      if (param04) return '冷水阀(放水阀2,2分灌装泵)放水一升时间：' + F.rcd + ' 秒/升（范围10-800）';
       if (isDown && cmdHex === '05') return '充值天数：' + F.rcd + ' 天';
       if (isDown && cmdHex === '80') return '等待本次取水时间：' + F.rcd + ' 秒（超时未取水结束）';
       if (isDown && cmdHex === '82') return '加热系统启停温差：' + F.rcd + ' ℃（5-80）';
@@ -297,7 +302,7 @@
       return '充值天数：' + F.rcd + ' 天';
     }
     function tRmf() {
-      if (isDown && cmdHex === '04') return '水泵每制一升纯水所需时间：' + F.rmf + ' 秒/升（不按制水时间则0）';
+      if (param04) return '水泵每制一升纯水所需时间：' + F.rmf + ' 秒/升（不按制水时间则0）';
       if (isDown && cmdHex === '09') return '初始剩余流量：' + F.rmf + ' 升（默认10升）';
       if (isDown && cmdHex === '80') return '连续出水最大时间：' + F.rmf + ' 秒（1-30000，超时结束放水）';
       if (isDown && cmdHex === '82') return '浴霸1启动温度：' + F.rmf + ' ℃';
@@ -306,35 +311,35 @@
       return '剩余流量：' + F.rmf + ' 升';
     }
     function tRmd() {
-      if (isDown && cmdHex === '04') return '水泵连续制水触发制水故障时间：' + F.rmd + ' 分钟（1-1440）';
+      if (param04) return '水泵连续制水触发制水故障时间：' + F.rmd + ' 分钟（1-1440）';
       if (isDown && (cmdHex === '09' || cmdHex === '0B')) return '设备剩余使用时间：' + F.rmd + ' 天（默认10天）';
       if (isDown && cmdHex === '80') return '放水后暂停保留时间：' + F.rmd + ' 秒（超时结束放水）';
       if (isDown && cmdHex === '82') return '浴霸2启动温度：' + F.rmd + ' ℃';
       return '剩余天数：' + F.rmd + ' 天';
     }
     function tUsf() {
-      if (isDown && cmdHex === '04') return '加热最高温度值：' + F.usf + ' ℃（1-100）';
+      if (param04) return '加热最高温度值：' + F.usf + ' ℃（1-100）';
       if (isDown && cmdHex === '80') return '出水热水温度值：' + F.usf + ' ℃（即热式机器）';
       if (isDown && cmdHex === '82') return '浴霸1关闭温差：' + F.usf + ' ℃';
       return '已用流量：' + F.usf + ' 升';
     }
     function tUsd() {
-      if (isDown && cmdHex === '04') return '制冷最低温度值：' + F.usd + ' ℃（1-100）';
+      if (param04) return '制冷最低温度值：' + F.usd + ' ℃（1-100）';
       if (isDown && (cmdHex === '09' || cmdHex === '0B')) return '设备已用时间：' + F.usd + ' 天';
       if (isDown && cmdHex === '82') return '浴霸2关闭温差：' + F.usd + ' ℃';
       return '已用天数：' + F.usd + ' 天';
     }
     function tPtds() {
-      if (isDown && cmdHex === '04') return '热水费率：' + F.ptds + ' 毫升/分';
+      if (param04) return '热水费率：' + F.ptds + ' 毫升/分';
       return '纯水TDS：' + F.ptds + ' ppm';
     }
     function tRTds() {
-      if (isDown && cmdHex === '04') return '冷水费率：' + F.rTds + ' 毫升/分';
+      if (param04) return '冷水费率：' + F.rTds + ' 毫升/分';
       return '原水TDS：' + F.rTds + ' ppm';
     }
     function balFen() { return u32(bytes, off.f1); }  // 32-35 共4字节余额
     function tF1() {
-      if (isDown && cmdHex === '04') {
+      if (param04) {
         var w = { 0: '不屏蔽', 1: '屏蔽冷水水路流量计', 2: '屏蔽热水水路流量计', 3: '屏蔽冷热水两路流量计' };
         return '屏蔽水路选择：' + (w[F.f1] || F.f1);
       }
@@ -344,23 +349,25 @@
       return '第一滤芯实时寿命：' + F.f1 + (F.mode === 2 ? '（升/天，按滤芯模式）' : '');
     }
     function tF2() {
-      if (isDown && cmdHex === '04') return '单次消费最大放水量：' + F.f2 + ' 毫升（超量结束消费）';
+      if (param04) return '单次消费最大放水量：' + F.f2 + ' 毫升（超量结束消费）';
       if (isDown && cmdHex === '80') return 'IC卡账户余额(低16位)：' + yuan(balFen());
       if (isDown && cmdHex === '82') return '臭氧工作周期内启动时间：' + F.f2 + ' 秒（0-240）';
       if (isUp && (cmdHex === '06' || cmdHex === 'A0')) return 'IC卡账户余额(低16位)：' + yuan(balFen());
       return '第二滤芯实时寿命：' + F.f2;
     }
     function tF3() {
-      if (isDown && cmdHex === '04') return '热水流量计(大通量/流量计1)每升脉冲数：' + F.f3 + ' 脉冲/升（100-8000）';
+      if (param04) return '热水流量计(大通量/流量计1)每升脉冲数：' + F.f3 + ' 脉冲/升（100-8000）';
       if (isUp && cmdHex === '5E') return '自动校准热水流量计脉冲数：' + F.f3 + ' 脉冲/升';
       if (isUp && cmdHex === 'D0') return '手机号第1-2字节：' + hexOf(bytes, off.f3, 2);
       return '第三滤芯实时寿命：' + F.f3;
     }
     function tF4() {
+      if (echo04) return '0x04 参数回显保留槽（应发0，实际 0x' + hexOf(bytes, off.f4, 2) + '）';
       if (isUp && cmdHex === 'D0') return '手机号第3-4字节：' + hexOf(bytes, off.f4, 2);
       return '第四滤芯实时寿命：' + F.f4;
     }
     function tF5() {
+      if (echo04) return '0x04 参数回显保留槽（应发0，实际 0x' + hexOf(bytes, off.f5, 2) + '）';
       if (isUp && (cmdHex === '04' || cmdHex === 'EE')) return '设备当前信号值(CSQ)：' + F.f5 + '/31';
       if (isUp && cmdHex === 'D0') return '手机号第5-6字节：' + hexOf(bytes, off.f5, 2);
       return '第五滤芯实时寿命：' + F.f5;
@@ -368,7 +375,7 @@
     function iccidStr() { return hexOf(bytes, off.m1, 10); }
     function iccNo() { return u32(bytes, off.m1); }
     function tM1() {
-      if (isDown && cmdHex === '04') return '单次消费最大放水时间：' + F.m1 + ' 秒';
+      if (param04) return '单次消费最大放水时间：' + F.m1 + ' 秒';
       if (isDown && cmdHex === '80') return 'IC卡卡号(高16位)：' + iccNo().toString(16).toUpperCase() + '（42-45四字节=卡号）';
       if (isUp && (cmdHex === 'A0' || cmdHex === '90' || cmdHex === '06')) return 'IC卡卡号(高16位)：' + iccNo().toString(16).toUpperCase();
       if (isUp && (cmdHex === '04' || cmdHex === 'EE')) return 'ICCID(第1-2字节)：' + iccidStr() + '（42-51十字节=20位ICCID）';
@@ -376,7 +383,7 @@
       return '第一滤芯寿命最大值：' + F.m1;
     }
     function tM2() {
-      if (isDown && cmdHex === '04') return '放水阀1(热水阀,4分灌装泵)放水一升时间：' + F.m2 + ' 秒/升（10-800）';
+      if (param04) return '放水阀1(热水阀,4分灌装泵)放水一升时间：' + F.m2 + ' 秒/升（10-800）';
       if (isDown && cmdHex === '80') return 'IC卡卡号(低16位)：' + iccNo().toString(16).toUpperCase();
       if (isUp && cmdHex === '5E') return '自动校准放水阀1(热水阀)放水一升时间：' + F.m2 + ' 秒/升';
       if (isUp && (cmdHex === 'A0' || cmdHex === '90' || cmdHex === '06')) return 'IC卡卡号(低16位)：' + iccNo().toString(16).toUpperCase();
@@ -385,13 +392,13 @@
       return '第二滤芯寿命最大值：' + F.m2;
     }
     function tM3() {
-      if (isDown && cmdHex === '04') return '共享模式取水方式：' + (F.m3 === 0 ? '按键出水' : F.m3 === 1 ? '自动出水' : F.m3);
+      if (param04) return '共享模式取水方式：' + (F.m3 === 0 ? '按键出水' : F.m3 === 1 ? '自动出水' : F.m3);
       if (isDown && cmdHex === '80') return '账户剩余流量：' + F.m3 + ' 升';
       if (isUp && (cmdHex === '04' || cmdHex === 'EE')) return 'ICCID(第5-6字节)：' + iccidStr();
       return '第三滤芯寿命最大值：' + F.m3;
     }
     function tM4() {
-      if (isDown && cmdHex === '04') {
+      if (param04) {
         var b8 = F.m4 & 0xFF;
         var bits = (b8.toString(2).padStart(8, '0')).split('');
         var out = [];
@@ -407,6 +414,7 @@
       return '第四滤芯寿命最大值：' + F.m4;
     }
     function tM5() {
+      if (echo04) return '0x04 参数回显保留槽（应发0，实际 0x' + hexOf(bytes, off.m5, 2) + '）';
       if (isUp && (cmdHex === '04' || cmdHex === 'EE')) return 'ICCID(第9-10字节)：' + iccidStr();
       return '第五滤芯寿命最大值：' + F.m5;
     }
@@ -500,14 +508,18 @@
           case 'd0': s.push(head + '上报键盘输入的手机号与密码（无卡取水），手机号=' + hexOf(bytes, off.f3, 6) + '。'); break;
           case '5e': s.push(head + '上报自动校准流量系数完成：冷水流量计脉冲 ' + F.rcf + ' 脉冲/升、热水流量计脉冲 ' + F.f3 + ' 脉冲/升，放水阀1(热水) ' + F.m2 + ' 秒/升、放水阀2(冷水) ' + F.rcd + ' 秒/升，后台请同步更新。'); break;
           case 'cc': s.push(head + '上报错误包：此前收到的平台数据校验失败，平台应重发指令。'); break;
-          case '44': s.push(head + '上报「ID编码回执」——设备已获取到平台分配的 ID，请核对回执中的设备 ID（' + id + '）与平台下发分配的 ID 是否一致。'); break;
+          case '44': {
+            s.push(head + '上报「ID编码回执」——设备已获取到平台分配的 ID，请核对回执中的设备 ID（' + id + '）与平台下发分配的 ID 是否一致；以下为该设备保存/回显的 0x04 设置参数（0 值槽省略）。');
+            s.push(echo044());
+            break;
+          }
           case 'dd': s.push(head + '回传「查询设备信息回执」，为设备当前最新数据快照（设备在线、可进行充值/滤芯复位等操作）。'); break;
           default: {
             var r = CMDS[cmdHex.toLowerCase()];
             s.push(head + '回传「' + (r ? r.n : '0x' + cmdHex) + '」' + (r && r.t ? '（' + r.t + '）' : '') + '。');
           }
         }
-        if (cmdHex.toLowerCase() !== '00' && cmdHex.toLowerCase() !== '06' && cmdHex.toLowerCase() !== '0c' && cmdHex.toLowerCase() !== '04' && cmdHex.toLowerCase() !== 'ee' && cmdHex.toLowerCase() !== 'a0' && cmdHex.toLowerCase() !== 'd0' && cmdHex.toLowerCase() !== '5e' && cmdHex.toLowerCase() !== 'cc') {
+        if (cmdHex.toLowerCase() !== '00' && cmdHex.toLowerCase() !== '06' && cmdHex.toLowerCase() !== '0c' && cmdHex.toLowerCase() !== '04' && cmdHex.toLowerCase() !== '44' && cmdHex.toLowerCase() !== 'ee' && cmdHex.toLowerCase() !== 'a0' && cmdHex.toLowerCase() !== 'd0' && cmdHex.toLowerCase() !== '5e' && cmdHex.toLowerCase() !== 'cc') {
           var cm = CMDS[cmdHex.toLowerCase()];
           if (cm && cm.d === 'up' && /回执$/.test(cm.n)) {
             s.push(richEcho());
@@ -553,17 +565,39 @@
       if (st) headPt += '，状态：' + st.trans.replace(/^设备状态：/, '');
       pts.push(headPt);
       pushIf('本次消费', true);
-      pushIf('剩余流量'); pushIf('剩余天数'); pushIf('已用流量'); pushIf('已用天数');
-      pushIf('纯水TDS'); pushIf('原水TDS');
+      pushIf('剩余流量', true); pushIf('剩余天数', true); pushIf('已用流量', true); pushIf('已用天数', true);
+      pushIf('纯水TDS', true); pushIf('原水TDS', true);
       var fNames = ['一滤实时值', '二滤实时值', '三滤实时值', '四滤实时值', '五滤实时值', '一滤最大值', '二滤最大值', '三滤最大值', '四滤最大值', '五滤最大值'];
       var hasF = false;
-      for (var a = 0; a < fNames.length; a++) { var rr = rowByName(fNames[a]); if (rr && parseInt(rr.val, 10) > 0) { hasF = true; break; } }
+      for (var a = 0; a < fNames.length; a++) { var rr = rowByName(fNames[a]); if (rr && parseInt(rr.val, 10) > 0 && rr.trans.indexOf('滤芯') !== -1) { hasF = true; break; } }
       if (hasF) {
         for (var b = 0; b < fNames.length; b++) pushIf(fNames[b], true);
         pts.push('滤芯寿命值单位按设备寿命计算方式（按流量计=升、按时间计=天）');
       }
-      pushIf('机器类型码'); pushIf('北京时间'); pushIf('校验位');
+      // 类型/时间/校验恒显示（值 0 也是合法数据）；其余字段只显示有数据的值
+      var pushAlways = function (nm) { var r = rowByName(nm); if (r) pts.push(r.trans); };
+      pushAlways('机器类型码'); pushAlways('北京时间'); pushAlways('校验位');
       return '回执携带：' + pts.join('；') + '。';
+    }
+
+    /* 0x44「ID编码回执」专属：字段槽按 0x04 下发参数回显解读（0 值槽省略） */
+    function echo044() {
+      var pts = [];
+      var st = null;
+      for (var i = 0; i < rowList.length; i++) { if (rowList[i].name === '设备状态') st = rowList[i]; }
+      var headPt = '设备当前为「' + modeName + '」计费模式';
+      if (st) headPt += '，状态：' + st.trans.replace(/^设备状态：/, '');
+      pts.push(headPt);
+      for (i = 0; i < rowList.length; i++) {
+        var r = rowList[i];
+        var nm = r.name;
+        if (nm === '设备ID' || nm === '命令' || nm === '计费模式' || nm === '设备状态') continue;
+        var always = (nm === '北京时间' || nm === '校验位' || nm === '机器类型码');
+        var v = parseInt(r.val, 10);
+        if (!always && !(v > 0)) continue;
+        pts.push(r.trans);
+      }
+      return '0x04 参数回显：' + pts.join('；') + '。';
     }
   }
 

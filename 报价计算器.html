@@ -444,7 +444,6 @@
   /* ================= 渲染并初算 ================= */
   var lists = { sell: $('sellList'), buy: $('buyList') };
   var all = { sell: [], buy: [] };
-  lists.sell.appendChild(buildCopyCard()); /* 快捷文案卡置于售价区顶部 */
   Object.keys(CARDS).forEach(function(mode){
     CARDS[mode].forEach(function(cfg){
       var c = buildCard(mode, cfg);
@@ -454,6 +453,7 @@
     });
   });
   if (unlocked) tabBuy.textContent = '🛒 进货';
+  lists.sell.appendChild(buildCopyCard()); /* 快捷文案卡置于售价区末尾 */
 
   /* 测试钩子（不影响功能与安全） */
   window.__PriceCalc = { cards: all, calcCard: calcCard, switchTab: switchTab };

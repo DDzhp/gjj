@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3498db">
+<title>报价计算器 · 售价 / 进货</title>
+<style>
+  :root{ --blue:#3498db; --blue-d:#2f80ed; --ink:#2c3e50; --sub:#7f8c8d; --line:#e3e8ee; --bg:#f0f4f8; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg)}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--ink);font-size:15px;line-height:1.6;padding-bottom:env(safe-area-inset-bottom)}
+  .pc-app{max-width:780px;margin:0 auto;padding:14px 12px 46px}
+  .pc-hd h1{font-size:22px;text-align:center;letter-spacing:1px}
+  .pc-hd .pc-sub{text-align:center;color:var(--sub);font-size:12.5px;margin-top:2px}
+  .pc-formula{margin:12px auto 0;max-width:660px;background:#fff8e8;border:1px solid #ffe2a8;color:#8a6d3b;border-radius:10px;padding:7px 12px;font-size:12.5px;text-align:center;line-height:1.7}
+  /* 页签 */
+  .pc-tabs{position:sticky;top:0;z-index:30;display:flex;gap:10px;padding:10px 0 8px;background:var(--bg)}
+  .pc-tab{flex:1;padding:11px 0;font-size:15.5px;font-weight:700;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:#5a6b7b;cursor:pointer;touch-action:manipulation;transition:.15s}
+  .pc-tab.active{background:linear-gradient(135deg,var(--blue),var(--blue-d));border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(47,128,237,.35)}
+  .pc-pane.hidden{display:none}
+  /* 卡片列表：手机单列，PC 双列 */
+  .pc-list{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+  @media(min-width:700px){.pc-list{grid-template-columns:1fr 1fr}}
+  .pc-card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(31,45,61,.06);padding:14px 14px 13px;border:1px solid #eef2f6}
+  .pc-hd2{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .pc-hd2 .pc-ico{font-size:18px}
+  .pc-hd2 .pc-name{font-size:16px;font-weight:700}
+  .pc-tag{font-size:11px;font-weight:600;color:var(--blue);background:#eaf4fd;border-radius:6px;padding:1.5px 8px;white-space:nowrap}
+  .pc-tag.buy{color:#e67e22;background:#fdf1e7}
+  .pc-reset{margin-left:auto;font-size:12px;color:#95a5a6;background:#fff;border:1px solid var(--line);border-radius:8px;padding:3px 10px;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+  .pc-reset:active{background:#f2f5f8}
+  /* 输入区 */
+  .pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}
+  .pc-f label{display:block;font-size:12px;color:var(--sub);margin-bottom:3px;line-height:1.35}
+  .pc-f input{width:100%;font-size:16px;padding:9px 10px;border:1.5px solid #d9dfe7;border-radius:9px;background:#fafbfd;color:var(--ink);outline:none;font-family:inherit;min-width:0}
+  .pc-f input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(52,152,219,.12)}
+  .pc-f input::-webkit-outer-spin-button,.pc-f input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .pc-f input[type=number]{-moz-appearance:textfield;appearance:textfield}
+  /* 结果区 */
+  .pc-result{margin-top:11px;background:#f6f9fc;border:1px solid #edf1f5;border-radius:10px;padding:9px 12px}
+  .pc-fml{font-size:13px;color:#5a6b7b;font-family:Consolas,Menlo,monospace;word-break:break-all;line-height:1.7}
+  .pc-priceline{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:5px;flex-wrap:wrap}
+  .pc-plabel{font-size:12.5px;color:var(--sub)}
+  .pc-price{font-size:23px;font-weight:800;color:#189b52;letter-spacing:.5px}
+  .pc-buy .pc-price{color:#e67e22}
+  .pc-err{font-size:12.5px;color:#e74c3c}
+  /* 快捷填充 */
+  .pc-chipzone{margin-top:10px}
+  .pc-chiptitle{font-size:11.5px;color:#9aa7b3;margin-bottom:5px}
+  .pc-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .pc-chip{font-size:12.5px;color:var(--blue);background:#eaf4fd;border:1px solid #cfe6fa;border-radius:999px;padding:5px 12px;cursor:pointer;user-select:none;touch-action:manipulation}
+  .pc-chip:active{transform:scale(.96)}
+  .pc-chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+  /* 备注 / 锁定条 / 页脚 */
+  .pc-note{margin-top:10px;font-size:12px;color:#b26a00;background:#fff7ea;border:1px dashed #f5d9a8;border-radius:8px;padding:6px 10px;line-height:1.7}
+  .pc-lockbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:12px;color:#8a9aa8;margin-bottom:10px}
+  .pc-lockbar button{font-size:12px;color:#e67e22;background:#fff;border:1px solid #f3d9c4;border-radius:8px;padding:3px 10px;cursor:pointer;touch-action:manipulation}
+  .pc-foot{margin-top:18px;text-align:center;color:#a5b1bd;font-size:11.5px;line-height:1.8}
+  /* 密码弹窗 */
+  .pc-mask{position:fixed;inset:0;z-index:99;background:rgba(15,25,35,.5);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(2px)}
+  .pc-mask.hidden{display:none}
+  .pc-modal{background:#fff;border-radius:16px;padding:22px 20px 18px;width:100%;max-width:340px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+  .pc-modal h3{font-size:17px}
+  .pc-modal p{font-size:12.5px;color:var(--sub);margin-top:4px}
+  #pcPwd{width:100%;font-size:18px;letter-spacing:8px;text-align:center;padding:10px;border:1.5px solid #d9dfe7;border-radius:10px;margin-top:14px;outline:none;font-family:inherit}
+  #pcPwd:focus{border-color:var(--blue)}
+  .pc-pwderr{color:#e74c3c;font-size:12.5px;min-height:18px;margin-top:7px}
+  .pc-mbtns{display:flex;gap:10px;margin-top:10px}
+  .pc-mbtns button{flex:1;padding:10px 0;border-radius:10px;font-size:14.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--line);background:#fff;color:#5a6b7b;touch-action:manipulation}
+  #pcPwdOk{background:linear-gradient(135deg,var(--blue),var(--blue-d));border-color:transparent;color:#fff}
+  @keyframes pcShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  .pc-shake{animation:pcShake .32s}
+</style>
+</head>
+<body>
+<div class="pc-app">
+  <div class="pc-hd">
+    <h1>💰 报价计算器</h1>
+    <div class="pc-sub">售价公开 · 进货区需密码 · 刷新后恢复默认参数</div>
+  </div>
+  <div class="pc-formula">📐 统一公式：原始价格 ÷ 原始数量 × 需求数量 × 作品数量 × 系数 = 需求售价</div>
+
+  <div class="pc-tabs">
+    <button type="button" class="pc-tab active" id="tabSell">💰 售价</button>
+    <button type="button" class="pc-tab" id="tabBuy">🛒 进货 🔒</button>
+  </div>
+
+  <section class="pc-pane" id="paneSell">
+    <div class="pc-list" id="sellList"></div>
+  </section>
+
+  <section class="pc-pane hidden" id="paneBuy">
+    <div class="pc-lockbar"><span>进货区已解锁</span><button type="button" id="relockBtn">🔒 重新上锁</button></div>
+    <div class="pc-list" id="buyList"></div>
+  </section>
+
+  <div class="pc-foot">💡 结果四舍五入保留 2 位小数，公式行展示精确计算过程<br>页面数据不保存，刷新即恢复默认参数</div>
+</div>
+
+<div class="pc-mask hidden" id="pwdMask">
+  <div class="pc-modal" id="pcModal">
+    <h3>🔒 进货专区</h3>
+    <p>该区域含进货成本价，请输入访问密码</p>
+    <input id="pcPwd" type="password" inputmode="numeric" autocomplete="off" placeholder="· · · · · ·">
+    <div class="pc-pwderr" id="pcPwdErr"></div>
+    <div class="pc-mbtns">
+      <button type="button" id="pcPwdCancel">取消</button>
+      <button type="button" id="pcPwdOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= 配置区：默认参数（页面上均可修改） ================= */
+  var PASSWORD = '202020'; /* 进货区访问密码 */
+
+  var CARDS = {
+    sell: [
+      { icon:'👍', name:'赞', price:52.9, qty:750, need:200, works:1, coef:1,
+        qtyLabel:'原始赞数量', needLabel:'需求赞数量',
+        quickPair:[[1,10],[6.9,80],[13.9,170],[20.9,270],[29.9,400],[52.9,750]] },
+      { icon:'⭐', name:'收藏/转发', price:5, qty:100, need:200, works:1, coef:1,
+        qtyLabel:'原始收藏/转发数量', needLabel:'需求收藏/转发数量' },
+      { icon:'💬', name:'普通评论', price:25, qty:100, need:200, works:1, coef:1,
+        qtyLabel:'原始普通评论数量', needLabel:'需求普通评论数量' },
+      { icon:'✍️', name:'自定义评论', price:25, qty:50, need:200, works:1, coef:1,
+        qtyLabel:'原始自定义评论数量', needLabel:'需求自定义评论数量' }
+    ],
+    buy: [
+      { icon:'👍', name:'赞', price:0.4, qty:1, need:100, works:1, coef:1.1,
+        qtyLabel:'原始赞数量', needLabel:'需求赞数量',
+        quickNeed:[10,80,170,270,400,750],
+        note:'📌 10个起（售后48小时，售后时间内，掉了包补。）' },
+      { icon:'⭐', name:'收藏/转发', price:0.2, qty:100, need:100, works:1, coef:1.1,
+        qtyLabel:'原始收藏/转发数量', needLabel:'需求收藏/转发数量',
+        note:'📌 100个起（售后48小时，售后时间内，掉了包补。）' },
+      { icon:'💬', name:'普通评论', price:1.27, qty:10, need:10, works:1, coef:1,
+        qtyLabel:'原始普通评论数量', needLabel:'需求普通评论数量',
+        note:'📌 10个起。' },
+      { icon:'✍️', name:'自定义评论', price:2.27, qty:10, need:10, works:1, coef:1,
+        qtyLabel:'原始自定义评论数量', needLabel:'需求自定义评论数量',
+        note:'📌 10个起。' }
+    ]
+  };
+
+  /* ================= 小工具 ================= */
+  function $(id){ return document.getElementById(id); }
+  function ce(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function eq(a, b){ return Math.abs(a - b) < 1e-9; }
+  /* 展示用：最多保留 6 位小数并去掉浮点噪声 */
+  function fmt(n){ return String(Math.round(n * 1e6) / 1e6); }
+  /* 金额：四舍五入保留 2 位小数 */
+  function money(n){ return (Math.round(n * 100) / 100).toFixed(2); }
+
+  /* ================= 卡片构建（纯 DOM，便于嵌入/测试） ================= */
+  function field(labelText, val, key, card){
+    var wrap = ce('div', 'pc-f');
+    wrap.appendChild(ce('label', null, labelText));
+    var inp = document.createElement('input');
+    inp.type = 'number';
+    inp.setAttribute('step', 'any');
+    inp.setAttribute('min', '0');
+    inp.inputMode = 'decimal';
+    inp.value = String(val);
+    inp.addEventListener('input', function(){ calcCard(card); });
+    inp.addEventListener('change', function(){ calcCard(card); });
+    wrap.appendChild(inp);
+    return { wrap: wrap, input: inp };
+  }
+
+  function buildChips(card, root){
+    var cfg = card.cfg;
+    var zone = ce('div', 'pc-chipzone');
+    if (cfg.quickPair){
+      zone.appendChild(ce('div', 'pc-chiptitle', '⚡ 快捷填充：原始价格 → 原始数量'));
+      var row = ce('div', 'pc-chips');
+      cfg.quickPair.forEach(function(pq){
+        var chip = ce('span', 'pc-chip', pq[0] + '元 / ' + pq[1] + '个');
+        chip.addEventListener('click', function(){
+          card.inputs.price.value = String(pq[0]);
+          card.inputs.qty.value = String(pq[1]);
+          calcCard(card);
+        });
+        card.chips.push({ el: chip, type: 'pair', pq: pq });
+        row.appendChild(chip);
+      });
+      zone.appendChild(row);
+    }
+    if (cfg.quickNeed){
+      zone.appendChild(ce('div', 'pc-chiptitle', '⚡ 快捷填充：需求数量'));
+      var row2 = ce('div', 'pc-chips');
+      cfg.quickNeed.forEach(function(q){
+        var chip = ce('span', 'pc-chip', q + '个');
+        chip.addEventListener('click', function(){
+          card.inputs.need.value = String(q);
+          calcCard(card);
+        });
+        card.chips.push({ el: chip, type: 'need', q: q });
+        row2.appendChild(chip);
+      });
+      zone.appendChild(row2);
+    }
+    root.appendChild(zone);
+  }
+
+  function buildCard(mode, cfg){
+    var card = { mode: mode, cfg: cfg, inputs: {}, chips: [] };
+    var root = ce('div', 'pc-card' + (mode === 'buy' ? ' pc-buy' : ''));
+
+    /* 头部：图标 + 名称 + 区标 + 重置 */
+    var hd = ce('div', 'pc-hd2');
+    hd.appendChild(ce('span', 'pc-ico', cfg.icon));
+    hd.appendChild(ce('span', 'pc-name', cfg.name));
+    hd.appendChild(ce('span', 'pc-tag' + (mode === 'buy' ? ' buy' : ''), mode === 'sell' ? '售价' : '进货'));
+    var reset = ce('button', 'pc-reset', '↺ 重置');
+    reset.type = 'button';
+    reset.addEventListener('click', function(){ resetCard(card); });
+    hd.appendChild(reset);
+    root.appendChild(hd);
+
+    /* 输入区：5 个参数 */
+    var grid = ce('div', 'pc-grid');
+    [
+      ['原始价格（元）', cfg.price, 'price'],
+      [cfg.qtyLabel + '（个）', cfg.qty, 'qty'],
+      [cfg.needLabel + '（个）', cfg.need, 'need'],
+      ['作品数量（个）', cfg.works, 'works'],
+      ['系数', cfg.coef, 'coef']
+    ].forEach(function(d){
+      var f = field(d[0], d[1], d[2], card);
+      card.inputs[d[2]] = f.input;
+      grid.appendChild(f.wrap);
+    });
+    root.appendChild(grid);
+
+    /* 结果区：完整公式 + 售价/进价 */
+    var res = ce('div', 'pc-result');
+    card.fml = ce('div', 'pc-fml', '');
+    var pline = ce('div', 'pc-priceline');
+    pline.appendChild(ce('span', 'pc-plabel', mode === 'sell' ? '需求售价' : '需求进价'));
+    card.priceEl = ce('span', 'pc-price', '');
+    pline.appendChild(card.priceEl);
+    res.appendChild(card.fml);
+    res.appendChild(pline);
+    root.appendChild(res);
+
+    /* 快捷填充 + 备注 */
+    if (cfg.quickPair || cfg.quickNeed) buildChips(card, root);
+    if (cfg.note) root.appendChild(ce('div', 'pc-note', cfg.note));
+
+    card.root = root;
+    return card;
+  }
+
+  function resetCard(card){
+    var c = card.cfg;
+    card.inputs.price.value = String(c.price);
+    card.inputs.qty.value = String(c.qty);
+    card.inputs.need.value = String(c.need);
+    card.inputs.works.value = String(c.works);
+    card.inputs.coef.value = String(c.coef);
+    calcCard(card);
+  }
+
+  /* ================= 核心计算：原始价格 ÷ 原始数量 × 需求数量 × 作品数量 × 系数 ================= */
+  function calcCard(card){
+    var v = {
+      price: parseFloat(card.inputs.price.value),
+      qty:   parseFloat(card.inputs.qty.value),
+      need:  parseFloat(card.inputs.need.value),
+      works: parseFloat(card.inputs.works.value),
+      coef:  parseFloat(card.inputs.coef.value)
+    };
+    var bad = null, k;
+    for (k in v){
+      if (isNaN(v[k])) { bad = '请填写完整数字后自动计算'; break; }
+      if (v[k] < 0)    { bad = '数值不能为负数'; break; }
+    }
+    if (!bad && v.qty === 0) bad = '「原始数量」不能为 0';
+    if (bad){
+      card.fml.textContent = '⚠️ ' + bad;
+      card.priceEl.textContent = '—';
+      card.chips.forEach(function(ch){ ch.el.classList.remove('on'); });
+      return;
+    }
+    var exact = v.price / v.qty * v.need * v.works * v.coef;
+    var m = money(exact);
+    card.fml.textContent = fmt(v.price) + ' ÷ ' + fmt(v.qty) + ' × ' + fmt(v.need) + ' × ' + fmt(v.works) + ' × ' + fmt(v.coef) + ' = ' + fmt(exact);
+    var isExact = Math.abs(exact - parseFloat(m)) < 1e-9;
+    card.priceEl.textContent = (isExact ? '' : '≈ ') + m + ' 元';
+    /* 快捷填充命中高亮 */
+    card.chips.forEach(function(ch){
+      var on = ch.type === 'pair' ? (eq(v.price, ch.pq[0]) && eq(v.qty, ch.pq[1])) : eq(v.need, ch.q);
+      if (on) ch.el.classList.add('on'); else ch.el.classList.remove('on');
+    });
+  }
+
+  /* ================= 解锁状态（仅当前会话，可手动上锁） ================= */
+  function sGet(k){ try { return window.sessionStorage.getItem(k); } catch(e){ return null; } }
+  function sSet(k, v){ try { window.sessionStorage.setItem(k, v); } catch(e){} }
+  function sDel(k){ try { window.sessionStorage.removeItem(k); } catch(e){} }
+
+  var tabSell = $('tabSell'), tabBuy = $('tabBuy');
+  var paneSell = $('paneSell'), paneBuy = $('paneBuy');
+  var pwdMask = $('pwdMask'), pcModal = $('pcModal'), pcPwd = $('pcPwd'), pcPwdErr = $('pcPwdErr');
+  var unlocked = sGet('pcBuyUnlocked') === '1';
+
+  function switchTab(name){
+    var sell = name === 'sell';
+    tabSell.classList.toggle('active', sell);
+    tabBuy.classList.toggle('active', !sell);
+    paneSell.classList.toggle('hidden', !sell);
+    paneBuy.classList.toggle('hidden', sell);
+  }
+
+  tabSell.addEventListener('click', function(){ switchTab('sell'); });
+  tabBuy.addEventListener('click', function(){
+    if (!unlocked) { openPwd(); return; }
+    switchTab('buy');
+  });
+
+  function openPwd(){
+    pcPwdErr.textContent = '';
+    pcPwd.value = '';
+    pwdMask.classList.remove('hidden');
+    setTimeout(function(){ try { pcPwd.focus(); } catch(e){} }, 50);
+  }
+  function closePwd(){ pwdMask.classList.add('hidden'); }
+  function tryUnlock(){
+    if (pcPwd.value === PASSWORD){
+      unlocked = true;
+      sSet('pcBuyUnlocked', '1');
+      closePwd();
+      tabBuy.textContent = '🛒 进货';
+      switchTab('buy');
+    } else {
+      pcPwdErr.textContent = '密码错误，请重试';
+      pcModal.classList.remove('pc-shake');
+      void pcModal.offsetWidth; /* 强制回流以重新触发抖动动画 */
+      pcModal.classList.add('pc-shake');
+      try { pcPwd.select(); } catch(e){}
+    }
+  }
+  $('pcPwdOk').addEventListener('click', tryUnlock);
+  $('pcPwdCancel').addEventListener('click', closePwd);
+  pcPwd.addEventListener('keydown', function(e){
+    if (e && e.key === 'Enter'){ if (e.preventDefault) e.preventDefault(); tryUnlock(); }
+  });
+  $('relockBtn').addEventListener('click', function(){
+    unlocked = false;
+    sDel('pcBuyUnlocked');
+    tabBuy.textContent = '🛒 进货 🔒';
+    switchTab('sell');
+  });
+
+  /* ================= 渲染并初算 ================= */
+  var lists = { sell: $('sellList'), buy: $('buyList') };
+  var all = { sell: [], buy: [] };
+  Object.keys(CARDS).forEach(function(mode){
+    CARDS[mode].forEach(function(cfg){
+      var c = buildCard(mode, cfg);
+      all[mode].push(c);
+      lists[mode].appendChild(c.root);
+      calcCard(c);
+    });
+  });
+  if (unlocked) tabBuy.textContent = '🛒 进货';
+
+  /* 测试钩子（不影响功能与安全） */
+  window.__PriceCalc = { cards: all, calcCard: calcCard, switchTab: switchTab };
+})();
+</script>
+</body>
+</html>

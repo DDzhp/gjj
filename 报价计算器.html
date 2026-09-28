@@ -52,8 +52,14 @@
   .pc-chip{font-size:12.5px;color:var(--blue);background:#eaf4fd;border:1px solid #cfe6fa;border-radius:999px;padding:5px 12px;cursor:pointer;user-select:none;touch-action:manipulation}
   .pc-chip:active{transform:scale(.96)}
   .pc-chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
-  /* 备注 / 锁定条 / 页脚 */
+  /* 备注 / 快捷文案复制卡 */
   .pc-note{margin-top:10px;font-size:12px;color:#b26a00;background:#fff7ea;border:1px dashed #f5d9a8;border-radius:8px;padding:6px 10px;line-height:1.7}
+  .pc-note + .pc-note{margin-top:6px}
+  .pc-copyrow{display:flex;gap:8px;align-items:flex-start;background:#f6f9fc;border:1px solid #edf1f5;border-radius:10px;padding:9px 10px;margin-bottom:8px;cursor:pointer;transition:.15s}
+  .pc-copyrow:active{background:#e8f1fa}
+  .pc-copybtn{flex:none;font-size:12px;color:var(--blue);background:#eaf4fd;border:1px solid #cfe6fa;border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+  .pc-copybtn.ok{color:#fff;background:#27ae60;border-color:#27ae60}
+  .pc-copytxt{font-size:13px;color:var(--ink);line-height:1.7;word-break:break-all;min-width:0}
   .pc-lockbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:12px;color:#8a9aa8;margin-bottom:10px}
   .pc-lockbar button{font-size:12px;color:#e67e22;background:#fff;border:1px solid #f3d9c4;border-radius:8px;padding:3px 10px;cursor:pointer;touch-action:manipulation}
   .pc-foot{margin-top:18px;text-align:center;color:#a5b1bd;font-size:11.5px;line-height:1.8}
@@ -134,18 +140,38 @@
       { icon:'👍', name:'赞', price:0.04, qty:1, need:100, works:1, coef:1.1,
         qtyLabel:'原始赞数量', needLabel:'需求赞数量',
         quickNeed:[10,80,170,270,400,750],
-        note:'📌 10个起（售后48小时，售后时间内，掉了包补。）' },
+        notes:[
+          '📌 10个起（售后48小时，售后时间内，掉了包补。）',
+          '售后规则：1、48小时售后。2、重复下单不售后。3、抖加投流不售后。4、同作品链接多订单只售后最新那单。5、低于当前订单初始无售后。6、作品消失无售后。'
+        ] },
       { icon:'⭐', name:'收藏/转发', price:0.2, qty:10, need:100, works:1, coef:1.1,
         qtyLabel:'原始收藏/转发数量', needLabel:'需求收藏/转发数量',
-        note:'📌 100个起（售后48小时，售后时间内，掉了包补。）' },
+        notes:[
+          '📌 100个起（售后48小时，售后时间内，掉了包补。）',
+          '售后规则：收藏：1、48小时售后。2、重复下单不售后。3、抖加投流不售后。4、同作品链接多订单只售后最新那单。5、低于当前订单初始无售后。6、作品消失无售后。',
+          '转发：24小时内最多下1800分享，超过1800的分享第二天再下。下单秒上。上不去的秒退'
+        ] },
       { icon:'💬', name:'普通评论', price:1.27, qty:10, need:10, works:1, coef:1,
         qtyLabel:'原始普通评论数量', needLabel:'需求普通评论数量',
-        note:'📌 10个起。' },
+        notes:[
+          '📌 10个起。',
+          '注意事项：禁止政治、反动、暴力、色情、谣言、负面、人身攻击、菠菜、体彩、打色粉等不良内容'
+        ] },
       { icon:'✍️', name:'自定义评论', price:2.27, qty:10, need:10, works:1, coef:1,
         qtyLabel:'原始自定义评论数量', needLabel:'需求自定义评论数量',
-        note:'📌 10个起。' }
+        notes:[
+          '📌 10个起。',
+          '注意事项：禁止政治、反动、暴力、色情、谣言、负面、人身攻击、菠菜、体彩、打色粉等不良内容，订单一律不执行拉完成不退款。 下单格式：一条一行！！一条一行！！请勿带序列号或其他符号作为分隔符。售后规则: 1、24小时售后。2、下单后，若删除或隐藏视频，造成订单执行不成功，无售后。3、重复下单不售后。4、抖加投流不售后。5、同作品链接多订单只售后最新那单。 6、低于当前订单初始无售后。此自定义评论为人工提单，1小时提单一次，提单就秒。做单时间为早上10点-晚上12点。提单时间为10点提一次单、11点提一次单，以此类推。'
+        ] }
     ]
   };
+
+  /* 售价区快捷文案：一行一条，点击/按钮均可复制（文案保持原文） */
+  var SELL_TEXTS = [
+    '👍1元/10个，6.9元80个，13.9元/170个，20.9元/270个，29.9元/400个，52.9元/750个。',
+    '收藏或转发，5元100个。100个起。（单转发、收藏均可，或50转发、50收藏也可。）',
+    '普通围绕评论25元/100个【依据原有评论区、视频内容AI生成】；自定义评论25元/50个【需要提供内容。】'
+  ];
 
   /* ================= 小工具 ================= */
   function $(id){ return document.getElementById(id); }
@@ -253,9 +279,10 @@
     res.appendChild(pline);
     root.appendChild(res);
 
-    /* 快捷填充 + 备注 */
+    /* 快捷填充 + 备注（支持 notes 数组 / 兼容旧 note 单条） */
     if (cfg.quickPair || cfg.quickNeed) buildChips(card, root);
-    if (cfg.note) root.appendChild(ce('div', 'pc-note', cfg.note));
+    var noteList = cfg.notes || (cfg.note ? [cfg.note] : []);
+    noteList.forEach(function(n){ root.appendChild(ce('div', 'pc-note', n)); });
 
     card.root = root;
     return card;
@@ -302,6 +329,58 @@
       var on = ch.type === 'pair' ? (eq(v.price, ch.pq[0]) && eq(v.qty, ch.pq[1])) : eq(v.need, ch.q);
       if (on) ch.el.classList.add('on'); else ch.el.classList.remove('on');
     });
+  }
+
+  /* ================= 售价区快捷文案复制卡 ================= */
+  function legacyCopy(t){
+    var ta = null;
+    try {
+      ta = document.createElement('textarea');
+      ta.value = t;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+    } catch(e){ /* 忽略复制环境差异 */ }
+    try { if (ta && ta.parentNode) ta.parentNode.removeChild(ta); } catch(e){}
+  }
+  function copyText(t, btn){
+    function done(){
+      if (!btn) return;
+      var old = btn.textContent;
+      btn.textContent = '✅ 已复制';
+      btn.classList.add('ok');
+      setTimeout(function(){ btn.textContent = old; btn.classList.remove('ok'); }, 1200);
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, function(){ legacyCopy(t); done(); });
+    } else {
+      legacyCopy(t);
+      done();
+    }
+  }
+  function buildCopyCard(){
+    var root = ce('div', 'pc-card pc-copycard');
+    var hd = ce('div', 'pc-hd2');
+    hd.appendChild(ce('span', 'pc-ico', '📋'));
+    hd.appendChild(ce('span', 'pc-name', '快捷文案（点击即复制）'));
+    root.appendChild(hd);
+    SELL_TEXTS.forEach(function(t){
+      var row = ce('div', 'pc-copyrow');
+      var btn = ce('button', 'pc-copybtn', '复制');
+      btn.type = 'button';
+      btn.addEventListener('click', function(e){
+        if (e && e.stopPropagation) e.stopPropagation();
+        copyText(t, btn);
+      });
+      row.addEventListener('click', function(){ copyText(t, btn); });
+      row.appendChild(btn);
+      row.appendChild(ce('div', 'pc-copytxt', t));
+      root.appendChild(row);
+    });
+    return root;
   }
 
   /* ================= 解锁状态（仅当前会话，可手动上锁） ================= */
@@ -365,6 +444,7 @@
   /* ================= 渲染并初算 ================= */
   var lists = { sell: $('sellList'), buy: $('buyList') };
   var all = { sell: [], buy: [] };
+  lists.sell.appendChild(buildCopyCard()); /* 快捷文案卡置于售价区顶部 */
   Object.keys(CARDS).forEach(function(mode){
     CARDS[mode].forEach(function(cfg){
       var c = buildCard(mode, cfg);

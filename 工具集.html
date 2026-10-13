@@ -115,6 +115,51 @@
 
 <section id="stockParamTool" class="calculator" style="display: none;">
             <h2>📦 入库参数生成器</h2>
+
+            <div class="tool-section" id="orderDropZone" style="border: 1.5px dashed #3498db; border-radius: 10px; padding: 14px; background: #f8fbff;">
+                <h3 style="margin-top: 0;">📷 生产订单图片识别</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <input type="file" id="orderImageInput" accept="image/*" style="max-width: 300px;" onchange="handleOrderImageFile(this.files[0])">
+                    <button type="button" onclick="runOrderOcr()" style="background: #3498db; color: white; border: none; border-radius: 6px; padding: 9px 18px; cursor: pointer;">🔍 识别图片文字</button>
+                </div>
+                <div id="orderImagePreviewWrap" style="display: none; margin-top: 10px;">
+                    <img id="orderImagePreview" alt="订单图片预览" style="max-width: 100%; max-height: 320px; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div id="orderOcrStatus" style="margin-top: 8px; font-size: 13px; color: #555;"></div>
+                <div id="orderOcrTextWrap" style="display: none; margin-top: 8px;">
+                    <label for="orderOcrText" style="font-weight: 600;">识别结果（可手工修正后再解析）：</label>
+                    <textarea id="orderOcrText" style="width: 100%; min-height: 140px; font-family: Consolas, monospace; font-size: 13px;"></textarea>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
+                        <button type="button" onclick="parseOrderText()" style="background: #27ae60; color: white; border: none; border-radius: 6px; padding: 9px 18px; cursor: pointer;">⚡ 解析并填充参数</button>
+                        <label style="font-weight: 600; font-size: 13px; margin: 0;">云平台（识别不准时手工选）：
+                            <select id="platformSelect" style="width: auto; padding: 6px; font-size: 13px;">
+                                <option value="">请选择/未识别</option>
+                                <optgroup label="跃龙1.0 [LT]">
+                                    <option value="跃龙公有">公有 / 公有有域名</option>
+                                    <option value="跃龙新公有">新公有 / 新公有有域名</option>
+                                    <option value="跃龙公有售水机">公有售水机 / 公有售水机有域名</option>
+                                    <option value="跃龙私有">私有</option>
+                                    <option value="跃龙新私有">新私有</option>
+                                </optgroup>
+                                <optgroup label="跃龙2.0 [YCC]">
+                                    <option value="2.0公有">公有</option>
+                                    <option value="2.0私有">私有</option>
+                                </optgroup>
+                                <optgroup label="跃龙3.0 [ZZQ]">
+                                    <option value="3.0公有">公有</option>
+                                    <option value="3.0私有">私有</option>
+                                </optgroup>
+                                <optgroup label="其他平台">
+                                    <option value="客户私有平台">客户私有平台</option>
+                                    <option value="华码公有">华码: 公有</option>
+                                    <option value="华码私有">华码: 私有</option>
+                                </optgroup>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: #888;">支持点击上传 / 截图后 Ctrl+V 粘贴 / 拖拽图片到虚线框。勾选框(☑)识别可能不准，填充后请核对红色必填项；识别文本可直接修改。</div>
+            </div>
             
             <div class="tool-section">
                 <h3>一键转换区域</h3>
@@ -193,6 +238,14 @@
                         <input type="text" id="singleLimitFlow">
                     </div>
                     <div class="input-wrapper">
+                        <label for="waterWaitTime">取水等待时间:</label>
+                        <input type="text" id="waterWaitTime">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="waterPauseTime">取水暂停等待时间:</label>
+                        <input type="text" id="waterPauseTime">
+                    </div>
+                    <div class="input-wrapper">
                         <label for="floatBall">浮球-派士:</label>
                         <input type="text" id="floatBall">
                     </div>
@@ -207,6 +260,10 @@
                     <div class="input-wrapper">
                         <label for="hotWaterTemp">热水 温度:</label>
                         <input type="text" id="hotWaterTemp">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="coolStartTemp">制冷启动温度:</label>
+                        <input type="text" id="coolStartTemp">
                     </div>
                     <div class="input-wrapper">
                         <label for="tempLockDisinfectionWait">温度锁定、消毒后等待:</label>

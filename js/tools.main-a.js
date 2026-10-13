@@ -1875,6 +1875,7 @@
                     '阀1放水时间[罐装、大、热]：': document.getElementById('valve1Time').value.trim(),
                     '检修 时间：': document.getElementById('maintainTime').value.trim(),
                     '热水 温度：': document.getElementById('hotWaterTemp').value.trim(),
+                    '制冷启动温度：': document.getElementById('coolStartTemp').value.trim(),
                     '温度锁定、消毒后等待：': document.getElementById('tempLockDisinfectionWait').value.trim(),
                     '消毒持续时间：': document.getElementById('disinfectionDuration').value.trim(),
                     '大/1通道/热水老费率：': document.getElementById('rate1Hot').value.trim(),
@@ -1882,6 +1883,8 @@
                     '大/1通道/热水费率：': document.getElementById('rate1HotPerLiter').value.trim(),
                     '小/2通道/冷水费率：': document.getElementById('rate2ColdPerLiter').value.trim(),
                     '单次限制流量/箱3：': document.getElementById('singleLimitFlow').value.trim(),
+                    '取水等待时间：': document.getElementById('waterWaitTime').value.trim(),
+                    '取水暂停等待时间：': document.getElementById('waterPauseTime').value.trim(),
                     '浮球-派士：': document.getElementById('floatBall').value.trim(),
                     '单次限制时间：': document.getElementById('singleLimitTime').value.trim(),
                     '卡流量：': document.getElementById('cardFlow').value.trim(),
@@ -1901,6 +1904,7 @@
                     '阀1放水时间[罐装、大、热]：',
                     '检修 时间：',
                     '热水 温度：',
+                    '制冷启动温度：',
                     '温度锁定、消毒后等待：',
                     '消毒持续时间：',
                     '大/1通道/热水老费率：',
@@ -1908,6 +1912,8 @@
                     '大/1通道/热水费率：',
                     '小/2通道/冷水费率：',
                     '单次限制流量/箱3：',
+                    '取水等待时间：',
+                    '取水暂停等待时间：',
                     '浮球-派士：',
                     '单次限制时间：',
                     '卡流量：',
@@ -1986,6 +1992,8 @@
                 document.getElementById('rate1HotPerLiter').value = '';
                 document.getElementById('rate2ColdPerLiter').value = '';
                 document.getElementById('singleLimitFlow').value = '';
+                document.getElementById('waterWaitTime').value = '';
+                document.getElementById('waterPauseTime').value = '';
                 document.getElementById('floatBall').value = '';
                 document.getElementById('singleLimitTime').value = '';
                 document.getElementById('cardFlow').value = '';
@@ -1993,6 +2001,7 @@
                 document.getElementById('iccidEnd').value = '';
                 document.getElementById('inStockCount').value = '';
                 document.getElementById('hotWaterTemp').value = '';
+                document.getElementById('coolStartTemp').value = '';
                 document.getElementById('tempLockDisinfectionWait').value = '';
                 document.getElementById('disinfectionDuration').value = '';
                 
@@ -2523,10 +2532,13 @@
                 document.getElementById('rate1HotPerLiter').value = '';
                 document.getElementById('rate2ColdPerLiter').value = '';
                 document.getElementById('singleLimitFlow').value = '';
+                document.getElementById('waterWaitTime').value = '';
+                document.getElementById('waterPauseTime').value = '';
                 document.getElementById('floatBall').value = '';
                 document.getElementById('singleLimitTime').value = '';
                 document.getElementById('cardFlow').value = '';
                 document.getElementById('hotWaterTemp').value = '';
+                document.getElementById('coolStartTemp').value = '';
                 document.getElementById('tempLockDisinfectionWait').value = '';
                 document.getElementById('disinfectionDuration').value = '';
                 document.getElementById('iccidStart').value = '';
@@ -2537,3 +2549,279 @@
                 document.getElementById('result').textContent = '';
             }
             
+            // ==================================================================
+            // 📷 生产订单图片识别（OCR → 解析 → 自动填充参数）—— 入库参数生成器扩展
+            // OCR 引擎：tesseract.js@5 CDN 懒加载（chi_sim+eng），识别文本可人工修正后二次解析
+            // === ORDER_PARSE_BEGIN ===
+            // 订单文本解析核心（纯函数，可脱离 DOM 单测）：输入 OCR 原文，输出字段表
+            function parseOrderTextCore(text) {
+                var t = String(text == null ? '' : text);
+                var F = { filled: [], missing: [], warnings: [] };
+
+                function grab(re, key, label) {
+                    var m = t.match(re);
+                    var v = m && m[1] ? m[1].trim() : '';
+                    if (v) { F[key] = v; F.filled.push(label); } else { F.missing.push(label); }
+                    return v;
+                }
+
+                grab(/公司名称[:：]?\s*([^\n]*?)(?=\s*微信公众号名称|微信公众号)/, 'company', '公司名称');
+                grab(/微信公众号名称[:：]?\s*([^\n]*?)(?=\s*厂商账号)/, 'wechat', '微信公众号名称');
+                grab(/厂商账号[:：]?\s*([A-Za-z0-9]+)/, 'vendorId', '厂商账号');
+                grab(/产品型号[:：]?\s*([A-Za-z][A-Za-z0-9\-—]+)/, 'model', '产品型号');
+                grab(/产品数量[:：]?\s*(\d+)/, 'count', '产品数量');
+                grab(/冷水2路脉冲\s*[(（]?\s*(\d+)/, 'channel2Pulse', '冷水2路脉冲');
+                grab(/热水1路脉冲\s*[(（]?\s*(\d+)/, 'channel1Pulse', '热水1路脉冲');
+                grab(/放水时间[:：]?\s*冷2路\s*[(（]?\s*(\d+)/, 'valve2', '放水时间冷2路');
+                grab(/放水时间[:：]?\s*热1路\s*[(（]?\s*(\d+)/, 'valve1', '放水时间热1路');
+                grab(/制水时间[:：]?\s*[(（]?\s*(\d+)/, 'waterTime', '制水时间');
+                grab(/检修时间[:：]?\s*[(（]?\s*(\d+)/, 'maintainTime', '检修时间');
+                grab(/加热最高温度[:：]?\s*[(（]?\s*(\d+)/, 'hotWaterTemp', '加热最高温度');
+                grab(/制冷启动温度[:：]?\s*[(（]?\s*(\d+)/, 'coolStartTemp', '制冷启动温度');
+                grab(/浮球\s*[(（]\s*(\d+)\s*[）)]/, 'floatBall', '浮球'); // 闭合括号限定，防误吃「改浮球(24V门锁)」类手写注记
+                grab(/单次限制流量[:：]?\s*[(（]?\s*(\d+)/, 'singleLimitFlow', '单次限制流量');
+                grab(/取水等待时间[:：]?\s*[(（]?\s*(\d+)/, 'waterWait', '取水等待时间');
+                grab(/取水暂停等待时间[:：]?\s*[(（]?\s*(\d+)/, 'waterPause', '取水暂停等待时间');
+                grab(/单次限制时间[:：]?\s*[(（]?\s*(\d+)/, 'singleLimitTime', '单次限制时间');
+                grab(/冷水费率2路\s*[(（]?\s*([\d.]+)/, 'rate2', '冷水费率2路');
+                grab(/热水费率1路\s*[(（]?\s*([\d.]+)/, 'rate1', '热水费率1路');
+                grab(/消毒后等待时间[:：]?\s*[(（]?\s*(\d+)/, 'disinfectionWait', '消毒后等待时间');
+                grab(/消毒持续时间[:：]?\s*[(（]?\s*(\d+)/, 'disinfectionDuration', '消毒持续时间');
+
+                // 滤芯寿命：优先认勾选标记（☑/√/■等），其次该行只出现单项时按单项
+                var flCtx = (t.match(/滤芯寿命[:：]?([\s\S]{0,16})/) || [])[1] || '';
+                var MARK = '[√☑■✓✔回RVv]';
+                var markTime = new RegExp(MARK + '[^\\u4e00-\\u9fa5]{0,2}时间').test(flCtx) || new RegExp('时间[^\\u4e00-\\u9fa5]{0,2}' + MARK).test(flCtx);
+                var markFlow = new RegExp(MARK + '[^\\u4e00-\\u9fa5]{0,2}流量').test(flCtx) || new RegExp('流量[^\\u4e00-\\u9fa5]{0,2}' + MARK).test(flCtx);
+                if (markTime && !markFlow) { F.filterLife = '0'; F.filled.push('滤芯寿命(时间)'); }
+                else if (markFlow && !markTime) { F.filterLife = '1'; F.filled.push('滤芯寿命(流量)'); }
+                else {
+                    var hasTime = flCtx.indexOf('时间') !== -1, hasFlow = flCtx.indexOf('流量') !== -1;
+                    if (hasTime && !hasFlow) { F.filterLife = '0'; F.filled.push('滤芯寿命(时间)'); }
+                    else if (hasFlow && !hasTime) { F.filterLife = '1'; F.filled.push('滤芯寿命(流量)'); }
+                    else F.warnings.push('滤芯寿命勾选未识别，请手工选择');
+                    if (!F.filterLife) F.missing.push('滤芯寿命');
+                }
+
+                // 云平台：勾选标记 + 行上下文映射（跃龙1.0/2.0/3.0/客户私有/华码）
+                F.platform = detectOrderPlatform(t);
+                if (F.platform) F.filled.push('云平台(' + F.platform + ')');
+                else { F.missing.push('云平台'); F.warnings.push('云平台勾选未识别，请手工选择下拉框后重新点解析'); }
+
+                return F;
+            }
+
+            // 云平台勾选识别：定位勾选标记 → 回看最近的行标签（跃龙1.0/2.0/3.0/客户私有/华码）→ 前看关键词（长词优先）
+            function detectOrderPlatform(t) {
+                var rows = [
+                    { re: /跃龙\s*1\.0/, map: [['公有售水机有域名', '跃龙公有售水机'], ['公有售水机', '跃龙公有售水机'], ['新公有有域名', '跃龙新公有'], ['新公有', '跃龙新公有'], ['公有有域名', '跃龙公有'], ['新私有', '跃龙新私有'], ['私有', '跃龙私有'], ['公有', '跃龙公有']] },
+                    { re: /跃龙\s*2\.0/, map: [['公有', '2.0公有'], ['私有', '2.0私有']] },
+                    { re: /跃龙\s*3\.0/, map: [['公有', '3.0公有'], ['私有', '3.0私有']] },
+                    { re: /客户私有/, map: [['客户私有平台', '客户私有平台']] },
+                    { re: /华码/, map: [['公有', '华码公有'], ['私有', '华码私有']] }
+                ];
+                var marks = /[√☑■✓✔回RVv]/g, m, hit = '';
+                while ((m = marks.exec(t)) !== null && !hit) {
+                    var before = t.slice(Math.max(0, m.index - 60), m.index);
+                    var after = t.slice(m.index + 1, m.index + 17);
+                    var row = null, rowPos = -1;
+                    rows.forEach(function (r) {
+                        var re2 = new RegExp(r.re.source, 'g'), m2;
+                        while ((m2 = re2.exec(before)) !== null) { if (m2.index > rowPos) { row = r; rowPos = m2.index; } }
+                    });
+                    if (!row) {
+                        // 特例：客户私有平台自身即行名（标签在勾选标记之后）
+                        if (after.indexOf('客户私有平台') !== -1) hit = '客户私有平台';
+                        continue;
+                    }
+                    // 取 after 中出现最早的关键词（同位置取更长者），避免长词内部的短词抢先命中
+                    var best = -1, bestLen = 0, bestVal = '';
+                    row.map.forEach(function (kv) {
+                        var idx = after.indexOf(kv[0]);
+                        if (idx !== -1 && (best === -1 || idx < best || (idx === best && kv[0].length > bestLen))) {
+                            best = idx; bestLen = kv[0].length; bestVal = kv[1];
+                        }
+                    });
+                    if (bestVal) hit = bestVal;
+                }
+                return hit;
+            }
+            // === ORDER_PARSE_END ===
+
+            var __orderImageDataUrl = '';
+            var __orderTessLoading = false;
+
+            function orderSetStatus(msg, isErr) {
+                var el = document.getElementById('orderOcrStatus');
+                if (el) { el.textContent = msg; el.style.color = isErr ? '#e74c3c' : '#555'; }
+            }
+
+            function handleOrderImageFile(file) {
+                if (!file) return;
+                if (file.type && file.type.indexOf('image') !== 0) { alert('请选择图片文件（jpg/png 等）'); return; }
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    __orderImageDataUrl = e.target.result;
+                    var img = document.getElementById('orderImagePreview');
+                    var wrap = document.getElementById('orderImagePreviewWrap');
+                    if (img && wrap) { img.src = __orderImageDataUrl; wrap.style.display = 'block'; }
+                    orderSetStatus('✅ 图片已就绪（约 ' + Math.round(file.size / 1024) + 'KB），点击「🔍 识别图片文字」开始识别');
+                };
+                reader.readAsDataURL(file);
+                var inp = document.getElementById('orderImageInput');
+                if (inp) inp.value = ''; // 允许重复选择同一张图
+            }
+
+            // 图片预处理：放大 + 灰度 + 对比度拉伸（提升 OCR 命中率）；失败时退回原图
+            function preprocessOrderImage(dataUrl, cb) {
+                var img = new Image();
+                img.onload = function () {
+                    try {
+                        var scale = img.width < 900 ? 2 : Math.min(2, 2000 / img.width);
+                        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+                        var cv = document.createElement('canvas');
+                        cv.width = w; cv.height = h;
+                        var ctx = cv.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.drawImage(img, 0, 0, w, h);
+                        var d = ctx.getImageData(0, 0, w, h), px = d.data;
+                        var min = 255, max = 0, i, g;
+                        var gray = new Float64Array(w * h);
+                        for (i = 0; i < px.length; i += 4) {
+                            g = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
+                            gray[i / 4] = g;
+                            if (g < min) min = g;
+                            if (g > max) max = g;
+                        }
+                        var range = Math.max(1, max - min);
+                        for (i = 0; i < gray.length; i++) {
+                            g = Math.max(0, Math.min(255, (gray[i] - min) * 255 / range));
+                            px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = g;
+                        }
+                        ctx.putImageData(d, 0, 0);
+                        cb(cv.toDataURL('image/jpeg', 0.92));
+                    } catch (e) { cb(dataUrl); }
+                };
+                img.onerror = function () { cb(dataUrl); };
+                img.src = dataUrl;
+            }
+
+            function loadOrderTesseractLib(cb) {
+                if (window.Tesseract) { cb(); return; }
+                orderSetStatus('正在加载 OCR 引擎…');
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                s.onload = function () { cb(); };
+                s.onerror = function () { orderSetStatus('OCR 引擎加载失败，请检查网络后重试', true); };
+                document.head.appendChild(s);
+            }
+
+            function runOrderOcr() {
+                if (!__orderImageDataUrl) { alert('请先上传 / 粘贴 / 拖拽生产订单图片'); return; }
+                if (__orderTessLoading) { orderSetStatus('识别进行中，请稍候…'); return; }
+                loadOrderTesseractLib(function () {
+                    __orderTessLoading = true;
+                    orderSetStatus('图片预处理中…');
+                    preprocessOrderImage(__orderImageDataUrl, function (procUrl) {
+                        orderSetStatus('正在加载中文识别模型（首次约 5~15MB，视网速 10~60 秒，之后有缓存）…');
+                        var cfg = {
+                            logger: function (m) {
+                                if (m && m.status && m.progress != null) orderSetStatus('识别中：' + m.status + ' ' + Math.round(m.progress * 100) + '%');
+                            }
+                        };
+                        window.Tesseract.recognize(procUrl, 'chi_sim+eng', cfg).then(function (res) {
+                            __orderTessLoading = false;
+                            var txt = (res && res.data && res.data.text ? res.data.text : '').trim();
+                            var ta = document.getElementById('orderOcrText');
+                            var wrap = document.getElementById('orderOcrTextWrap');
+                            if (ta) ta.value = txt;
+                            if (wrap) wrap.style.display = txt ? 'block' : 'none';
+                            orderSetStatus(txt ? '✅ 识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', !txt);
+                        }).catch(function (err) {
+                            __orderTessLoading = false;
+                            orderSetStatus('识别失败：' + (err && err.message ? err.message : err), true);
+                        });
+                    });
+                });
+            }
+
+            // 解析识别文本并回填表单（空值不覆盖手工输入），最后自动生成标准参数
+            function parseOrderText() {
+                var ta = document.getElementById('orderOcrText');
+                var raw = ta ? ta.value : '';
+                if (!raw.trim()) { alert('识别文本为空，请先识别图片或手工粘贴订单文字'); return; }
+                var F = parseOrderTextCore(raw);
+
+                function setVal(id, v) {
+                    var el = document.getElementById(id);
+                    if (el && v != null && v !== '') el.value = v;
+                }
+                setVal('motherboardModel', F.model);
+                setVal('channel2Pulse', F.channel2Pulse);
+                setVal('channel1Pulse', F.channel1Pulse);
+                setVal('waterTime', F.waterTime);
+                setVal('valve2Time', F.valve2);
+                setVal('valve1Time', F.valve1 || F.valve2); // 与一键转换同规则：热1路缺省回填冷2路
+                setVal('maintainTime', F.maintainTime);
+                setVal('hotWaterTemp', F.hotWaterTemp);
+                setVal('coolStartTemp', F.coolStartTemp);
+                setVal('floatBall', F.floatBall);
+                setVal('singleLimitFlow', F.singleLimitFlow);
+                setVal('waterWaitTime', F.waterWait);
+                setVal('waterPauseTime', F.waterPause);
+                setVal('singleLimitTime', F.singleLimitTime);
+                setVal('rate2ColdPerLiter', F.rate2);
+                setVal('rate1HotPerLiter', F.rate1);
+                setVal('tempLockDisinfectionWait', F.disinfectionWait);
+                setVal('disinfectionDuration', F.disinfectionDuration);
+                setVal('inStockCount', F.count);
+                if (F.filterLife) document.getElementById('filterLifeType').value = F.filterLife;
+
+                // 云平台：自动识别优先写入下拉框；未识别时保留用户手工选择
+                var ps = document.getElementById('platformSelect');
+                if (ps && F.platform) ps.value = F.platform;
+                var platform = ps ? ps.value : (F.platform || '');
+
+                // 五要素写入 Excel 数据区（与一键转换同约定：公众号空补公司名、卡类型=无卡类型）
+                if (F.company) {
+                    document.getElementById('excelData').value = [F.company, F.wechat || F.company, '无卡类型', F.vendorId || '', platform].join('\t');
+                }
+
+                var msg = '填充完成 ✅ ' + F.filled.join('、') +
+                    (F.missing.length ? ' ｜ 未识别: ' + F.missing.join('、') : '') +
+                    (F.warnings.length ? ' ｜ ⚠️ ' + F.warnings.join('；') : '');
+                orderSetStatus(msg, F.warnings.length > 0);
+
+                // 生成标准参数（内部自动复制到剪贴板）
+                extractData();
+            }
+
+            // 截图粘贴：仅在入库参数生成工具激活时拦截图片粘贴，不影响其他工具
+            document.addEventListener('paste', function (e) {
+                if (window.currentActiveTool !== 'stockParamTool') return;
+                var items = e.clipboardData && e.clipboardData.items;
+                if (!items) return;
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].type && items[i].type.indexOf('image') === 0) {
+                        var f = items[i].getAsFile();
+                        if (f) { e.preventDefault(); handleOrderImageFile(f); }
+                        break;
+                    }
+                }
+            });
+
+            // 拖拽上传（独立页无 orderDropZone 时自动跳过）
+            document.addEventListener('DOMContentLoaded', function () {
+                var zone = document.getElementById('orderDropZone');
+                if (!zone) return;
+                ['dragenter', 'dragover'].forEach(function (ev) {
+                    zone.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); zone.style.background = '#eef6ff'; });
+                });
+                zone.addEventListener('dragleave', function (e) { e.preventDefault(); zone.style.background = '#f8fbff'; });
+                zone.addEventListener('drop', function (e) {
+                    e.preventDefault(); e.stopPropagation(); zone.style.background = '#f8fbff';
+                    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+                    if (f) handleOrderImageFile(f);
+                });
+            });

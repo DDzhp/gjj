@@ -2552,10 +2552,35 @@
             // ==================================================================
             // 📷 生产订单图片识别（OCR → 解析 → 自动填充参数）—— 入库参数生成器扩展
             // OCR 引擎：tesseract.js@5 CDN 懒加载（chi_sim+eng），识别文本可人工修正后二次解析
+            // v2：针对真实 OCR 乱码加固 —— 全角/Cyrillic 归一化、去空格、勾选框前缀判定、
+            //     模糊词匹配（流量→流室、路→像）、识别不出时状态条提示（不再 alert 卡死）
             // === ORDER_PARSE_BEGIN ===
+            // 文本归一化：全角→半角、形近字映射、去空格（保留换行）
+            function normalizeOrderText(text) {
+                var map = {
+                    '：': ':', '；': ';', '（': '(', '）': ')', '【': '[', '】': ']',
+                    '《': '(', '》': ')', '［': '[', '］': ']', '｜': '|',
+                    '０': '0', '１': '1', '２': '2', '３': '3', '４': '4',
+                    '５': '5', '６': '6', '７': '7', '８': '8', '９': '9',
+                    'З': '3', 'з': '3', 'О': '0', 'о': '0', '〇': '0'
+                };
+                var out = '';
+                var t = String(text == null ? '' : text);
+                for (var i = 0; i < t.length; i++) {
+                    var ch = t.charAt(i);
+                    out += (map[ch] !== undefined ? map[ch] : ch);
+                }
+                return out.replace(/[ \u3000]/g, '');
+            }
+
             // 订单文本解析核心（纯函数，可脱离 DOM 单测）：输入 OCR 原文，输出字段表
             function parseOrderTextCore(text) {
-                var t = String(text == null ? '' : text);
+                var t = normalizeOrderText(text);
+                // OCR 常见错字预修复（向下兼容：干净原文原样通过，仅乱码受影响）
+                t = t.replace(/(?<!厂)商账号/g, '厂商账号');                     // 厂字被吞：商账号:1153
+                t = t.replace(/厂商[^:：\n]{0,4}(?=[:：])/g, '厂商账号');        // 厂商贤吏: → 厂商账号:
+                t = t.replace(/微信[^:：\n]{0,6}[:：]/g, '微信公众号名称:'); // 微信&众日花: → 微信公众号名称:
+                t = t.replace(/六司名称/g, '公司名称');                          // 公司名称 → 六司名称
                 var F = { filled: [], missing: [], warnings: [] };
 
                 function grab(re, key, label) {
@@ -2565,45 +2590,36 @@
                     return v;
                 }
 
-                grab(/公司名称[:：]?\s*([^\n]*?)(?=\s*微信公众号名称|微信公众号)/, 'company', '公司名称');
-                grab(/微信公众号名称[:：]?\s*([^\n]*?)(?=\s*厂商账号)/, 'wechat', '微信公众号名称');
-                grab(/厂商账号[:：]?\s*([A-Za-z0-9]+)/, 'vendorId', '厂商账号');
-                grab(/产品型号[:：]?\s*([A-Za-z][A-Za-z0-9\-—]+)/, 'model', '产品型号');
-                grab(/产品数量[:：]?\s*(\d+)/, 'count', '产品数量');
-                grab(/冷水2路脉冲\s*[(（]?\s*(\d+)/, 'channel2Pulse', '冷水2路脉冲');
-                grab(/热水1路脉冲\s*[(（]?\s*(\d+)/, 'channel1Pulse', '热水1路脉冲');
-                grab(/放水时间[:：]?\s*冷2路\s*[(（]?\s*(\d+)/, 'valve2', '放水时间冷2路');
-                grab(/放水时间[:：]?\s*热1路\s*[(（]?\s*(\d+)/, 'valve1', '放水时间热1路');
-                grab(/制水时间[:：]?\s*[(（]?\s*(\d+)/, 'waterTime', '制水时间');
-                grab(/检修时间[:：]?\s*[(（]?\s*(\d+)/, 'maintainTime', '检修时间');
-                grab(/加热最高温度[:：]?\s*[(（]?\s*(\d+)/, 'hotWaterTemp', '加热最高温度');
-                grab(/制冷启动温度[:：]?\s*[(（]?\s*(\d+)/, 'coolStartTemp', '制冷启动温度');
-                grab(/浮球\s*[(（]\s*(\d+)\s*[）)]/, 'floatBall', '浮球'); // 闭合括号限定，防误吃「改浮球(24V门锁)」类手写注记
-                grab(/单次限制流量[:：]?\s*[(（]?\s*(\d+)/, 'singleLimitFlow', '单次限制流量');
-                grab(/取水等待时间[:：]?\s*[(（]?\s*(\d+)/, 'waterWait', '取水等待时间');
-                grab(/取水暂停等待时间[:：]?\s*[(（]?\s*(\d+)/, 'waterPause', '取水暂停等待时间');
-                grab(/单次限制时间[:：]?\s*[(（]?\s*(\d+)/, 'singleLimitTime', '单次限制时间');
-                grab(/冷水费率2路\s*[(（]?\s*([\d.]+)/, 'rate2', '冷水费率2路');
-                grab(/热水费率1路\s*[(（]?\s*([\d.]+)/, 'rate1', '热水费率1路');
-                grab(/消毒后等待时间[:：]?\s*[(（]?\s*(\d+)/, 'disinfectionWait', '消毒后等待时间');
-                grab(/消毒持续时间[:：]?\s*[(（]?\s*(\d+)/, 'disinfectionDuration', '消毒持续时间');
+                grab(/(?:公司|司)名称[:]?([^\n]*?)(?=微信公众号名称|微信公众号|厂商账号|产品型号)/, 'company', '公司名称');
+                grab(/微信[^:\n]{0,6}[:]?([^\n]*?)(?=厂商账号|产品型号|$)/, 'wechat', '微信公众号名称');
+                grab(/厂商账号[:]?([A-Za-z0-9]+)/, 'vendorId', '厂商账号');
+                grab(/产品型号[:]?_?\s*([A-Za-z][A-Za-z0-9\-—一－]+)/, 'model', '产品型号');
+                grab(/产品数量[:]?[^\d\n]{0,2}(\d+)/, 'count', '产品数量');
+                // 脉冲：容忍 路→像 等错字与 (C1000 类括号杂讯
+                grab(/冷水2[^0-9\n]{0,6}?(\d{2,})/, 'channel2Pulse', '冷水2路脉冲');
+                grab(/热水1[^0-9\n]{0,6}?(\d{2,})/, 'channel1Pulse', '热水1路脉冲');
+                grab(/放水时间:?冷2路[(]?\s*(\d+)/, 'valve2', '放水时间冷2路');
+                grab(/放水时间:?热1路[(]?\s*(\d+)/, 'valve1', '放水时间热1路');
+                grab(/制水时间:?[(]?(\d+)/, 'waterTime', '制水时间');
+                grab(/(?<!阀)检修时间:?[(]?(\d+)/, 'maintainTime', '检修时间'); // 排除「水壶进水阀检修时间」
+                grab(/加热最高温度:?[(]?(\d+)/, 'hotWaterTemp', '加热最高温度');
+                grab(/制冷启动温度:?[(]?(\d+)/, 'coolStartTemp', '制冷启动温度');
+                grab(/浮球[(]\s*(\d+)\s*[)]/, 'floatBall', '浮球'); // 闭合括号限定，防「改浮球(24V门锁)」手写注记
+                grab(/单次限制流量:?[(]?(\d+)/, 'singleLimitFlow', '单次限制流量');
+                grab(/取水等待时间:?[(]?(\d+)/, 'waterWait', '取水等待时间');
+                grab(/取水暂停等待时间:?[(]?(\d+)/, 'waterPause', '取水暂停等待时间');
+                grab(/单次限制时间:?[(]?(\d+)/, 'singleLimitTime', '单次限制时间');
+                grab(/冷水费率2路[(]?([\d.]+)/, 'rate2', '冷水费率2路');
+                grab(/热水费率1路[(]?([\d.]+)/, 'rate1', '热水费率1路');
+                grab(/消毒后等待时间:?[(]?(\d+)/, 'disinfectionWait', '消毒后等待时间');
+                grab(/消毒持续时间:?[(]?(\d+)/, 'disinfectionDuration', '消毒持续时间');
 
-                // 滤芯寿命：优先认勾选标记（☑/√/■等），其次该行只出现单项时按单项
-                var flCtx = (t.match(/滤芯寿命[:：]?([\s\S]{0,16})/) || [])[1] || '';
-                var MARK = '[√☑■✓✔回RVv]';
-                var markTime = new RegExp(MARK + '[^\\u4e00-\\u9fa5]{0,2}时间').test(flCtx) || new RegExp('时间[^\\u4e00-\\u9fa5]{0,2}' + MARK).test(flCtx);
-                var markFlow = new RegExp(MARK + '[^\\u4e00-\\u9fa5]{0,2}流量').test(flCtx) || new RegExp('流量[^\\u4e00-\\u9fa5]{0,2}' + MARK).test(flCtx);
-                if (markTime && !markFlow) { F.filterLife = '0'; F.filled.push('滤芯寿命(时间)'); }
-                else if (markFlow && !markTime) { F.filterLife = '1'; F.filled.push('滤芯寿命(流量)'); }
-                else {
-                    var hasTime = flCtx.indexOf('时间') !== -1, hasFlow = flCtx.indexOf('流量') !== -1;
-                    if (hasTime && !hasFlow) { F.filterLife = '0'; F.filled.push('滤芯寿命(时间)'); }
-                    else if (hasFlow && !hasTime) { F.filterLife = '1'; F.filled.push('滤芯寿命(流量)'); }
-                    else F.warnings.push('滤芯寿命勾选未识别，请手工选择');
-                    if (!F.filterLife) F.missing.push('滤芯寿命');
-                }
+                // 滤芯寿命：勾选框前缀判定（OCR 把 ☑ 认成 2З/[ /R 等也能认；口/□/0/O = 空框）
+                F.filterLife = detectFilterLife(t);
+                if (F.filterLife) F.filled.push('滤芯寿命(' + (F.filterLife === '0' ? '时间' : '流量') + ')');
+                else { F.missing.push('滤芯寿命'); F.warnings.push('滤芯寿命勾选未识别，请在表单手工选择后再点「提取数据」'); }
 
-                // 云平台：勾选标记 + 行上下文映射（跃龙1.0/2.0/3.0/客户私有/华码）
+                // 云平台：勾选框前缀判定 + 行上下文（跃龙1.0/2.0/3.0/客户私有/华码）
                 F.platform = detectOrderPlatform(t);
                 if (F.platform) F.filled.push('云平台(' + F.platform + ')');
                 else { F.missing.push('云平台'); F.warnings.push('云平台勾选未识别，请手工选择下拉框后重新点解析'); }
@@ -2611,41 +2627,79 @@
                 return F;
             }
 
-            // 云平台勾选识别：定位勾选标记 → 回看最近的行标签（跃龙1.0/2.0/3.0/客户私有/华码）→ 前看关键词（长词优先）
-            function detectOrderPlatform(t) {
-                var rows = [
-                    { re: /跃龙\s*1\.0/, map: [['公有售水机有域名', '跃龙公有售水机'], ['公有售水机', '跃龙公有售水机'], ['新公有有域名', '跃龙新公有'], ['新公有', '跃龙新公有'], ['公有有域名', '跃龙公有'], ['新私有', '跃龙新私有'], ['私有', '跃龙私有'], ['公有', '跃龙公有']] },
-                    { re: /跃龙\s*2\.0/, map: [['公有', '2.0公有'], ['私有', '2.0私有']] },
-                    { re: /跃龙\s*3\.0/, map: [['公有', '3.0公有'], ['私有', '3.0私有']] },
-                    { re: /客户私有/, map: [['客户私有平台', '客户私有平台']] },
-                    { re: /华码/, map: [['公有', '华码公有'], ['私有', '华码私有']] }
+            // 滤芯寿命勾选识别：在「寿命」后的窗口内找 时间/流量（模糊错字），看前缀字符
+            function detectFilterLife(t) {
+                var ctxM = t.match(/寿命[:]?([\s\S]{0,14})/);
+                if (!ctxM) return '';
+                var ctx = ctxM[1];
+                var BOX = '口□Oo0Оо〇';
+                var CONTENT = /[A-Za-z0-9√☑■✓✔回团因四囚囗囬RVv]/;
+                var SEP = ':;|、,，.。\\/"\'，。《》~-—_';
+                var defs = [
+                    { re: /时[间司]/, key: '0', name: '时间' },
+                    { re: /流[量室置]/, key: '1', name: '流量' }
                 ];
-                var marks = /[√☑■✓✔回RVv]/g, m, hit = '';
-                while ((m = marks.exec(t)) !== null && !hit) {
-                    var before = t.slice(Math.max(0, m.index - 60), m.index);
-                    var after = t.slice(m.index + 1, m.index + 17);
-                    var row = null, rowPos = -1;
-                    rows.forEach(function (r) {
-                        var re2 = new RegExp(r.re.source, 'g'), m2;
-                        while ((m2 = re2.exec(before)) !== null) { if (m2.index > rowPos) { row = r; rowPos = m2.index; } }
-                    });
-                    if (!row) {
-                        // 特例：客户私有平台自身即行名（标签在勾选标记之后）
-                        if (after.indexOf('客户私有平台') !== -1) hit = '客户私有平台';
-                        continue;
-                    }
-                    // 取 after 中出现最早的关键词（同位置取更长者），避免长词内部的短词抢先命中
-                    var best = -1, bestLen = 0, bestVal = '';
-                    row.map.forEach(function (kv) {
-                        var idx = after.indexOf(kv[0]);
-                        if (idx !== -1 && (best === -1 || idx < best || (idx === best && kv[0].length > bestLen))) {
-                            best = idx; bestLen = kv[0].length; bestVal = kv[1];
+                var checked = [], unchecked = 0;
+                defs.forEach(function (d) {
+                    var m = ctx.match(d.re);
+                    if (!m) return; // 该项未出现在识别文本中
+                    var idx = m.index;
+                    var prev = idx > 0 ? ctx.charAt(idx - 1) : '';
+                    if (BOX.indexOf(prev) !== -1) { unchecked++; return; }        // 空框
+                    if (CONTENT.test(prev)) { checked.push(d); return; }          // 有杂字符/对勾 → 已勾选
+                    if (SEP.indexOf(prev) !== -1) return;                          // 分隔符 → 无法判断
+                    // 其它 CJK 字符（如「时间流量」连写时流量前是间）→ 无法判断
+                    unchecked++; // 视作未提供有效勾选信息
+                });
+                if (checked.length === 1) return checked[0].key;
+                if (checked.length === 2) return ''; // 两个都判定勾选 → 矛盾，人工处理
+                return '';
+            }
+
+            // 云平台勾选识别：长词优先找关键词出现点（掩码防子串），看前缀字符定勾选，行标签定归属
+            function detectOrderPlatform(t) {
+                var BOX = '口□Oo0Оо〇';
+                var SEP = ':;|,：；，';
+                var rows = [
+                    { re: /跃龙\s*1[.。!lI|]?\s*0/, kws: [['公有售水机有域名', '跃龙公有售水机'], ['有售水机有域名', '跃龙公有售水机'], ['公有售水机', '跃龙公有售水机'], ['有售水机', '跃龙公有售水机'], ['新公有有域名', '跃龙新公有'], ['新公有', '跃龙新公有'], ['公有有域名', '跃龙公有'], ['新私有', '跃龙新私有'], ['私有', '跃龙私有'], ['公有', '跃龙公有']] },
+                    { re: /跃龙\s*2[.。!lI|]?\s*0/, kws: [['公有', '2.0公有'], ['私有', '2.0私有']] },
+                    { re: /跃龙\s*[38][.。!lI|]?\s*0/, kws: [['公有', '3.0公有'], ['私有', '3.0私有']] },
+                    { re: /客户私有平台/, kws: [['客户私有平台', '客户私有平台']] },
+                    { re: /华码/, kws: [['华码公有', '华码公有'], ['华码私有', '华码私有'], ['公有', '华码公有'], ['私有', '华码私有']] }
+                ];
+                // 收集所有行标签出现点，按位置切段；每行只在自己标签开始的段内找关键词，避免跨行抢占同名词
+                var labels = [];
+                rows.forEach(function (r) {
+                    var re = new RegExp(r.re.source, 'g'), m;
+                    while ((m = re.exec(t)) !== null) labels.push({ row: r, idx: m.index });
+                });
+                labels.sort(function (a, b) { return a.idx - b.idx; });
+                var hits = [];
+                labels.forEach(function (L, li) {
+                    var seg = t.slice(L.idx, li + 1 < labels.length ? labels[li + 1].idx : t.length);
+                    var base = L.idx, masked = [];
+                    L.row.kws.slice().sort(function (a, b) { return b[0].length - a[0].length; }).forEach(function (kv) {
+                        var from = 0, idx;
+                        while ((idx = seg.indexOf(kv[0], from)) !== -1) {
+                            var overlap = masked.some(function (s) { return idx < s.end && idx + kv[0].length > s.start; });
+                            if (!overlap) {
+                                var prev = idx > 0 ? seg.charAt(idx - 1) : (base > 0 ? t.charAt(base - 1) : '');
+                                var isCJK = /[\u4e00-\u9fff]/.test(prev);
+                                var dom = kv[0].indexOf('域名') !== -1;
+                                if (BOX.indexOf(prev) === -1 && SEP.indexOf(prev) === -1 && !(isCJK && dom)) {
+                                    hits.push({ val: kv[1], idx: base + idx });
+                                }
+                                masked.push({ start: idx, end: idx + kv[0].length });
+                            }
+                            from = idx + 1;
                         }
                     });
-                    if (bestVal) hit = bestVal;
-                }
-                return hit;
+                });
+                if (!hits.length) return '';
+                hits.sort(function (a, b) { return a.idx - b.idx; });
+                return hits[0].val;
             }
+
             // === ORDER_PARSE_END ===
 
             var __orderImageDataUrl = '';
@@ -2746,7 +2800,7 @@
                 });
             }
 
-            // 解析识别文本并回填表单（空值不覆盖手工输入），最后自动生成标准参数
+            // 解析识别文本并回填表单（空值不覆盖手工输入）；滤芯寿命未识别时不自动生成，避免 alert 卡死
             function parseOrderText() {
                 var ta = document.getElementById('orderOcrText');
                 var raw = ta ? ta.value : '';
@@ -2776,7 +2830,10 @@
                 setVal('tempLockDisinfectionWait', F.disinfectionWait);
                 setVal('disinfectionDuration', F.disinfectionDuration);
                 setVal('inStockCount', F.count);
-                if (F.filterLife) document.getElementById('filterLifeType').value = F.filterLife;
+
+                // 滤芯寿命：识别成功自动选；未识别保留原选择（用户手工选）
+                var flSel = document.getElementById('filterLifeType');
+                if (F.filterLife && flSel) flSel.value = F.filterLife;
 
                 // 云平台：自动识别优先写入下拉框；未识别时保留用户手工选择
                 var ps = document.getElementById('platformSelect');
@@ -2791,10 +2848,11 @@
                 var msg = '填充完成 ✅ ' + F.filled.join('、') +
                     (F.missing.length ? ' ｜ 未识别: ' + F.missing.join('、') : '') +
                     (F.warnings.length ? ' ｜ ⚠️ ' + F.warnings.join('；') : '');
-                orderSetStatus(msg, F.warnings.length > 0);
+                var blocked = flSel && !flSel.value; // 滤芯寿命仍未确定
+                orderSetStatus(msg + (blocked ? ' ｜ 请在上方表单选择「滤芯寿命」后，点「提取数据」生成参数' : ''), F.warnings.length > 0 || blocked);
 
-                // 生成标准参数（内部自动复制到剪贴板）
-                extractData();
+                // 滤芯寿命已确定才自动生成（否则 extractData 会 alert 中断）
+                if (!blocked) extractData();
             }
 
             // 截图粘贴：仅在入库参数生成工具激活时拦截图片粘贴，不影响其他工具

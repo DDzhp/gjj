@@ -2779,23 +2779,42 @@
                     orderSetStatus('图片预处理中…');
                     preprocessOrderImage(__orderImageDataUrl, function (procUrl) {
                         orderSetStatus('正在加载中文识别模型（首次约 5~15MB，视网速 10~60 秒，之后有缓存）…');
-                        var cfg = {
-                            logger: function (m) {
-                                if (m && m.status && m.progress != null) orderSetStatus('识别中：' + m.status + ' ' + Math.round(m.progress * 100) + '%');
-                            }
+                        // 语言模型多源下载：默认源 tessdata.projectnaptha.com 国内常连不上导致卡 0%，优先 jsdelivr 镜像，90 秒无响应自动换源
+                        var LANG_PATHS = [
+                            'https://cdn.jsdelivr.net/gh/naptha/tessdata@gh-pages/4.0.0',
+                            'https://tessdata.projectnaptha.com/4.0.0'
+                        ];
+                        var loggerFn = function (m) {
+                            if (m && m.status && m.progress != null) orderSetStatus('识别中：' + m.status + ' ' + Math.round(m.progress * 100) + '%');
                         };
-                        window.Tesseract.recognize(procUrl, 'chi_sim+eng', cfg).then(function (res) {
-                            __orderTessLoading = false;
-                            var txt = (res && res.data && res.data.text ? res.data.text : '').trim();
-                            var ta = document.getElementById('orderOcrText');
-                            var wrap = document.getElementById('orderOcrTextWrap');
-                            if (ta) ta.value = txt;
-                            if (wrap) wrap.style.display = txt ? 'block' : 'none';
-                            orderSetStatus(txt ? '✅ 识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', !txt);
-                        }).catch(function (err) {
-                            __orderTessLoading = false;
-                            orderSetStatus('识别失败：' + (err && err.message ? err.message : err), true);
-                        });
+                        (function tryRecognize(pi) {
+                            if (pi >= LANG_PATHS.length) {
+                                __orderTessLoading = false;
+                                orderSetStatus('识别失败：中文模型两个源都下载失败，请检查网络或挂代理后重试', true);
+                                return;
+                            }
+                            if (pi > 0) orderSetStatus('语言模型源无响应，切换备用源(' + (pi + 1) + '/' + LANG_PATHS.length + ')重试…', true);
+                            var done = false;
+                            var p = window.Tesseract.recognize(procUrl, 'chi_sim+eng', { logger: loggerFn, langPath: LANG_PATHS[pi] });
+                            var watchdog = new Promise(function (_, rej) { setTimeout(function () { if (!done) rej(new Error('语言模型加载超时(90秒)')); }, 90000); });
+                            Promise.race([p, watchdog]).then(function (res) {
+                                if (done) return;
+                                done = true;
+                                __orderTessLoading = false;
+                                var txt = (res && res.data && res.data.text ? res.data.text : '').trim();
+                                var ta = document.getElementById('orderOcrText');
+                                var wrap = document.getElementById('orderOcrTextWrap');
+                                if (ta) ta.value = txt;
+                                if (wrap) wrap.style.display = txt ? 'block' : 'none';
+                                orderSetStatus(txt ? '✅ 识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', !txt);
+                            }).catch(function (err) {
+                                if (done) return;
+                                done = true;
+                                if (pi + 1 < LANG_PATHS.length) { tryRecognize(pi + 1); return; }
+                                __orderTessLoading = false;
+                                orderSetStatus('识别失败：' + (err && err.message ? err.message : err), true);
+                            });
+                        })(0);
                     });
                 });
             }

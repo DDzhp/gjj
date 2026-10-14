@@ -2903,11 +2903,7 @@
                             var tT = (rs[0].text || '').trim(), tB = (rs[1].text || '').trim();
                             var eT = rs[0].error, eB = rs[1].error;
                             var show = '';
-                            if (tT && tB) show = '【腾讯云】
-' + tT + '
-
-――― 百度云 ―――
-' + tB;
+                            if (tT && tB) show = '【腾讯云】\n' + tT + '\n\n――― 百度云 ―――\n' + tB;
                             else show = tT || tB;
                             var ta = document.getElementById('orderOcrText');
                             var wrap = document.getElementById('orderOcrTextWrap');

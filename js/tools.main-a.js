@@ -2579,7 +2579,8 @@
                 // OCR 常见错字预修复（向下兼容：干净原文原样通过，仅乱码受影响）
                 t = t.replace(/(?<!厂)商账号/g, '厂商账号');                     // 厂字被吞：商账号:1153
                 t = t.replace(/厂商[^:：\n]{0,4}(?=[:：])/g, '厂商账号');        // 厂商贤吏: → 厂商账号:
-                t = t.replace(/微信[^:：\n]{0,6}[:：]/g, '微信公众号名称:'); // 微信&众日花: → 微信公众号名称:
+                t = t.replace(/名苑/g, '名称');                                 // 名称→名苑
+                t = t.replace(/(微信|征信)[^:：\n]{0,6}[:：]/g, '微信公众号名称:'); // 微信→征信 错字 // 微信&众日花: → 微信公众号名称:
                 t = t.replace(/六司名称/g, '公司名称');                          // 公司名称 → 六司名称
                 var F = { filled: [], missing: [], warnings: [] };
 
@@ -2593,26 +2594,33 @@
                 grab(/(?:公司|司)名称[:]?([^\n]*?)(?=微信公众号名称|微信公众号|厂商账号|产品型号)/, 'company', '公司名称');
                 grab(/微信[^:\n]{0,6}[:]?([^\n]*?)(?=厂商账号|产品型号|$)/, 'wechat', '微信公众号名称');
                 grab(/厂商账号[:]?([A-Za-z0-9]+)/, 'vendorId', '厂商账号');
-                grab(/产品型号[:]?_?\s*([A-Za-z][A-Za-z0-9\-—一－]+)/, 'model', '产品型号');
+                grab(/产品型号[:]?_?\s*([A-Za-z][A-Za-z0-9\-—一－~]+)/, 'model', '产品型号'); // 容 -→~ 错字
                 grab(/产品数量[:]?[^\d\n]{0,2}(\d+)/, 'count', '产品数量');
                 // 脉冲：容忍 路→像 等错字与 (C1000 类括号杂讯
                 grab(/冷水2[^0-9\n]{0,6}?(\d{2,})/, 'channel2Pulse', '冷水2路脉冲');
-                grab(/热水1[^0-9\n]{0,6}?(\d{2,})/, 'channel1Pulse', '热水1路脉冲');
+                grab(/(?:热|熠|烈)?水1[^0-9\n]{0,6}?(\d{2,})/, 'channel1Pulse', '热水1路脉冲'); // 容 热→熠/烈 错字
                 grab(/放水时间:?冷2路[(]?\s*(\d+)/, 'valve2', '放水时间冷2路');
                 grab(/放水时间:?热1路[(]?\s*(\d+)/, 'valve1', '放水时间热1路');
                 grab(/制水时间:?[(]?(\d+)/, 'waterTime', '制水时间');
                 grab(/(?<!阀)检修时间:?[(]?(\d+)/, 'maintainTime', '检修时间'); // 排除「水壶进水阀检修时间」
                 grab(/加热最高温度:?[(]?(\d+)/, 'hotWaterTemp', '加热最高温度');
                 grab(/制冷启动温度:?[(]?(\d+)/, 'coolStartTemp', '制冷启动温度');
-                grab(/浮球[(]\s*(\d+)\s*[)]/, 'floatBall', '浮球'); // 闭合括号限定，防「改浮球(24V门锁)」手写注记
-                grab(/单次限制流量:?[(]?(\d+)/, 'singleLimitFlow', '单次限制流量');
+                grab(/[浮涛泊]球[(]\s*(\d+)\s*[)]/, 'floatBall', '浮球'); // 闭合括号限定，防「改浮球(24V门锁)」手写注记
+                grab(/(?:单|卑)次限制流量:?[(]?(\d+)/, 'singleLimitFlow', '单次限制流量');
                 grab(/取水等待时间:?[(]?(\d+)/, 'waterWait', '取水等待时间');
                 grab(/取水暂停等待时间:?[(]?(\d+)/, 'waterPause', '取水暂停等待时间');
-                grab(/单次限制时间:?[(]?(\d+)/, 'singleLimitTime', '单次限制时间');
-                grab(/冷水费率2路[(]?([\d.]+)/, 'rate2', '冷水费率2路');
-                grab(/热水费率1路[(]?([\d.]+)/, 'rate1', '热水费率1路');
+                grab(/(?:单|卑)次限制时间:?[(]?(\d+)/, 'singleLimitTime', '单次限制时间');
+                grab(/水费率2路[(]?([\d.]+)/, 'rate2', '冷水费率2路'); // 容 冷→识 错字
+                grab(/水费率1路[(]?([\d.]+)/, 'rate1', '热水费率1路');
                 grab(/消毒后等待时间:?[(]?(\d+)/, 'disinfectionWait', '消毒后等待时间');
                 grab(/消毒持续时间:?[(]?(\d+)/, 'disinfectionDuration', '消毒持续时间');
+
+                // 「制水时间:0」多为 OCR 把空括号()认成 0（真实表单不会填 0）→ 弃用防误填
+                if (F.waterTime === '0') {
+                    delete F.waterTime;
+                    var _wi = F.filled.indexOf('制水时间');
+                    if (_wi !== -1) { F.filled.splice(_wi, 1); F.missing.push('制水时间'); }
+                }
 
                 // 滤芯寿命：勾选框前缀判定（OCR 把 ☑ 认成 2З/[ /R 等也能认；口/□/0/O = 空框）
                 F.filterLife = detectFilterLife(t);
@@ -2731,11 +2739,16 @@
                 var img = new Image();
                 img.onload = function () {
                     try {
-                        var scale = img.width < 900 ? 2 : Math.min(2, 2000 / img.width);
+                        // 大图（≥1200px）直接把原图交给 OCR：实测 canvas 重编码（低质量插值+JPEG 压缩）会把表单小字糊掉，导致只认出大字行
+                        if (img.width >= 1200) { cb(dataUrl); return; }
+                        // 小图放大 2x 帮助识别：高质量插值 + 灰度 + 对比度拉伸 + 无损 PNG
+                        var scale = 2;
                         var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
                         var cv = document.createElement('canvas');
                         cv.width = w; cv.height = h;
                         var ctx = cv.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        if (ctx.imageSmoothingQuality) ctx.imageSmoothingQuality = 'high';
                         ctx.fillStyle = '#ffffff';
                         ctx.fillRect(0, 0, w, h);
                         ctx.drawImage(img, 0, 0, w, h);
@@ -2754,7 +2767,7 @@
                             px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = g;
                         }
                         ctx.putImageData(d, 0, 0);
-                        cb(cv.toDataURL('image/jpeg', 0.92));
+                        cb(cv.toDataURL('image/png'));
                     } catch (e) { cb(dataUrl); }
                 };
                 img.onerror = function () { cb(dataUrl); };
@@ -2787,32 +2800,60 @@
                         var loggerFn = function (m) {
                             if (m && m.status && m.progress != null) orderSetStatus('识别中：' + m.status + ' ' + Math.round(m.progress * 100) + '%');
                         };
-                        (function tryRecognize(pi) {
+                        (function trySource(pi) {
                             if (pi >= LANG_PATHS.length) {
                                 __orderTessLoading = false;
                                 orderSetStatus('识别失败：中文模型两个源都下载失败，请检查网络或挂代理后重试', true);
                                 return;
                             }
                             if (pi > 0) orderSetStatus('语言模型源无响应，切换备用源(' + (pi + 1) + '/' + LANG_PATHS.length + ')重试…', true);
-                            var done = false;
-                            var p = window.Tesseract.recognize(procUrl, 'chi_sim+eng', { logger: loggerFn, langPath: LANG_PATHS[pi] });
-                            var watchdog = new Promise(function (_, rej) { setTimeout(function () { if (!done) rej(new Error('语言模型加载超时(90秒)')); }, 90000); });
-                            Promise.race([p, watchdog]).then(function (res) {
-                                if (done) return;
-                                done = true;
+                            var settled = false;
+                            var watchdog = setTimeout(function () {
+                                if (settled) return;
+                                settled = true;
+                                trySource(pi + 1);
+                            }, 90000);
+                            function settle() { if (!settled) { settled = true; clearTimeout(watchdog); } }
+                            function finish(ok, txt, errMsg) {
+                                settle();
                                 __orderTessLoading = false;
-                                var txt = (res && res.data && res.data.text ? res.data.text : '').trim();
+                                if (!ok) { orderSetStatus('识别失败：' + (errMsg || '未知错误'), true); return; }
+                                txt = (txt || '').trim();
                                 var ta = document.getElementById('orderOcrText');
                                 var wrap = document.getElementById('orderOcrTextWrap');
                                 if (ta) ta.value = txt;
                                 if (wrap) wrap.style.display = txt ? 'block' : 'none';
                                 orderSetStatus(txt ? '✅ 识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', !txt);
+                            }
+                            window.Tesseract.createWorker('chi_sim+eng', 1, { logger: loggerFn, langPath: LANG_PATHS[pi] }).then(function (w) {
+                                function dense(s) { return (s || '').replace(/\s+/g, '').length; }
+                                function rec(psm) {
+                                    return w.setParameters({ tessedit_pageseg_mode: String(psm) }).then(function () { return w.recognize(procUrl); })
+                                        .then(function (res) { return (res && res.data && res.data.text ? res.data.text : ''); });
+                                }
+                                rec(3).then(function (t3) {
+                                    var best = t3;
+                                    if (dense(best) >= 150) return best;
+                                    // 版面分割偶然失败（只认出零星几行）→ 自动换分割模式重试，取字数最多的一版
+                                    orderSetStatus('版面分割不佳，自动换分割模式重试…');
+                                    return rec(4).then(function (t4) {
+                                        if (dense(t4) > dense(best)) best = t4;
+                                        if (dense(best) >= 150) return best;
+                                        return rec(11).then(function (t11) { return dense(t11) > dense(best) ? t11 : best; });
+                                    });
+                                }).then(function (txt) {
+                                    try { w.terminate(); } catch (e2) {}
+                                    finish(true, txt);
+                                }).catch(function (err) {
+                                    try { w.terminate(); } catch (e2) {}
+                                    if (settled) return;
+                                    if (pi + 1 < LANG_PATHS.length) { trySource(pi + 1); return; }
+                                    finish(false, '', err && err.message ? err.message : err);
+                                });
                             }).catch(function (err) {
-                                if (done) return;
-                                done = true;
-                                if (pi + 1 < LANG_PATHS.length) { tryRecognize(pi + 1); return; }
-                                __orderTessLoading = false;
-                                orderSetStatus('识别失败：' + (err && err.message ? err.message : err), true);
+                                if (settled) return;
+                                if (pi + 1 < LANG_PATHS.length) { trySource(pi + 1); return; }
+                                finish(false, '', err && err.message ? err.message : err);
                             });
                         })(0);
                     });

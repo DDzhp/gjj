@@ -2591,9 +2591,10 @@
                 t = t.replace(/六司名称/g, '公司名称');                          // 公司名称 → 六司名称
                 var F = { filled: [], missing: [], warnings: [] };
 
-                function grab(re, key, label) {
+                function grab(re, key, label, isNum) {
                     var m = t.match(re);
                     var v = m && m[1] ? m[1].trim() : '';
+                    if (v && isNum) v = v.replace(/[Oo]/g, '0'); // OCR 把 0 认成字母 O/o（数值参数不含字母，统一纠正）
                     if (v) { F[key] = v; F.filled.push(label); } else { F.missing.push(label); }
                     return v;
                 }
@@ -2611,25 +2612,28 @@
                         if (suspicious || glued) F.model = mm[1].replace(/[—\-~]+$/, '');
                     }
                 }
-                grab(/产品数量[:]?[^\d\n]{0,2}(\d+)/, 'count', '产品数量');
+                grab(/产品数量[:]?[^\dOo\n]{0,2}([\dOo]+)/, 'count', '产品数量', true);
                 // 脉冲：容忍 路→像 等错字与 (C1000 类括号杂讯
-                grab(/冷水2[^0-9\n]{0,6}?(\d{2,})/, 'channel2Pulse', '冷水2路脉冲');
-                grab(/(?:热|熠|烈)水?1[^0-9\n]{0,6}?(\d{2,})/, 'channel1Pulse', '热水1路脉冲'); // 容 热→熠/烈 错字、"热1路脉冲"无水字形态
-                grab(/放水时间:?冷2路[(]?\s*(\d+)/, 'valve2', '放水时间冷2路');
-                grab(/放水时间:?热1路[(]?\s*(\d+)/, 'valve1', '放水时间热1路');
-                grab(/制水时间:?[(]?(\d+)/, 'waterTime', '制水时间');
-                grab(/(?<!阀)检修时间:?[(]?(\d+)/, 'maintainTime', '检修时间'); // 排除「水壶进水阀检修时间」
-                grab(/加热最高温度:?[(]?(\d+)/, 'hotWaterTemp', '加热最高温度');
-                grab(/制冷启动温度:?[(]?(\d+)/, 'coolStartTemp', '制冷启动温度');
-                grab(/[浮涛泊]球[(]\s*(\d+)\s*[)lI|｜）]/, 'floatBall', '浮球'); // 闭合括号限定，防「改浮球(24V门锁)」手写注记
-                grab(/(?:单|卑)次限制流量:?[(]?(\d+)/, 'singleLimitFlow', '单次限制流量');
-                grab(/取水等待时间:?[(]?(\d+)/, 'waterWait', '取水等待时间');
-                grab(/取水暂停等待时间:?[(]?(\d+)/, 'waterPause', '取水暂停等待时间');
-                grab(/(?:单|卑)次限制时间:?[(]?(\d+[Oo]?)/, 'singleLimitTime', '单次限制时间');
-                grab(/水费率2路[(]?([\d.]+)/, 'rate2', '冷水费率2路'); // 容 冷→识 错字
-                grab(/水费率1路[(]?([\d.]+)/, 'rate1', '热水费率1路');
-                grab(/消毒后等待时间:?[(]?(\d+)/, 'disinfectionWait', '消毒后等待时间');
-                grab(/消毒持续时间:?[(]?(\d+)/, 'disinfectionDuration', '消毒持续时间');
+                grab(/冷水2[^0-9Oo\n]{0,6}?([\dOo]{2,})/, 'channel2Pulse', '冷水2路脉冲', true);
+                grab(/(?:热|熠|烈)水?1[^0-9Oo\n]{0,6}?([\dOo]{2,})/, 'channel1Pulse', '热水1路脉冲', true); // 容 热→熠/烈 错字、"热1路脉冲"无水字形态
+                grab(/放水时间:?冷2路[(]?\s*([\dOo]+)/, 'valve2', '放水时间冷2路', true);
+                grab(/放水时间:?热1路[(]?\s*([\dOo]+)/, 'valve1', '放水时间热1路', true);
+                grab(/制水时间:?[(]?([\dOo]+)/, 'waterTime', '制水时间', true);
+                grab(/(?<!阀)检修时间:?[(]?([\dOo]+)/, 'maintainTime', '检修时间', true); // 排除「水壶进水阀检修时间」
+                grab(/加热最高温度:?[(]?([\dOo]+)/, 'hotWaterTemp', '加热最高温度', true);
+                grab(/制冷启动温度:?[(]?([\dOo]+)/, 'coolStartTemp', '制冷启动温度', true);
+                grab(/[浮涛泊]球[(]\s*([\dOo]+)\s*[)lI|｜）]/, 'floatBall', '浮球', true); // 闭合括号限定，防「改浮球(24V门锁)」手写注记
+                grab(/(?:单|卑)次限制流量:?[(]?([\dOo]+)/, 'singleLimitFlow', '单次限制流量', true);
+                grab(/取水等待时间:?[(]?([\dOo]+)/, 'waterWait', '取水等待时间', true);
+                grab(/取水暂停等待时间:?[(]?([\dOo]+)/, 'waterPause', '取水暂停等待时间', true);
+                grab(/(?:单|卑)次限制时间:?[(]?([\dOo]+)/, 'singleLimitTime', '单次限制时间', true);
+                grab(/水费率2路[(]?([\dOo.]+)/, 'rate2', '冷水费率2路', true); // 容 冷→识 错字
+                grab(/水费率1路[(]?([\dOo.]+)/, 'rate1', '热水费率1路', true);
+                // 老费率（mL 计费）：「热水费率(7500)mL」「冷水费率(0)」——带"1路/2路"后缀的是新费率（元/升），不会被这两条误抓
+                grab(/热水费率[:]?[(]([\dOo.]+)/, 'rate1Hot', '热水老费率', true);
+                grab(/冷水费率[:]?[(]([\dOo.]+)/, 'rate2Cold', '冷水老费率', true);
+                grab(/消毒后等待时间:?[(]?([\dOo]+)/, 'disinfectionWait', '消毒后等待时间', true);
+                grab(/消毒持续时间:?[(]?([\dOo]+)/, 'disinfectionDuration', '消毒持续时间', true);
 
                 // 「制水时间:0」多为 OCR 把空括号()认成 0（真实表单不会填 0）→ 弃用防误填
                 if (F.waterTime === '0') {
@@ -2667,6 +2671,31 @@
                 if (F.platform) F.filled.push('云平台(' + F.platform + ')');
                 else { F.missing.push('云平台'); F.warnings.push('云平台勾选未识别，请手工选择下拉框后重新点解析'); }
 
+                return F;
+            }
+
+            // 双渠道交叉互补：主渠道缺失字段从副渠道补（与批量脚本 order_resolver.js 同逻辑）
+            function mergeOrderFields(F, FS, otherName) {
+                if (!FS) return F;
+                var LABELS = { company: '公司名称', wechat: '微信公众号名称', vendorId: '厂商账号', model: '产品型号', count: '产品数量', channel2Pulse: '冷水2路脉冲', channel1Pulse: '热水1路脉冲', waterTime: '制水时间', valve2: '放水时间冷2路', valve1: '放水时间热1路', maintainTime: '检修时间', hotWaterTemp: '加热最高温度', coolStartTemp: '制冷启动温度', floatBall: '浮球', singleLimitFlow: '单次限制流量', waterWait: '取水等待时间', waterPause: '取水暂停等待时间', singleLimitTime: '单次限制时间', rate2: '冷水费率2路', rate1: '热水费率1路', rate1Hot: '热水老费率', rate2Cold: '冷水老费率', disinfectionWait: '消毒后等待时间', disinfectionDuration: '消毒持续时间', filterLife: '滤芯寿命', platform: '云平台' };
+                var mergedKeys = [];
+                Object.keys(LABELS).forEach(function (k) {
+                    if ((F[k] === undefined || F[k] === '') && FS[k] !== undefined && FS[k] !== '') {
+                        F[k] = FS[k];
+                        mergedKeys.push(LABELS[k]);
+                        var lb = LABELS[k];
+                        var mi = F.missing.indexOf(lb);
+                        if (mi >= 0) F.missing.splice(mi, 1);
+                        var disp = String(FS[k]);
+                        if (k === 'filterLife') disp = '滤芯寿命(' + (FS[k] === '0' ? '时间' : '流量') + ')';
+                        if (k === 'platform') disp = '云平台(' + FS[k] + ')';
+                        F.filled.push(disp + '<' + otherName + '补>');
+                        F.warnings.push(lb + ' 主渠道未识别，已从' + otherName + '补（建议人工核对）');
+                        if (k === 'filterLife') F.warnings = F.warnings.filter(function (w) { return w.indexOf('滤芯寿命勾选未识别') === -1; });
+                        if (k === 'platform') F.warnings = F.warnings.filter(function (w) { return w.indexOf('云平台勾选未识别') === -1; });
+                    }
+                });
+                F.mergedKeys = mergedKeys;
                 return F;
             }
 
@@ -2862,6 +2891,40 @@
                 if (ch !== 'local') {
                     // 云端渠道：复用 🔳 二维码批量识别 的云端代理（百度/腾讯，密钥在代理侧）
                     if (!window.__CloudOCR) { orderSetStatus('云端渠道不可用（qrbatch-init 未加载），请改用本地引擎', true); return; }
+                    if (ch === 'both') {
+                        // 腾讯+百度互补：并行识别 → 主(腾讯优先)缺副补 → 文本框放双原文供核对，解析时自动合并
+                        __orderTessLoading = true;
+                        orderSetStatus('云端识别中（腾讯云 + 百度云互补）…');
+                        Promise.all([
+                            window.__CloudOCR.ocr(__orderImageDataUrl, 'tencent').catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; }),
+                            window.__CloudOCR.ocr(__orderImageDataUrl, 'baidu').catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; })
+                        ]).then(function (rs) {
+                            __orderTessLoading = false;
+                            var tT = (rs[0].text || '').trim(), tB = (rs[1].text || '').trim();
+                            var eT = rs[0].error, eB = rs[1].error;
+                            var show = '';
+                            if (tT && tB) show = '【腾讯云】
+' + tT + '
+
+――― 百度云 ―――
+' + tB;
+                            else show = tT || tB;
+                            var ta = document.getElementById('orderOcrText');
+                            var wrap = document.getElementById('orderOcrTextWrap');
+                            if (ta) ta.value = show;
+                            if (wrap) wrap.style.display = show ? 'block' : 'none';
+                            if (!show) { orderSetStatus('⚠️ 两渠道均未识别到文字' + ((eT || eB) ? '（' + (eT || eB) + '）' : '') + '，可手工粘贴订单文字', true); return; }
+                            window.__orderDual = { shown: show, primaryText: tT || tB, secondaryText: (tT && tB) ? tB : null, otherName: tT ? '百度云' : '腾讯云' };
+                            // 完成状态：互补合并后的字段蓝/红展示
+                            var Fm = parseOrderTextCore(tT || tB);
+                            mergeOrderFields(Fm, (tT && tB) ? parseOrderTextCore(tB) : null, tT ? '百度云' : '腾讯云');
+                            var okPart = '<span style="color:#2b6cf6;font-weight:600;">识别到：' + (Fm.filled.length ? Fm.filled.join('、') : '（无）') + '</span>';
+                            var supPart = (Fm.mergedKeys && Fm.mergedKeys.length) ? '<span style="color:#2b8a3e;font-weight:600;">　〔互补补充: ' + Fm.mergedKeys.join('、') + '〕</span>' : '';
+                            var missPart = Fm.missing.length ? '<span style="color:#e74c3c;">　未识别：' + Fm.missing.join('、') + '</span>' : '';
+                            orderSetStatusHTML('✅ 腾讯+百度云互补识别完成！' + okPart + supPart + missPart + '<span style="color:#888;">　请核对/修正文字，再点「⚡ 解析并填充参数」</span>');
+                        });
+                        return;
+                    }
                     __orderTessLoading = true;
                     orderSetStatus('云端识别中（' + (ch === 'tencent' ? '腾讯云·通用印刷体' : '百度云·通用文字') + '）…');
                     window.__CloudOCR.ocr(__orderImageDataUrl, ch).then(function (r) {
@@ -2988,6 +3051,7 @@
                 ['motherboardModel', 'channel2Pulse', 'channel1Pulse', 'waterTime', 'valve2Time', 'valve1Time',
                  'maintainTime', 'hotWaterTemp', 'coolStartTemp', 'floatBall', 'singleLimitFlow',
                  'waterWaitTime', 'waterPauseTime', 'singleLimitTime', 'rate2ColdPerLiter', 'rate1HotPerLiter',
+                 'rate1Hot', 'rate2Cold',
                  'tempLockDisinfectionWait', 'disinfectionDuration', 'inStockCount'].forEach(function (id) {
                     var el = document.getElementById(id);
                     if (el) el.value = '';
@@ -3008,6 +3072,8 @@
                 setVal('singleLimitTime', F.singleLimitTime);
                 setVal('rate2ColdPerLiter', F.rate2);
                 setVal('rate1HotPerLiter', F.rate1);
+                setVal('rate1Hot', F.rate1Hot);
+                setVal('rate2Cold', F.rate2Cold);
                 setVal('tempLockDisinfectionWait', F.disinfectionWait);
                 setVal('disinfectionDuration', F.disinfectionDuration);
                 setVal('inStockCount', F.count);
@@ -3043,7 +3109,7 @@
                 function add(lbl, v) { if (v != null && v !== '') parts.push(lbl + '：' + v); }
                 if (F.company) box.push('公司名称：' + F.company);
                 if (F.wechat) box.push('微信公众号名称：' + F.wechat);
-                if (F.vendorId) box.push('厂商账号：' + F.vendorId);
+                box.push('厂商账号：' + (F.vendorId || '')); // 强制出现：为空也占位，提示人工补查
                 if (F.platform) box.push('云平台：' + F.platform);
                 var head = box.length ? '【' + box.join('，') + '】' : '';
                 add('主板型号/产品型号', F.model);
@@ -3062,6 +3128,8 @@
                 add('取水等待时间', F.waterWait);
                 add('取水暂停等待时间', F.waterPause);
                 add('单次限制时间', F.singleLimitTime);
+                if (F.rate1Hot) parts.push('热水费率(' + F.rate1Hot + ')（老）');
+                if (F.rate2Cold) parts.push('冷水费率(' + F.rate2Cold + ')（老）');
                 if (F.rate2) parts.push('冷水费率2路(' + F.rate2 + ')'); // 括号形式满足费率正则"路(数值)"
                 if (F.rate1) parts.push('热水费率1路(' + F.rate1 + ')');
                 add('消毒后等待时间', F.disinfectionWait);
@@ -3074,6 +3142,12 @@
                 var raw = ta ? ta.value : '';
                 if (!raw.trim()) { alert('识别文本为空，请先识别图片或手工粘贴订单文字'); return; }
                 var F = parseOrderTextCore(raw);
+                // 互补渠道缓存命中（文本未手工修改）→ 主渠道字段从副渠道补
+                var dual = window.__orderDual;
+                if (dual && dual.primaryText && raw === dual.shown) {
+                    mergeOrderFields(F, dual.secondaryText ? parseOrderTextCore(dual.secondaryText) : null, dual.otherName);
+                    window.__orderDual = null;
+                }
 
                 // 非标内容框只保留提取结果单行摘要（固定四项【】包裹+按需项），不放 OCR 全文
                 var summaryTxt = buildOrderExtractText(F);

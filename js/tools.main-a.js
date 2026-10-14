@@ -2893,6 +2893,12 @@
                 return M[ch] || (ch === 'tencent' ? '腾讯云' : '百度云');
             }
 
+            // 云渠道短名（互补标题/补源标注用）
+            function orderChanShort(ch) {
+                var M = { tencent_accurate: '腾讯高精度', baidu_accurate: '百度高精度', tencent: '腾讯云', baidu: '百度云' };
+                return M[ch] || orderChanLabel(ch);
+            }
+
             function runOrderOcr() {
                 if (!__orderImageDataUrl) { alert('请先上传 / 粘贴 / 拖拽生产订单图片'); return; }
                 if (/^file:/i.test(location.protocol)) { orderSetStatus('本地引擎不支持 file:// 直接打开（浏览器安全限制），请访问线上地址使用，或改用云端渠道', true); return; }
@@ -2905,31 +2911,36 @@
                     if (!window.__CloudOCR) { orderSetStatus('云端渠道不可用（qrbatch-init 未加载），请改用本地引擎', true); return; }
                     if (ch === 'both') {
                         // 腾讯+百度互补：并行识别 → 主(腾讯优先)缺副补 → 文本框放双原文供核对，解析时自动合并
+                        // 互补引擎对可被钩子覆盖（入库参数生成器2 切换为双云高精度），1 号默认腾讯标准+百度标准，文案逐字不变
+                        var be = (typeof window.__orderBothEngines === 'function') ? window.__orderBothEngines() : ['tencent', 'baidu'];
+                        var nA = orderChanLabel(be[0]), nB = orderChanLabel(be[1]);
+                        var isStdBoth = (be[0] === 'tencent' && be[1] === 'baidu');
+                        var bothTitle = isStdBoth ? '腾讯+百度云' : (orderChanShort(be[0]) + '+' + orderChanShort(be[1]));
                         __orderTessLoading = true;
-                        orderSetStatus('云端识别中（腾讯云 + 百度云互补）…');
+                        orderSetStatus('云端识别中（' + (isStdBoth ? '腾讯云 + 百度云' : bothTitle) + '互补）…');
                         Promise.all([
-                            window.__CloudOCR.ocr(__orderImageDataUrl, 'tencent').catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; }),
-                            window.__CloudOCR.ocr(__orderImageDataUrl, 'baidu').catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; })
+                            window.__CloudOCR.ocr(__orderImageDataUrl, be[0]).catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; }),
+                            window.__CloudOCR.ocr(__orderImageDataUrl, be[1]).catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; })
                         ]).then(function (rs) {
                             __orderTessLoading = false;
                             var tT = (rs[0].text || '').trim(), tB = (rs[1].text || '').trim();
                             var eT = rs[0].error, eB = rs[1].error;
                             var show = '';
-                            if (tT && tB) show = '【腾讯云】\n' + tT + '\n\n――― 百度云 ―――\n' + tB;
+                            if (tT && tB) show = '【' + nA + '】\n' + tT + '\n\n――― ' + nB + ' ―――\n' + tB;
                             else show = tT || tB;
                             var ta = document.getElementById('orderOcrText');
                             var wrap = document.getElementById('orderOcrTextWrap');
                             if (ta) ta.value = show;
                             if (wrap) wrap.style.display = show ? 'block' : 'none';
                             if (!show) { orderSetStatus('⚠️ 两渠道均未识别到文字' + ((eT || eB) ? '（' + (eT || eB) + '）' : '') + '，可手工粘贴订单文字', true); return; }
-                            window.__orderDual = { shown: show, primaryText: tT || tB, secondaryText: (tT && tB) ? tB : null, otherName: tT ? '百度云' : '腾讯云' };
+                            window.__orderDual = { shown: show, primaryText: tT || tB, secondaryText: (tT && tB) ? tB : null, otherName: tT ? orderChanShort(be[1]) : orderChanShort(be[0]) };
                             // 完成状态：互补合并后的字段蓝/红展示
                             var Fm = parseOrderTextCore(tT || tB);
-                            mergeOrderFields(Fm, (tT && tB) ? parseOrderTextCore(tB) : null, tT ? '百度云' : '腾讯云');
+                            mergeOrderFields(Fm, (tT && tB) ? parseOrderTextCore(tB) : null, tT ? orderChanShort(be[1]) : orderChanShort(be[0]));
                             var okPart = '<span style="color:#2b6cf6;font-weight:600;">识别到：' + (Fm.filled.length ? Fm.filled.join('、') : '（无）') + '</span>';
                             var supPart = (Fm.mergedKeys && Fm.mergedKeys.length) ? '<span style="color:#2b8a3e;font-weight:600;">　〔互补补充: ' + Fm.mergedKeys.join('、') + '〕</span>' : '';
                             var missPart = Fm.missing.length ? '<span style="color:#e74c3c;">　未识别：' + Fm.missing.join('、') + '</span>' : '';
-                            orderSetStatusHTML('✅ 腾讯+百度云互补识别完成！' + okPart + supPart + missPart + '<span style="color:#888;">　请核对/修正文字，再点「⚡ 解析并填充参数」</span>');
+                            orderSetStatusHTML('✅ ' + bothTitle + '互补识别完成！' + okPart + supPart + missPart + '<span style="color:#888;">　请核对/修正文字，再点「⚡ 解析并填充参数」</span>');
                         });
                         return;
                     }

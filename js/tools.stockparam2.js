@@ -9,11 +9,11 @@
  *           /ocr_accurate       通用文字识别（高精度版 accurate_basic）
  *   腾讯云  /ocr_tencent            通用印刷体识别（标准 GeneralBasicOCR）
  *           /ocr_tencent_accurate   通用印刷体识别（高精度 GeneralAccurateOCR）
- *           /ocr_tencent_fast       通用印刷体识别（高速 GeneralFastOCR）
- *           /ocr_tencent_efficient  通用印刷体识别（精简 GeneralEfficientOCR）
- *           /ocr_tencent_handwriting 通用印刷体识别（手写 GeneralHandwritingOCR）
+ *   互补    腾讯+百度 = 双云【高精度】版本取并集（经 __orderBothEngines 钩子，
+ *           仅 2 号工具生效；1 号工具互补保持双标准版不变）
+ *   渠道排序：腾讯+百度 → 腾讯高精度 → 百度高精度 → 腾讯标准 → 百度标准 → 本地
  *   ⚠️ 新端点需先把仓库根目录 cloud_ocr_scf.py 重新部署到腾讯云 SCF，
- *      否则新渠道会报「not found」/「非JSON」错误。
+ *      否则新渠道会报「云端还没有该接口」并给出部署指引。
  *
  * 实现原理（零复制、零侵入）：
  *   1) 面板 DOM 是 1 号工具 section 的完整克隆，所有元素 id 加「2」后缀；
@@ -60,13 +60,17 @@
 
   /* ---------- 2. 云端渠道表扩展（包装 __CloudOCR.ocr，按引擎名分发 SCF 端点） ---------- */
   var OCR_PATHS = {
-    baidu: '/ocr',                          // 百度 通用文字识别（标准版）
-    baidu_accurate: '/ocr_accurate',        // 百度 通用文字识别（高精度版）
-    tencent: '/ocr_tencent',                // 腾讯 通用印刷体识别（标准）
-    tencent_accurate: '/ocr_tencent_accurate',   // 腾讯 通用印刷体识别（高精度）
-    tencent_fast: '/ocr_tencent_fast',           // 腾讯 通用印刷体识别（高速）
-    tencent_efficient: '/ocr_tencent_efficient', // 腾讯 通用印刷体识别（精简）
-    tencent_handwriting: '/ocr_tencent_handwriting' // 腾讯 通用印刷体识别（手写）
+    baidu: '/ocr',                                // 百度 通用文字识别（标准版）
+    baidu_accurate: '/ocr_accurate',              // 百度 通用文字识别（高精度版）
+    tencent: '/ocr_tencent',                      // 腾讯 通用印刷体识别（标准）
+    tencent_accurate: '/ocr_tencent_accurate'     // 腾讯 通用印刷体识别（高精度）
+  };
+
+  /* 互补引擎对：2 号工具「腾讯+百度」互补用双云高精度版本；1 号保持标准版不变 */
+  window.__orderBothEngines = function () {
+    return window.currentActiveTool === 'stockParamTool2'
+      ? ['tencent_accurate', 'baidu_accurate']
+      : ['tencent', 'baidu'];
   };
 
   function scaled(canvas, maxDim) {
@@ -175,11 +179,15 @@
         }
       });
     }
-    // 渠道记忆（独立 key，不与 1 号互相覆盖）
+    // 渠道记忆（独立 key，不与 1 号互相覆盖；已下线渠道值自动回落到互补）
     try {
       var chSaved = localStorage.getItem('stock_ocr_channel2');
       var sel = _geb('orderOcrChannel2');
-      if (chSaved && sel) sel.value = chSaved;
+      if (chSaved && sel) {
+        var has = false;
+        for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === chSaved) { has = true; break; } }
+        sel.value = has ? chSaved : 'both';
+      }
     } catch (e) { }
   }
 })();

@@ -1834,10 +1834,10 @@
             });
             
             // 入库参数生成器相关函数
-            function extractData() {
-                // 验证滤芯寿命是否已选择
+            function extractData(allowNoFilter) {
+                // 验证滤芯寿命是否已选择（订单自动提取 allowNoFilter=true 时不中断，该项留空待补）
                 const filterLifeType = document.getElementById('filterLifeType').value;
-                if (!filterLifeType) {
+                if (!filterLifeType && !allowNoFilter) {
                     alert('请选择滤芯寿命！');
                     return;
                 }
@@ -2601,11 +2601,20 @@
                 grab(/(?:公司|司)名称[:]?([^\n]*?)(?=\n|微信公众号名称|微信公众号|厂商账号|产品型号)/, 'company', '公司名称');
                 grab(/微信[^:\n]{0,6}[:]?([^\n]*?)(?=\n|厂商账号|产品型号|$)/, 'wechat', '微信公众号名称');
                 grab(/厂商账号[:]?([A-Za-z0-9]+)/, 'vendorId', '厂商账号');
-                grab(/产品型号[:]?_?\s*([A-Za-z][A-Za-z0-9\-—一－~]+)/, 'model', '产品型号'); // 容 -→~ 错字
+                grab(/产品型号[:]?_?\s*([^\n]*?)(?=\n|$|产品数量|产品类型|厂商账号|微信公众号名称|下单时间|业务员|备注|定制程序|域名地址|入库方式|云平台|常规参数|特别参数|配线|天线|物联网卡|灌装|氢水|滤芯寿命|脉冲)/, 'model', '产品型号'); // 型号可含中文(宇泉定制)，遇到下一字段标签/换行/行尾为止
+                // 型号中文后缀裁剪：保留"宇泉定制"类定制方名（后面无字母数字粘行、不含注记词）；剔除 OCR 粘连的手写注记（定制TDS改浮球(24V门锁)/单出水/贴片天线等）
+                if (F.model) {
+                    var mm = F.model.match(/^([\s\S]*?)([\u4e00-\u9fa5]+)([\s\S]*)$/);
+                    if (mm && mm[2] && mm[2].length >= 2) { // 单字中文(如连字符错字"一")不裁
+                        var suspicious = /TDS|改|浮球|门锁|单出水|单进水|贴片|天线|蘑菇|吸盘|排线|并线|电源线|模块|探头|喇叭|屏蔽|灌装|氢水|卡号|IMEI|定制程序/.test(mm[2]);
+                        var glued = /[A-Za-z0-9(（]/.test(mm[3]);
+                        if (suspicious || glued) F.model = mm[1].replace(/[—\-~]+$/, '');
+                    }
+                }
                 grab(/产品数量[:]?[^\d\n]{0,2}(\d+)/, 'count', '产品数量');
                 // 脉冲：容忍 路→像 等错字与 (C1000 类括号杂讯
                 grab(/冷水2[^0-9\n]{0,6}?(\d{2,})/, 'channel2Pulse', '冷水2路脉冲');
-                grab(/(?:热|熠|烈)?水1[^0-9\n]{0,6}?(\d{2,})/, 'channel1Pulse', '热水1路脉冲'); // 容 热→熠/烈 错字
+                grab(/(?:热|熠|烈)水?1[^0-9\n]{0,6}?(\d{2,})/, 'channel1Pulse', '热水1路脉冲'); // 容 热→熠/烈 错字、"热1路脉冲"无水字形态
                 grab(/放水时间:?冷2路[(]?\s*(\d+)/, 'valve2', '放水时间冷2路');
                 grab(/放水时间:?热1路[(]?\s*(\d+)/, 'valve1', '放水时间热1路');
                 grab(/制水时间:?[(]?(\d+)/, 'waterTime', '制水时间');
@@ -3003,7 +3012,7 @@
                     if (ed0) ed0.value = '';
                 }
                 var blocked = flSel && !flSel.value; // 滤芯寿命仍未确定
-                if (autoExtract && !blocked) extractData();
+                if (autoExtract) extractData(true); // 无论滤芯寿命是否识别，标准内容必须输出（未识别项留空）
                 return { blocked: blocked };
             }
 
@@ -3058,8 +3067,8 @@
                     (F.warnings.length ? ' ｜ ⚠️ ' + F.warnings.join('；') : '');
                 orderSetStatus(msg + (blocked ? ' ｜ 请在上方表单选择「滤芯寿命」后，点「提取数据」生成参数' : ''), F.warnings.length > 0 || blocked);
 
-                // 滤芯寿命已确定才自动生成（否则 extractData 会 alert 中断）
-                if (!blocked) extractData();
+                // 标准内容必须输出（滤芯寿命未识别时该项留空，状态条仍提示补选）
+                extractData(true);
             }
 
             // 截图粘贴：仅在入库参数生成工具激活时拦截图片粘贴，不影响其他工具

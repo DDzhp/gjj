@@ -1978,7 +1978,7 @@
                 }
 
                 // 📷 生产订单格式（图片识别原文/订单粘贴）：只提取固定六项+按需数值项（有数值才填）
-                if (/常规参数|特别参数|生产订单表|生产订单提取结果/.test(nonStandardData)) {
+                if (/常规参数|特别参数|生产订单表|主板型号\/产品型号|冷水2路脉冲|放水时间冷2路|滤芯寿命[:：]?☑|单次限制流量/.test(nonStandardData) || nonStandardData === window.__lastOrderSummary) {
                     var OF = parseOrderTextCore(nonStandardData);
                     applyOrderParseToForm(OF, !window.__orderConvBusy);
                     return;
@@ -2993,7 +2993,10 @@
 
                 // 五要素写入 Excel 数据区（与一键转换同约定：公众号空补公司名、卡类型=无卡类型）
                 if (F.company) {
-                    document.getElementById('excelData').value = [F.company, F.wechat || F.company, '无卡类型', F.vendorId || '', platform].join('\t');
+                    // 单行摘要再解析时 company/wechat 无换行边界会带尾逗号，写入前清除
+                    var comp = (F.company || '').replace(/[,，、\s]+$/, '');
+                    var wx = (F.wechat || comp).replace(/[,，、\s]+$/, '');
+                    document.getElementById('excelData').value = [comp, wx, '无卡类型', F.vendorId || '', platform].join('\t');
                 } else {
                     // 公司名未识别：五要素整体不可信，清空防上一单残留
                     var ed0 = document.getElementById('excelData');
@@ -3004,35 +3007,36 @@
                 return { blocked: blocked };
             }
 
-            // 非标内容框摘要：只列提取到的字段（固定六项 + 按需数值项），头部标记供 convertData 订单分支识别
+            // 非标内容框摘要：单行逗号间隔；固定四项（公司名称/微信公众号名称/厂商账号/云平台）用【】包裹
             function buildOrderExtractText(F) {
-                var L = ['【生产订单提取结果】'];
-                function add(lbl, v) { if (v != null && v !== '') L.push(lbl + '：' + v); }
-                add('公司名称', F.company);
-                add('微信公众号名称', F.wechat);
-                add('厂商账号', F.vendorId);
-                add('云平台', F.platform);
+                var parts = [], box = [];
+                function add(lbl, v) { if (v != null && v !== '') parts.push(lbl + '：' + v); }
+                if (F.company) box.push('公司名称：' + F.company);
+                if (F.wechat) box.push('微信公众号名称：' + F.wechat);
+                if (F.vendorId) box.push('厂商账号：' + F.vendorId);
+                if (F.platform) box.push('云平台：' + F.platform);
+                var head = box.length ? '【' + box.join('，') + '】' : '';
                 add('主板型号/产品型号', F.model);
                 add('产品数量', F.count);
-                if (F.filterLife) L.push('滤芯寿命：☑' + (F.filterLife === '0' ? '时间' : '流量'));
+                if (F.filterLife) parts.push('滤芯寿命：☑' + (F.filterLife === '0' ? '时间' : '流量'));
                 add('冷水2路脉冲', F.channel2Pulse);
                 add('热水1路脉冲', F.channel1Pulse);
                 add('制水时间', F.waterTime);
-                add('放水时间冶2路', F.valve2);
+                add('放水时间冷2路', F.valve2);
                 add('放水时间热1路', F.valve1);
                 add('检修时间', F.maintainTime);
                 add('加热最高温度', F.hotWaterTemp);
                 add('制冷启动温度', F.coolStartTemp);
-                if (F.floatBall) L.push('浮球(' + F.floatBall + ')');
+                if (F.floatBall) parts.push('浮球(' + F.floatBall + ')');
                 add('单次限制流量', F.singleLimitFlow);
                 add('取水等待时间', F.waterWait);
                 add('取水暂停等待时间', F.waterPause);
                 add('单次限制时间', F.singleLimitTime);
-                add('冷水费率2路', F.rate2);
-                add('热水费率1路', F.rate1);
+                if (F.rate2) parts.push('冷水费率2路(' + F.rate2 + ')'); // 括号形式满足费率正则"路(数值)"
+                if (F.rate1) parts.push('热水费率1路(' + F.rate1 + ')');
                 add('消毒后等待时间', F.disinfectionWait);
                 add('消毒持续时间', F.disinfectionDuration);
-                return L.join('\n');
+                return head + parts.join('，');
             }
 
             function parseOrderText() {
@@ -3041,9 +3045,11 @@
                 if (!raw.trim()) { alert('识别文本为空，请先识别图片或手工粘贴订单文字'); return; }
                 var F = parseOrderTextCore(raw);
 
-                // 非标内容框只保留提取结果（固定六项+按需项），不再放 OCR 全文
+                // 非标内容框只保留提取结果单行摘要（固定四项【】包裹+按需项），不放 OCR 全文
+                var summaryTxt = buildOrderExtractText(F);
+                window.__lastOrderSummary = summaryTxt; // 供 convertData 兜底识别摘要格式
                 var nsBox = document.getElementById('nonStandardData');
-                if (nsBox) nsBox.value = buildOrderExtractText(F);
+                if (nsBox) nsBox.value = summaryTxt;
 
                 var res = applyOrderParseToForm(F, false);
                 var blocked = res.blocked; // 滤芯寿命仍未确定

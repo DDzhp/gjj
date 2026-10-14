@@ -2796,6 +2796,27 @@
             function runOrderOcr() {
                 if (!__orderImageDataUrl) { alert('请先上传 / 粘贴 / 拖拽生产订单图片'); return; }
                 if (__orderTessLoading) { orderSetStatus('识别进行中，请稍候…'); return; }
+                var ch = 'local';
+                var chSel = document.getElementById('orderOcrChannel');
+                if (chSel) ch = chSel.value;
+                if (ch !== 'local') {
+                    // 云端渠道：复用 🔳 二维码批量识别 的云端代理（百度/腾讯，密钥在代理侧）
+                    if (!window.__CloudOCR) { orderSetStatus('云端渠道不可用（qrbatch-init 未加载），请改用本地引擎', true); return; }
+                    __orderTessLoading = true;
+                    orderSetStatus('云端识别中（' + (ch === 'tencent' ? '腾讯云·通用印刷体' : '百度云·通用文字') + '）…');
+                    window.__CloudOCR.ocr(__orderImageDataUrl, ch).then(function (r) {
+                        __orderTessLoading = false;
+                        var ta = document.getElementById('orderOcrText');
+                        var wrap = document.getElementById('orderOcrTextWrap');
+                        if (ta) ta.value = r.text;
+                        if (wrap) wrap.style.display = r.text ? 'block' : 'none';
+                        orderSetStatus(r.text ? '✅ 云端识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 云端未识别到文字，可换渠道或手工粘贴订单文字', !r.text);
+                    }).catch(function (err) {
+                        __orderTessLoading = false;
+                        orderSetStatus('云端识别失败：' + (err && err.message ? err.message : err) + '（可换一个渠道重试）', true);
+                    });
+                    return;
+                }
                 loadOrderTesseractLib(function () {
                     __orderTessLoading = true;
                     orderSetStatus('图片预处理中…');
@@ -2943,6 +2964,11 @@
             // 拖拽上传（独立页无 orderDropZone 时自动跳过）
             document.addEventListener('DOMContentLoaded', function () {
                 var zone = document.getElementById('orderDropZone');
+            try {
+                var chSaved = localStorage.getItem('stock_ocr_channel');
+                var chSel2 = document.getElementById('orderOcrChannel');
+                if (chSaved && chSel2) chSel2.value = chSaved;
+            } catch (e2) { }
                 if (!zone) return;
                 ['dragenter', 'dragover'].forEach(function (ev) {
                     zone.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); zone.style.background = '#eef6ff'; });

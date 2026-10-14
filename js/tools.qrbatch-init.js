@@ -891,6 +891,33 @@
     setBusy(false);
   }
 
+  /* 供其他工具（📦 入库参数生成器等）复用云端 OCR 渠道：baidu=百度通用 /ocr，tencent=腾讯通用 /ocr_tencent */
+  window.__CloudOCR = {
+    proxyBase: function () { return proxyBase() || 'https://1318636345-gylpu3x5zl.ap-guangzhou.tencentscf.com'; },
+    ocr: function (dataUrl, engine) {
+      var img = new Image();
+      return new Promise(function (resolve, reject) {
+        img.onload = function () {
+          try {
+            var cv = document.createElement('canvas');
+            cv.width = img.width; cv.height = img.height;
+            cv.getContext('2d').drawImage(img, 0, 0);
+            var st = scaled(cv, 2400);
+            var path = engine === 'tencent' ? '/ocr_tencent' : '/ocr';
+            uploadToProxy(path, st.cv).then(function (data) {
+              if (!data) { return reject(new Error('云 OCR 无响应（代理未启动？）')); }
+              if (data.error) { return reject(new Error('云 OCR 错误：' + data.error)); }
+              quotaInc(engine === 'tencent' ? 'tencent_ocr_qr' : 'baidu_ocr');
+              resolve({ text: (data.text || '').trim(), engine: engine });
+            }).catch(reject);
+          } catch (e) { reject(e); }
+        };
+        img.onerror = function () { reject(new Error('图片加载失败')); };
+        img.src = dataUrl;
+      });
+    }
+  };
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

@@ -107,7 +107,18 @@
             });
           }).then(function (data) {
             if (!data) { reject(new Error('云 OCR 无响应（代理未启动？）')); return; }
-            if (data.error) { reject(new Error('云 OCR 错误：' + data.error)); return; }
+            if (data.error) {
+              var msg = String(data.error);
+              var isNew = path !== '/ocr' && path !== '/ocr_tencent'; // v4.3 新端点
+              if (isNew && /not found/i.test(msg)) {
+                reject(new Error('云端还没有该接口（' + msg + '）——SCF 云函数仍是旧版：请把 cloud_ocr_scf.py 全部内容重新部署到腾讯云 SCF（控制台→该函数→函数代码→粘贴覆盖 index.py→点「部署」），部署完成后再试本渠道'));
+              } else if (isNew) {
+                reject(new Error('云 OCR 错误：' + msg));
+              } else {
+                reject(new Error('云 OCR 错误：' + msg));
+              }
+              return;
+            }
             resolve({ text: (data.text || '').trim(), engine: engineName });
           }).catch(reject);
         } catch (e) { reject(e); }

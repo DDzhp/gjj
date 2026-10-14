@@ -2640,8 +2640,8 @@
                 var ctxM = t.match(/寿命[:]?([\s\S]{0,14})/);
                 if (!ctxM) return '';
                 var ctx = ctxM[1];
-                var BOX = '口□Oo0Оо〇';
-                var CONTENT = /[A-Za-z0-9√☑■✓✔回团因四囚囗囬RVv]/;
+                var BOX = '口□Oo0Оо〇☐↵⏎DU';
+                var CONTENT = /[A-Za-z0-9√☑☒■✓✔回团因四囚囗囬区冈RVv]/;
                 var SEP = ':;|、,，.。\\/"\'，。《》~-—_';
                 var defs = [
                     { re: /时[间司]/, key: '0', name: '时间' },
@@ -2666,7 +2666,7 @@
 
             // 云平台勾选识别：长词优先找关键词出现点（掩码防子串），看前缀字符定勾选，行标签定归属
             function detectOrderPlatform(t) {
-                var BOX = '口□Oo0Оо〇';
+                var BOX = '口□Oo0Оо〇☐↵⏎DU';
                 var SEP = ':;|,：；，';
                 var rows = [
                     { re: /跃龙\s*1[.。!lI|]?\s*0/, kws: [['公有售水机有域名', '跃龙公有售水机'], ['有售水机有域名', '跃龙公有售水机'], ['公有售水机', '跃龙公有售水机'], ['有售水机', '跃龙公有售水机'], ['新公有有域名', '跃龙新公有'], ['新公有', '跃龙新公有'], ['公有有域名', '跃龙公有'], ['新私有', '跃龙新私有'], ['私有', '跃龙私有'], ['公有', '跃龙公有']] },
@@ -2682,7 +2682,7 @@
                     while ((m = re.exec(t)) !== null) labels.push({ row: r, idx: m.index });
                 });
                 labels.sort(function (a, b) { return a.idx - b.idx; });
-                var hits = [];
+                var hits = [], sepHits = [];
                 labels.forEach(function (L, li) {
                     var seg = t.slice(L.idx, li + 1 < labels.length ? labels[li + 1].idx : t.length);
                     var base = L.idx, masked = [];
@@ -2696,6 +2696,9 @@
                                 var dom = kv[0].indexOf('域名') !== -1;
                                 if (BOX.indexOf(prev) === -1 && SEP.indexOf(prev) === -1 && !(isCJK && dom)) {
                                     hits.push({ val: kv[1], idx: base + idx });
+                                } else if (SEP.indexOf(prev) !== -1) {
+                                    // 勾选符被云端 OCR 丢弃（冒号后直接跟关键词，如腾讯云「[Lr]:公有售水机」）→ 记为弱候选
+                                    sepHits.push({ val: kv[1], idx: base + idx });
                                 }
                                 masked.push({ start: idx, end: idx + kv[0].length });
                             }
@@ -2703,7 +2706,15 @@
                         }
                     });
                 });
-                if (!hits.length) return '';
+                if (!hits.length) {
+                    // 勾选符全丢时的兜底：仅当弱候选取值唯一才采用，避免瞎猜
+                    if (sepHits.length) {
+                        var vals = [];
+                        sepHits.forEach(function (x) { if (vals.indexOf(x.val) === -1) vals.push(x.val); });
+                        if (vals.length === 1) return vals[0];
+                    }
+                    return '';
+                }
                 hits.sort(function (a, b) { return a.idx - b.idx; });
                 return hits[0].val;
             }
@@ -2898,6 +2909,13 @@
                 var raw = ta ? ta.value : '';
                 if (!raw.trim()) { alert('识别文本为空，请先识别图片或手工粘贴订单文字'); return; }
                 var F = parseOrderTextCore(raw);
+
+                // OCR 原文自动粘进「非标内容」并一键转换成标准内容（转换结果随后被订单级解析覆盖/补全）
+                var nsBox = document.getElementById('nonStandardData');
+                if (nsBox) {
+                    nsBox.value = raw;
+                    try { convertData(); } catch (eConv) { }
+                }
 
                 function setVal(id, v) {
                     var el = document.getElementById(id);

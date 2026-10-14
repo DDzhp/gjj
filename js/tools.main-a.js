@@ -2881,6 +2881,18 @@
                 })();
             }
 
+            // 云渠道显示名（入库参数生成器2 新增接口经 SCF 端点 /ocr_accurate 等；老渠道文案保持原样）
+            function orderChanLabel(ch) {
+                var M = {
+                    baidu_accurate: '百度云·通用文字（高精度版）',
+                    tencent_accurate: '腾讯云·通用印刷体（高精度）',
+                    tencent_fast: '腾讯云·通用印刷体（高速）',
+                    tencent_efficient: '腾讯云·通用印刷体（精简）',
+                    tencent_handwriting: '腾讯云·通用印刷体（手写）'
+                };
+                return M[ch] || (ch === 'tencent' ? '腾讯云' : '百度云');
+            }
+
             function runOrderOcr() {
                 if (!__orderImageDataUrl) { alert('请先上传 / 粘贴 / 拖拽生产订单图片'); return; }
                 if (/^file:/i.test(location.protocol)) { orderSetStatus('本地引擎不支持 file:// 直接打开（浏览器安全限制），请访问线上地址使用，或改用云端渠道', true); return; }
@@ -2922,14 +2934,14 @@
                         return;
                     }
                     __orderTessLoading = true;
-                    orderSetStatus('云端识别中（' + (ch === 'tencent' ? '腾讯云·通用印刷体' : '百度云·通用文字') + '）…');
+                    orderSetStatus('云端识别中（' + orderChanLabel(ch) + '）…');
                     window.__CloudOCR.ocr(__orderImageDataUrl, ch).then(function (r) {
                         __orderTessLoading = false;
                         var ta = document.getElementById('orderOcrText');
                         var wrap = document.getElementById('orderOcrTextWrap');
                         if (ta) ta.value = r.text;
                         if (wrap) wrap.style.display = r.text ? 'block' : 'none';
-                        if (r.text) orderOcrDoneStatus(r.text, ch === 'tencent' ? '腾讯云' : '百度云');
+                        if (r.text) orderOcrDoneStatus(r.text, orderChanLabel(ch));
                         else orderSetStatus('⚠️ 云端未识别到文字，可换渠道或手工粘贴订单文字', true);
                     }).catch(function (err) {
                         __orderTessLoading = false;

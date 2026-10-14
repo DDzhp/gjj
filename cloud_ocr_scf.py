@@ -6,8 +6,13 @@ cloud_ocr_scf.py — 工具集网页版「云 OCR / 云二维码」腾讯云 SCF
 与 cloud_ocr_proxy.py / cloud_ocr_worker.mjs / cloud_ocr_edgeone.mjs 端点完全一致，可无缝切换：
   GET  /ping        健康检查 -> {"ok": true, "engine": "scf"}
   POST /ocr         图片 -> 百度通用文字识别(general_basic + detect_direction 自动纠偏) -> {"text": "..."}
+  POST /ocr_accurate    图片 -> 百度通用文字识别(高精度版 accurate_basic) -> {"text": "..."}
   POST /ocr_numbers 图片 -> 百度数字识别(v1/numbers，仅返回数字，免费 200 次/天) -> {"text": "..."}
-  POST /ocr_tencent 图片 -> 腾讯云 GeneralBasicOCR -> {"text": "..."}
+  POST /ocr_tencent            图片 -> 腾讯云 GeneralBasicOCR（通用印刷体·标准） -> {"text": "..."}
+  POST /ocr_tencent_accurate   图片 -> 腾讯云 GeneralAccurateOCR（通用印刷体·高精度） -> {"text": "..."}
+  POST /ocr_tencent_fast       图片 -> 腾讯云 GeneralFastOCR（通用印刷体·高速） -> {"text": "..."}
+  POST /ocr_tencent_efficient  图片 -> 腾讯云 GeneralEfficientOCR（通用印刷体·精简） -> {"text": "..."}
+  POST /ocr_tencent_handwriting 图片 -> 腾讯云 GeneralHandwritingOCR（通用印刷体·手写） -> {"text": "..."}
   POST /qr          图片 -> 腾讯云 QrcodeOCR(TC3-HMAC-SHA256 签名) -> {"codes": [{"data","x","y","w","h"}]}
   POST /qr_baidu    图片 -> 百度云二维码(v1/qrcode) -> {"codes": [...]}
 
@@ -46,12 +51,24 @@ import urllib.error
 
 # 运行时若在本地直接跑也能当普通函数调试（不推荐，仅辅助）
 BAIDU_TOKEN_URL = "https://aip.baidubce.com/oauth/2.0/token"
-BAIDU_OCR_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic"
+BAIDU_OCR_BASE = "https://aip.baidubce.com/rest/2.0/ocr/v1/"
+BAIDU_OCR_URL = BAIDU_OCR_BASE + "general_basic"          # 兼容旧引用
+BAIDU_ACCURATE_URL = BAIDU_OCR_BASE + "accurate_basic"    # 通用文字识别（高精度版）
 BAIDU_NUMBERS_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/numbers"
 BAIDU_QR_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/qrcode"
 TENCENT_OCR_HOST = "ocr.tencentcloudapi.com"
 TENCENT_VERSION = "2018-11-19"
 TENCENT_REGION = "ap-guangzhou"
+
+# 腾讯云通用 OCR 各 Action（入库参数生成器2 接口对比用）
+# 支持 LanguageType 参数的 Action；不支持的不传，避免参数校验报错
+TENCENT_LANG_ACTIONS = ("GeneralBasicOCR", "GeneralFastOCR", "GeneralHandwritingOCR")
+
+# 路由白名单（main_handler 里按最后一个片段还原 path）
+ENDPOINTS = ("ping", "ocr", "ocr_accurate", "ocr_numbers",
+             "ocr_tencent", "ocr_tencent_accurate", "ocr_tencent_fast",
+             "ocr_tencent_efficient", "ocr_tencent_handwriting",
+             "qr", "qr_baidu")
 
 HTTP_TIMEOUT = 55  # 留余量给 SCF 超时时间(建议函数配置 60s)
 
@@ -220,8 +237,9 @@ def _baidu_post(s, api_url, img_bytes, extra=None):
         return json.loads(resp.read().decode("utf-8"))
 
 
-def baidu_ocr(img_bytes, s):
-    data = _baidu_post(s, BAIDU_OCR_URL, img_bytes, {"detect_direction": "true"})
+def baidu_ocr(img_bytes, s, api="general_basic"):
+    """api: general_basic=通用文字识别（标准版） / accurate_basic=通用文字识别（高精度版）"""
+    data = _baidu_post(s, BAIDU_OCR_BASE + api, img_bytes, {"detect_direction": "true"})
     if "words_result" not in data:
         raise RuntimeError("百度 OCR 识别失败: %s" % (data.get("error_msg") or data.get("error") or data))
     return "\n".join([w.get("words", "") for w in data.get("words_result") or [] if w.get("words")])
@@ -334,9 +352,14 @@ def tencent_qrcode(img_bytes, s):
     return codes
 
 
-def tencent_ocr(img_bytes, s):
+def tencent_ocr(img_bytes, s, action="GeneralBasicOCR"):
+    """action: GeneralBasicOCR=通用印刷体（标准） / GeneralAccurateOCR=高精度 /
+    GeneralFastOCR=高速 / GeneralEfficientOCR=精简 / GeneralHandwritingOCR=手写"""
     b64 = base64.b64encode(img_bytes).decode("ascii")
-    data = _tc3_call(s, "GeneralBasicOCR", {"ImageBase64": b64, "LanguageType": "auto"})
+    body = {"ImageBase64": b64}
+    if action in TENCENT_LANG_ACTIONS:
+        body["LanguageType"] = "auto"
+    data = _tc3_call(s, action, body)
     rb = data.get("Response") or {}
     if "Error" in rb:
         raise RuntimeError("腾讯云 OCR 错误[%s]: %s" % (rb["Error"].get("Code"), rb["Error"].get("Message")))
@@ -363,12 +386,12 @@ def main_handler(event, context):
     path = event.get("path") or event.get("pathParameters") or "/"
     # 兼容 path 形如 /release/ping 或 /ping
     segs = path.rstrip("/").split("/")
-    if segs and segs[-1] in ("ping", "ocr", "ocr_numbers", "ocr_tencent", "qr", "qr_baidu"):
+    if segs and segs[-1] in ENDPOINTS:
         path = "/" + segs[-1]
     else:
         # 取最后一个以 / 开头的合法片段兜底
         for i in range(len(segs) - 1, -1, -1):
-            if segs[i] in ("ping", "ocr", "ocr_numbers", "ocr_tencent", "qr", "qr_baidu"):
+            if segs[i] in ENDPOINTS:
                 path = "/" + segs[i]
                 break
 
@@ -393,10 +416,20 @@ def main_handler(event, context):
         s = secrets()
         if path == "/ocr":
             return _json_response({"text": baidu_ocr(img, s)})
+        if path == "/ocr_accurate":
+            return _json_response({"text": baidu_ocr(img, s, "accurate_basic")})
         if path == "/ocr_numbers":
             return _json_response({"text": baidu_ocr_numbers(img, s)})
         if path == "/ocr_tencent":
             return _json_response({"text": tencent_ocr(img, s)})
+        if path == "/ocr_tencent_accurate":
+            return _json_response({"text": tencent_ocr(img, s, "GeneralAccurateOCR")})
+        if path == "/ocr_tencent_fast":
+            return _json_response({"text": tencent_ocr(img, s, "GeneralFastOCR")})
+        if path == "/ocr_tencent_efficient":
+            return _json_response({"text": tencent_ocr(img, s, "GeneralEfficientOCR")})
+        if path == "/ocr_tencent_handwriting":
+            return _json_response({"text": tencent_ocr(img, s, "GeneralHandwritingOCR")})
         if path == "/qr":
             return _json_response({"codes": tencent_qrcode(img, s)})
         if path == "/qr_baidu":

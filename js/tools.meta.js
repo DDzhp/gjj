@@ -17,6 +17,14 @@ window.YL_TOOLS = [
     "common": true
   },
   {
+    "id": "stockParamTool2",
+    "name": "入库参数生成2",
+    "icon": "🧪",
+    "cat": "入库",
+    "desc": "接口对比调试版：百度/腾讯多 OCR 接口切换对比",
+    "common": true
+  },
+  {
     "id": "iccidTool",
     "name": "ICCID 详情",
     "icon": "📱",

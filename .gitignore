@@ -16,3 +16,9 @@ config.json
 
 # Python 缓存
 __pycache__/
+
+# 本地备份快照(git tag backup-stockparam-20261014 已留档)与本地实验产物
+备份_入库参数生成器_20261014/
+_test_baidu_sk.mjs
+报价计算器小程序/
+报价计算器小程序.zip

@@ -315,6 +315,213 @@
             </div>
         </section>
 
+<section id="stockParamTool2" class="calculator" style="display: none;">
+            <h2>🧪 入库参数生成器2（接口对比·调试版）</h2>
+
+            <div class="tool-section" id="orderDropZone2" style="border: 1.5px dashed #3498db; border-radius: 10px; padding: 14px; background: #f8fbff;">
+                <h3 style="margin-top: 0;">📷 生产订单图片识别</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <input type="file" id="orderImageInput2" accept="image/*" style="max-width: 300px;" onchange="handleOrderImageFile(this.files[0])">
+                    <label style="display:flex; align-items:center; gap:5px; font-weight:500;">识别渠道：
+                        <select id="orderOcrChannel2" onchange="try{localStorage.setItem('stock_ocr_channel2', this.value);}catch(e){}" style="padding:6px 8px; border-radius:4px; border:1px solid #ccc; background:#fff;">
+                            <option value="local">本地引擎（离线·免费）</option>
+                            <option value="baidu">百度云·通用文字识别（标准版）</option>
+                            <option value="baidu_accurate">百度云·通用文字识别（高精度版）</option>
+                            <option value="tencent">腾讯云·通用印刷体识别（标准）</option>
+                            <option value="tencent_accurate">腾讯云·通用印刷体识别（高精度）</option>
+                            <option value="tencent_fast">腾讯云·通用印刷体识别（高速）</option>
+                            <option value="tencent_efficient">腾讯云·通用印刷体识别（精简）</option>
+                            <option value="tencent_handwriting">腾讯云·通用印刷体识别（手写）</option>
+                            <option value="both">腾讯+百度（互补·双渠道取并集）</option>
+                        </select>
+                    </label>
+                    <button type="button" onclick="runOrderOcr()" style="background: #3498db; color: white; border: none; border-radius: 6px; padding: 9px 18px; cursor: pointer;">🔍 识别图片文字</button>
+                </div>
+                <div id="orderImagePreviewWrap2" style="display: none; margin-top: 10px;">
+                    <img id="orderImagePreview2" alt="订单图片预览" style="max-width: 100%; max-height: 320px; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div id="orderOcrStatus2" style="margin-top: 8px; font-size: 13px; color: #555;"></div>
+                <div id="orderOcrTextWrap2" style="display: none; margin-top: 8px;">
+                    <label for="orderOcrText2" style="font-weight: 600;">识别结果（可手工修正后再解析）：</label>
+                    <textarea id="orderOcrText2" style="width: 100%; min-height: 140px; font-family: Consolas, monospace; font-size: 13px;"></textarea>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
+                        <button type="button" onclick="parseOrderText()" style="background: #27ae60; color: white; border: none; border-radius: 6px; padding: 9px 18px; cursor: pointer;">⚡ 解析并填充参数</button>
+                        <label style="font-weight: 600; font-size: 13px; margin: 0;">云平台（识别不准时手工选）：
+                            <select id="platformSelect2" style="width: auto; padding: 6px; font-size: 13px;">
+                                <option value="">请选择/未识别</option>
+                                <optgroup label="跃龙1.0 [LT]">
+                                    <option value="跃龙公有">公有 / 公有有域名</option>
+                                    <option value="跃龙新公有">新公有 / 新公有有域名</option>
+                                    <option value="跃龙公有售水机">公有售水机 / 公有售水机有域名</option>
+                                    <option value="跃龙私有">私有</option>
+                                    <option value="跃龙新私有">新私有</option>
+                                </optgroup>
+                                <optgroup label="跃龙2.0 [YCC]">
+                                    <option value="2.0公有">公有</option>
+                                    <option value="2.0私有">私有</option>
+                                </optgroup>
+                                <optgroup label="跃龙3.0 [ZZQ]">
+                                    <option value="3.0公有">公有</option>
+                                    <option value="3.0私有">私有</option>
+                                </optgroup>
+                                <optgroup label="其他平台">
+                                    <option value="客户私有平台">客户私有平台</option>
+                                    <option value="华码公有">华码: 公有</option>
+                                    <option value="华码私有">华码: 私有</option>
+                                </optgroup>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: #888;">⚠️ 接口对比调试版：新增云端接口（高精度/高速/精简/手写）需先更新部署 SCF 云函数（cloud_ocr_scf.py）后才可用。支持点击上传 / 截图后 Ctrl+V 粘贴 / 拖拽图片到虚线框。勾选框(☑)识别可能不准，填充后请核对红色必填项；识别文本可直接修改。</div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>一键转换区域</h3>
+                <div class="form-group">
+                    <label for="nonStandardData2">粘贴非标准内容：</label>
+                    <textarea id="nonStandardData2" placeholder="例如：中国水务-分宜半亩-建烨  银龙直饮水    1001    跃龙新私有   WSSJ2-B1   流量滤芯  冷水路脉冲330，热水脉冲330  检修720，大/1通道/热水费率[元/升]0.5，小/2通道/冷水费率[元/升]0.5，限制流量7500,浮球7，单次限制300  指定ID 
+ 898604E70623D0181822到 
+ 898604E70623D0181831（10张）  18M "></textarea>
+                </div>
+                <button class="btn" onclick="convertData()">一键转换</button>
+            </div>
+            
+            <div class="result-area" id="result2" style="margin-top: 20px;"></div>
+            
+            <div class="tool-section">
+                <h3>参数设置</h3>
+                <div class="parameter-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <div class="input-wrapper">
+                        <label for="motherboardModel2">主板型号:</label>
+                        <input type="text" id="motherboardModel2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="systemType2">系统类型:</label>
+                        <input type="text" id="systemType2" placeholder="例如：跃龙公有售水机">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="filterLifeType2" style="color: red;">滤芯寿命:</label>
+                        <select id="filterLifeType2">
+                            <option value="">请选择</option>
+                            <option value="0">0.时间</option>
+                            <option value="1">1.流量</option>
+                        </select>
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="channel2Pulse2" style="color: red;">通道2脉冲[冷、小2]:</label>
+                        <input type="text" id="channel2Pulse2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="channel1Pulse2">通道1脉冲[热,大]:</label>
+                        <input type="text" id="channel1Pulse2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="waterTime2" style="color: red;">制水时间:</label>
+                        <input type="text" id="waterTime2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="valve2Time2">阀2放水时间[冷、小]:</label>
+                        <input type="text" id="valve2Time2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="valve1Time2">阀1放水时间[罐装、大、热]:</label>
+                        <input type="text" id="valve1Time2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="maintainTime2" style="color: red;">检修 时间：</label>
+                        <input type="text" id="maintainTime2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate1Hot2">大/1通道/热水老费率:</label>
+                        <input type="text" id="rate1Hot2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate2Cold2">小/2通道/冷水老费率:</label>
+                        <input type="text" id="rate2Cold2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate1HotPerLiter2">大/1通道/热水费率：</label>
+                        <input type="text" id="rate1HotPerLiter2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="rate2ColdPerLiter2">小/2通道/冷水费率：</label>
+                        <input type="text" id="rate2ColdPerLiter2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="singleLimitFlow2">单次限制流量/箱3:</label>
+                        <input type="text" id="singleLimitFlow2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="waterWaitTime2">取水等待时间:</label>
+                        <input type="text" id="waterWaitTime2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="waterPauseTime2">取水暂停等待时间:</label>
+                        <input type="text" id="waterPauseTime2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="floatBall2">浮球-派士:</label>
+                        <input type="text" id="floatBall2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="singleLimitTime2">单次限制时间:</label>
+                        <input type="text" id="singleLimitTime2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="cardFlow2" style="color: red;">卡流量:</label>
+                        <input type="text" id="cardFlow2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="hotWaterTemp2">热水 温度:</label>
+                        <input type="text" id="hotWaterTemp2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="coolStartTemp2">制冷启动温度:</label>
+                        <input type="text" id="coolStartTemp2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="tempLockDisinfectionWait2">温度锁定、消毒后等待:</label>
+                        <input type="text" id="tempLockDisinfectionWait2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="disinfectionDuration2">消毒持续时间:</label>
+                        <input type="text" id="disinfectionDuration2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="iccidStart2">ICCID起始:</label>
+                        <input type="text" id="iccidStart2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="iccidEnd2">ICCID结尾:</label>
+                        <input type="text" id="iccidEnd2">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="inStockCount2">入库数量:</label>
+                        <input type="text" id="inStockCount2">
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="extractData()">提取数据</button>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+                <strong>提示：</strong>家用机常用参数为红色标注项。一般包含：滤芯寿命:、通道2脉冲\[冷、小2]:、制水时间:、检修时间、卡流量。
+            </div>
+            
+            <div class="tool-section">
+                <h3>数据粘贴区域</h3>
+                <div class="form-group">
+                    <label for="excelData2">从Excel粘贴数据（公司名称,微信公众号,厂商ID,卡类型,所属系统）：</label>
+                    <textarea id="excelData2" placeholder="例如：高密市泉碧然供水有限公司	高密泉碧然智慧净水	1028	翔东卡	跃龙公有售水机"></textarea>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+                <strong>提示：</strong>家用机常用参数为红色标注项。一般包含：滤芯寿命:、通道2脉冲[冷、小2]:、制水时间:、检修时间、卡流量。
+            </div>
+        </section>
+
 <section id="iccidTool" class="calculator" style="display:none;">
                 <h2>ICCID详情工具</h2>
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 15px;">
@@ -1401,6 +1608,7 @@ AA55 00 0000273A ..."></textarea>
 <!-- ======== 业务逻辑（自原版逐字抽离，顺序与原版一致） ======== -->
 <script src="js/tools.main-a.js"></script>
 <script src="js/tools.qrbatch-init.js"></script>
+<script src="js/tools.stockparam2.js"></script>
 <script src="js/tools.main-b.js"></script>
 
 <!-- ======== 图片处理工具（扫描优化）：方案A引擎 + 方案B引擎 + 主控制器 ======== -->

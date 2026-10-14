@@ -1976,6 +1976,13 @@
                     alert('请输入非标准内容！');
                     return;
                 }
+
+                // 📷 生产订单格式（图片识别原文/订单粘贴）：只提取固定六项+按需数值项（有数值才填）
+                if (/常规参数|特别参数|生产订单表/.test(nonStandardData)) {
+                    var OF = parseOrderTextCore(nonStandardData);
+                    applyOrderParseToForm(OF, !window.__orderConvBusy);
+                    return;
+                }
                 
                 // 不清空之前所有转换的数据，只清空参数设置区域
                 // 清空参数设置区域
@@ -2748,6 +2755,19 @@
                 if (el) { el.textContent = msg; el.style.color = isErr ? '#e74c3c' : '#555'; }
             }
 
+            function orderSetStatusHTML(html) {
+                var el = document.getElementById('orderOcrStatus');
+                if (el) { el.innerHTML = html; el.style.color = '#555'; }
+            }
+
+            // 识别完成状态：蓝字=已识别字段、红字=未识别字段
+            function orderOcrDoneStatus(txt, engineName) {
+                var F0 = parseOrderTextCore(txt || '');
+                var okPart = '<span style="color:#2b6cf6;font-weight:600;">识别到：' + (F0.filled.length ? F0.filled.join('、') : '（无）') + '</span>';
+                var missPart = F0.missing.length ? '<span style="color:#e74c3c;">　未识别：' + F0.missing.join('、') + '</span>' : '';
+                orderSetStatusHTML('✅ ' + engineName + '识别完成！' + okPart + missPart + '<span style="color:#888;">　请核对/修正文字，再点「⚡ 解析并填充参数」</span>');
+            }
+
             function handleOrderImageFile(file) {
                 if (!file) return;
                 if (file.type && file.type.indexOf('image') !== 0) { alert('请选择图片文件（jpg/png 等）'); return; }
@@ -2883,7 +2903,11 @@
                                 var wrap = document.getElementById('orderOcrTextWrap');
                                 if (ta) ta.value = txt;
                                 if (wrap) wrap.style.display = txt ? 'block' : 'none';
-                                orderSetStatus(txt ? '✅ 识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', !txt);
+                                if (txt) {
+                                    orderOcrDoneStatus(txt, ch === 'tencent' ? '腾讯云' : (ch === 'baidu' ? '百度云' : '本地引擎'));
+                                } else {
+                                    orderSetStatus('⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', true);
+                                }
                             }
                             // worker/wasm 内核自托管；corePath 钉死到具体文件（目录形式 worker 会按 oem 拼 -lstm 变体名导致 404）
                             var __tessBase = location.origin + location.pathname.replace(/[^/]*$/, '');
@@ -2923,19 +2947,8 @@
             }
 
             // 解析识别文本并回填表单（空值不覆盖手工输入）；滤芯寿命未识别时不自动生成，避免 alert 卡死
-            function parseOrderText() {
-                var ta = document.getElementById('orderOcrText');
-                var raw = ta ? ta.value : '';
-                if (!raw.trim()) { alert('识别文本为空，请先识别图片或手工粘贴订单文字'); return; }
-                var F = parseOrderTextCore(raw);
-
-                // OCR 原文自动粘进「非标内容」并一键转换成标准内容（转换结果随后被订单级解析覆盖/补全）
-                var nsBox = document.getElementById('nonStandardData');
-                if (nsBox) {
-                    nsBox.value = raw;
-                    try { convertData(); } catch (eConv) { }
-                }
-
+            // 订单解析结果统一回填表单（「解析并填充参数」与「一键转换」订单分支共用）
+            function applyOrderParseToForm(F, autoExtract) {
                 function setVal(id, v) {
                     var el = document.getElementById(id);
                     if (el && v != null && v !== '') el.value = v;
@@ -2973,11 +2986,31 @@
                 if (F.company) {
                     document.getElementById('excelData').value = [F.company, F.wechat || F.company, '无卡类型', F.vendorId || '', platform].join('\t');
                 }
+                var blocked = flSel && !flSel.value; // 滤芯寿命仍未确定
+                if (autoExtract && !blocked) extractData();
+                return { blocked: blocked };
+            }
 
+            function parseOrderText() {
+                var ta = document.getElementById('orderOcrText');
+                var raw = ta ? ta.value : '';
+                if (!raw.trim()) { alert('识别文本为空，请先识别图片或手工粘贴订单文字'); return; }
+                var F = parseOrderTextCore(raw);
+
+                // OCR 原文自动粘进「非标内容」并一键转换成标准内容（转换结果随后被订单级解析覆盖/补全）
+                var nsBox = document.getElementById('nonStandardData');
+                if (nsBox) {
+                    nsBox.value = raw;
+                    window.__orderConvBusy = true;
+                    try { convertData(); } catch (eConv) { }
+                    window.__orderConvBusy = false;
+                }
+
+                var res = applyOrderParseToForm(F, false);
+                var blocked = res.blocked; // 滤芯寿命仍未确定
                 var msg = '填充完成 ✅ ' + F.filled.join('、') +
                     (F.missing.length ? ' ｜ 未识别: ' + F.missing.join('、') : '') +
                     (F.warnings.length ? ' ｜ ⚠️ ' + F.warnings.join('；') : '');
-                var blocked = flSel && !flSel.value; // 滤芯寿命仍未确定
                 orderSetStatus(msg + (blocked ? ' ｜ 请在上方表单选择「滤芯寿命」后，点「提取数据」生成参数' : ''), F.warnings.length > 0 || blocked);
 
                 // 滤芯寿命已确定才自动生成（否则 extractData 会 alert 中断）
@@ -3017,3 +3050,46 @@
                     if (f) handleOrderImageFile(f);
                 });
             });
+
+            // 🖼️ 预览图灯箱：点击放大、滚轮缩放、点空白/ESC 关闭
+            (function () {
+                var lb = null, lbScale = 1;
+                function lbClose() {
+                    if (lb && lb.parentNode) lb.parentNode.removeChild(lb);
+                    lb = null;
+                    document.removeEventListener('keydown', lbKey);
+                }
+                function lbKey(e) { if (e.key === 'Escape') lbClose(); }
+                function lbOpen(src) {
+                    if (lb) lbClose();
+                    lbScale = 1;
+                    lb = document.createElement('div');
+                    lb.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+                    var img = document.createElement('img');
+                    img.src = src;
+                    img.style.cssText = 'max-width:92vw;max-height:92vh;border-radius:6px;box-shadow:0 0 30px rgba(0,0,0,.6);transition:transform .1s ease;cursor:grab;';
+                    img.addEventListener('wheel', function (e) {
+                        e.preventDefault();
+                        lbScale *= (e.deltaY < 0 ? 1.15 : 1 / 1.15);
+                        if (lbScale < 0.2) lbScale = 0.2;
+                        if (lbScale > 8) lbScale = 8;
+                        img.style.transform = 'scale(' + lbScale + ')';
+                    }, { passive: false });
+                    img.addEventListener('click', function (e) { e.stopPropagation(); });
+                    lb.addEventListener('click', function () { lbClose(); });
+                    lb.appendChild(img);
+                    document.body.appendChild(lb);
+                    document.addEventListener('keydown', lbKey);
+                }
+                document.addEventListener('click', function (e) {
+                    var t = e.target;
+                    if (t && t.id === 'orderImagePreview' && t.getAttribute('src')) {
+                        e.preventDefault();
+                        lbOpen(t.getAttribute('src'));
+                    }
+                }, true);
+                document.addEventListener('DOMContentLoaded', function () {
+                    var pv = document.getElementById('orderImagePreview');
+                    if (pv) { pv.style.cursor = 'zoom-in'; pv.title = '点击放大预览（滚轮缩放，ESC/点空白关闭）'; }
+                });
+            })();

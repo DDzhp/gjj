@@ -143,7 +143,8 @@
     });
   }
   function uploadToProxy(path, cv) {
-    var base = proxyBase();
+    // 未配置代理地址时兜底到 SCF（新浏览器 localStorage 为空，否则 fetch('/ocr_tencent') 打到本站 404 返回 HTML -> r.json() 报 Unexpected token '<'）
+    var base = proxyBase() || 'https://1318636345-gylpu3x5zl.ap-guangzhou.tencentscf.com';
     // 统一用 base64 文本上传（图片已缩放 2400px 内）：
     // 腾讯云 SCF 函数 URL 对二进制 multipart/form-data 请求体会破坏图片字节（实测 image format error），
     // base64 为纯 ASCII 文本、无损直达；Cloudflare Worker / 本地代理 / SCF 均兼容此格式。
@@ -155,7 +156,12 @@
         body: b64,
         mode: 'cors'
       })
-      .then(function (r) { return r.json(); });
+      .then(function (r) {
+        return r.text().then(function (t) {
+          try { return JSON.parse(t); }
+          catch (eJson) { throw new Error('代理返回异常内容(HTTP ' + r.status + '，非JSON)，请检查代理地址配置或稍后重试'); }
+        });
+      });
   }
 
   /* 云二维码：根据 currentQrEngine 选百度（/qr_baidu）或腾讯（/qr），返回 [{data,x,y,w,h}]（原图坐标） */

@@ -2854,6 +2854,7 @@
 
             function runOrderOcr() {
                 if (!__orderImageDataUrl) { alert('请先上传 / 粘贴 / 拖拽生产订单图片'); return; }
+                if (/^file:/i.test(location.protocol)) { orderSetStatus('本地引擎不支持 file:// 直接打开（浏览器安全限制），请访问线上地址使用，或改用云端渠道', true); return; }
                 if (__orderTessLoading) { orderSetStatus('识别进行中，请稍候…'); return; }
                 var ch = 'local';
                 var chSel = document.getElementById('orderOcrChannel');
@@ -2907,7 +2908,14 @@
                             function finish(ok, txt, errMsg) {
                                 settle();
                                 __orderTessLoading = false;
-                                if (!ok) { orderSetStatus('识别失败：' + (errMsg || '未知错误'), true); return; }
+                                if (!ok) {
+                                    var m = String(errMsg || '未知错误');
+                                    if (/SetVariable|wasm|worker|importScripts/i.test(m)) {
+                                        m += '（本地引擎与当前浏览器环境不兼容：请改用云端渠道（百度云/腾讯云），或换 Chrome/Edge 浏览器）';
+                                    }
+                                    orderSetStatus('识别失败：' + m, true);
+                                    return;
+                                }
                                 txt = (txt || '').trim();
                                 var ta = document.getElementById('orderOcrText');
                                 var wrap = document.getElementById('orderOcrTextWrap');
@@ -2920,8 +2928,21 @@
                                 }
                             }
                             // worker/wasm 内核自托管；corePath 钉死到具体文件（目录形式 worker 会按 oem 拼 -lstm 变体名导致 404）
+                            // 内核加载失败（SetVariable/wasm/worker 类错误）自动切换 jsdelivr 备源重建一次，仍失败才走换语言包源/报错
                             var __tessBase = location.origin + location.pathname.replace(/[^/]*$/, '');
-                            window.Tesseract.createWorker('chi_sim+eng', 1, { logger: loggerFn, langPath: LANG_PATHS[pi], workerPath: __tessBase + 'js/tesseract/worker.min.js', corePath: __tessBase + 'js/tesseract/tesseract-core-simd.wasm.js' }).then(function (w) {
+                            var __tessAltBase = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/';
+                            function makeTessWorker(wp, cp, firstErr) {
+                                return window.Tesseract.createWorker('chi_sim+eng', 1, { logger: loggerFn, langPath: LANG_PATHS[pi], workerPath: wp, corePath: cp }).catch(function (e) {
+                                    if (settled) return null;
+                                    if (!firstErr) {
+                                        orderSetStatus('本站引擎内核加载失败，自动切换备用源重试…', true);
+                                        return makeTessWorker(__tessAltBase + 'worker.min.js', __tessAltBase + 'tesseract-core-simd.wasm.js', e);
+                                    }
+                                    throw firstErr;
+                                });
+                            }
+                            makeTessWorker(__tessBase + 'js/tesseract/worker.min.js', __tessBase + 'js/tesseract/tesseract-core-simd.wasm.js', null).then(function (w) {
+                                if (!w) return; // 已 settled（超时/用户中断）
                                 function dense(s) { return (s || '').replace(/\s+/g, '').length; }
                                 function rec(psm) {
                                     return w.setParameters({ tessedit_pageseg_mode: String(psm) }).then(function () { return w.recognize(procUrl); })

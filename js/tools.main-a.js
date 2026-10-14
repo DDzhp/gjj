@@ -2954,6 +2954,14 @@
                     var el = document.getElementById(id);
                     if (el && v != null && v !== '') el.value = v;
                 }
+                // 换单前先清空本批参数框：未识别到的字段留空，不残留上一单数值进标准内容
+                ['motherboardModel', 'channel2Pulse', 'channel1Pulse', 'waterTime', 'valve2Time', 'valve1Time',
+                 'maintainTime', 'hotWaterTemp', 'coolStartTemp', 'floatBall', 'singleLimitFlow',
+                 'waterWaitTime', 'waterPauseTime', 'singleLimitTime', 'rate2ColdPerLiter', 'rate1HotPerLiter',
+                 'tempLockDisinfectionWait', 'disinfectionDuration', 'inStockCount'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
                 setVal('motherboardModel', F.model);
                 setVal('channel2Pulse', F.channel2Pulse);
                 setVal('channel1Pulse', F.channel1Pulse);

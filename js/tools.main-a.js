@@ -2986,6 +2986,10 @@
                 // 五要素写入 Excel 数据区（与一键转换同约定：公众号空补公司名、卡类型=无卡类型）
                 if (F.company) {
                     document.getElementById('excelData').value = [F.company, F.wechat || F.company, '无卡类型', F.vendorId || '', platform].join('\t');
+                } else {
+                    // 公司名未识别：五要素整体不可信，清空防上一单残留
+                    var ed0 = document.getElementById('excelData');
+                    if (ed0) ed0.value = '';
                 }
                 var blocked = flSel && !flSel.value; // 滤芯寿命仍未确定
                 if (autoExtract && !blocked) extractData();

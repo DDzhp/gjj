@@ -2777,11 +2777,20 @@
             function loadOrderTesseractLib(cb) {
                 if (window.Tesseract) { cb(); return; }
                 orderSetStatus('正在加载 OCR 引擎…');
-                var s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-                s.onload = function () { cb(); };
-                s.onerror = function () { orderSetStatus('OCR 引擎加载失败，请检查网络后重试', true); };
-                document.head.appendChild(s);
+                // 优先本站自托管（国内直连稳），失败再走 jsdelivr；worker/core 同样自托管，仅语言包走 jsdelivr
+                var SRCS = [
+                    'js/tesseract/tesseract.min.js',
+                    'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'
+                ];
+                var si = 0;
+                (function loadNext() {
+                    if (si >= SRCS.length) { orderSetStatus('OCR 引擎加载失败，请检查网络后重试', true); return; }
+                    var s = document.createElement('script');
+                    s.src = SRCS[si];
+                    s.onload = function () { cb(); };
+                    s.onerror = function () { si++; loadNext(); };
+                    document.head.appendChild(s);
+                })();
             }
 
             function runOrderOcr() {
@@ -2825,7 +2834,9 @@
                                 if (wrap) wrap.style.display = txt ? 'block' : 'none';
                                 orderSetStatus(txt ? '✅ 识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', !txt);
                             }
-                            window.Tesseract.createWorker('chi_sim+eng', 1, { logger: loggerFn, langPath: LANG_PATHS[pi] }).then(function (w) {
+                            // worker/wasm 内核自托管；corePath 钉死到具体文件（目录形式 worker 会按 oem 拼 -lstm 变体名导致 404）
+                            var __tessBase = location.origin + location.pathname.replace(/[^/]*$/, '');
+                            window.Tesseract.createWorker('chi_sim+eng', 1, { logger: loggerFn, langPath: LANG_PATHS[pi], workerPath: __tessBase + 'js/tesseract/worker.min.js', corePath: __tessBase + 'js/tesseract/tesseract-core-simd.wasm.js' }).then(function (w) {
                                 function dense(s) { return (s || '').replace(/\s+/g, '').length; }
                                 function rec(psm) {
                                     return w.setParameters({ tessedit_pageseg_mode: String(psm) }).then(function () { return w.recognize(procUrl); })

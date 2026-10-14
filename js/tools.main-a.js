@@ -1978,7 +1978,7 @@
                 }
 
                 // 📷 生产订单格式（图片识别原文/订单粘贴）：只提取固定六项+按需数值项（有数值才填）
-                if (/常规参数|特别参数|生产订单表/.test(nonStandardData)) {
+                if (/常规参数|特别参数|生产订单表|生产订单提取结果/.test(nonStandardData)) {
                     var OF = parseOrderTextCore(nonStandardData);
                     applyOrderParseToForm(OF, !window.__orderConvBusy);
                     return;
@@ -2860,7 +2860,8 @@
                         var wrap = document.getElementById('orderOcrTextWrap');
                         if (ta) ta.value = r.text;
                         if (wrap) wrap.style.display = r.text ? 'block' : 'none';
-                        orderSetStatus(r.text ? '✅ 云端识别完成！请核对/修正文字，再点「⚡ 解析并填充参数」' : '⚠️ 云端未识别到文字，可换渠道或手工粘贴订单文字', !r.text);
+                        if (r.text) orderOcrDoneStatus(r.text, ch === 'tencent' ? '腾讯云' : '百度云');
+                        else orderSetStatus('⚠️ 云端未识别到文字，可换渠道或手工粘贴订单文字', true);
                     }).catch(function (err) {
                         __orderTessLoading = false;
                         orderSetStatus('云端识别失败：' + (err && err.message ? err.message : err) + '（可换一个渠道重试）', true);
@@ -2991,20 +2992,46 @@
                 return { blocked: blocked };
             }
 
+            // 非标内容框摘要：只列提取到的字段（固定六项 + 按需数值项），头部标记供 convertData 订单分支识别
+            function buildOrderExtractText(F) {
+                var L = ['【生产订单提取结果】'];
+                function add(lbl, v) { if (v != null && v !== '') L.push(lbl + '：' + v); }
+                add('公司名称', F.company);
+                add('微信公众号名称', F.wechat);
+                add('厂商账号', F.vendorId);
+                add('云平台', F.platform);
+                add('主板型号/产品型号', F.model);
+                add('产品数量', F.count);
+                if (F.filterLife) L.push('滤芯寿命：☑' + (F.filterLife === '0' ? '时间' : '流量'));
+                add('冷水2路脉冲', F.channel2Pulse);
+                add('热水1路脉冲', F.channel1Pulse);
+                add('制水时间', F.waterTime);
+                add('放水时间冶2路', F.valve2);
+                add('放水时间热1路', F.valve1);
+                add('检修时间', F.maintainTime);
+                add('加热最高温度', F.hotWaterTemp);
+                add('制冷启动温度', F.coolStartTemp);
+                if (F.floatBall) L.push('浮球(' + F.floatBall + ')');
+                add('单次限制流量', F.singleLimitFlow);
+                add('取水等待时间', F.waterWait);
+                add('取水暂停等待时间', F.waterPause);
+                add('单次限制时间', F.singleLimitTime);
+                add('冷水费率2路', F.rate2);
+                add('热水费率1路', F.rate1);
+                add('消毒后等待时间', F.disinfectionWait);
+                add('消毒持续时间', F.disinfectionDuration);
+                return L.join('\n');
+            }
+
             function parseOrderText() {
                 var ta = document.getElementById('orderOcrText');
                 var raw = ta ? ta.value : '';
                 if (!raw.trim()) { alert('识别文本为空，请先识别图片或手工粘贴订单文字'); return; }
                 var F = parseOrderTextCore(raw);
 
-                // OCR 原文自动粘进「非标内容」并一键转换成标准内容（转换结果随后被订单级解析覆盖/补全）
+                // 非标内容框只保留提取结果（固定六项+按需项），不再放 OCR 全文
                 var nsBox = document.getElementById('nonStandardData');
-                if (nsBox) {
-                    nsBox.value = raw;
-                    window.__orderConvBusy = true;
-                    try { convertData(); } catch (eConv) { }
-                    window.__orderConvBusy = false;
-                }
+                if (nsBox) nsBox.value = buildOrderExtractText(F);
 
                 var res = applyOrderParseToForm(F, false);
                 var blocked = res.blocked; // 滤芯寿命仍未确定

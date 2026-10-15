@@ -25,6 +25,8 @@ function buildStandardText(F) {
     if (F.filterLife) parts.push('滤芯寿命：' + (F.filterLife === '0' ? '0.时间' : '1.流量'));
     if (F.channel2Pulse) parts.push('通道2脉冲[冷、小2]：' + F.channel2Pulse);
     if (F.channel1Pulse) parts.push('通道1脉冲[热,大]：' + F.channel1Pulse);
+    if (F.startFlowPulse) parts.push('启动流量计脉冲：' + F.startFlowPulse);
+    if (F.hydrogenFlowPulse) parts.push('氢水流量计脉冲：' + F.hydrogenFlowPulse);
     if (F.waterTime) parts.push('制水时间：' + F.waterTime);
     if (F.valve2) parts.push('阀2放水时间[冷、小]：' + F.valve2);
     if (F.valve1 || F.valve2) parts.push('阀1放水时间[罐装、大、热]：' + (F.valve1 || F.valve2));

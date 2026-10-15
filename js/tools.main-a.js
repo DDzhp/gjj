@@ -1870,6 +1870,8 @@
                     '滤芯寿命：': filterLifeTypeText,
                     '通道2脉冲[冷、小2]：': document.getElementById('channel2Pulse').value.trim(),
                     '通道1脉冲[热,大]：': document.getElementById('channel1Pulse').value.trim(),
+                    '启动流量计脉冲：': document.getElementById('startFlowPulse').value.trim(),
+                    '氢水流量计脉冲：': document.getElementById('hydrogenFlowPulse').value.trim(),
                     '制水时间：': document.getElementById('waterTime').value.trim(),
                     '阀2放水时间[冷、小]：': document.getElementById('valve2Time').value.trim(),
                     '阀1放水时间[罐装、大、热]：': document.getElementById('valve1Time').value.trim(),
@@ -1899,6 +1901,8 @@
                     '滤芯寿命：',
                     '通道2脉冲[冷、小2]：',
                     '通道1脉冲[热,大]：',
+                    '启动流量计脉冲：',
+                    '氢水流量计脉冲：',
                     '制水时间：',
                     '阀2放水时间[冷、小]：',
                     '阀1放水时间[罐装、大、热]：',
@@ -2353,15 +2357,25 @@
                     }
                 }
                 
-                // 解析热水费率为大/1通道/热水老费率
-                const hotOldRateMatch = nonStandardData.match(/热水费率(\d+)/);
-                if (hotOldRateMatch && hotOldRateMatch[1]) {
+                // v4.6: 「冷水费率(0.3)元/升」「冷水费率0.3元/升」→ 小/2通道/冷水老费率（先抓，防被下面的整数匹配抢成 0）
+                const coldRateYuanShengMatch = nonStandardData.match(/冷水费率[:：(（]?([\d.]+)[)）]?\s*元\/升/);
+                if (coldRateYuanShengMatch && coldRateYuanShengMatch[1]) {
+                    document.getElementById('rate2Cold').value = coldRateYuanShengMatch[1];
+                }
+                const hotRateYuanShengMatch = nonStandardData.match(/热水费率[:：(（]?([\d.]+)[)）]?\s*元\/升/);
+                if (hotRateYuanShengMatch && hotRateYuanShengMatch[1]) {
+                    document.getElementById('rate1Hot').value = hotRateYuanShengMatch[1];
+                }
+
+                // 解析热水费率为大/1通道/热水老费率（跳过「1路」新费率与已被元/升匹配填入的值）
+                const hotOldRateMatch = nonStandardData.match(/热水费率(\d+)(?!路)/);
+                if (hotOldRateMatch && hotOldRateMatch[1] && !document.getElementById('rate1Hot').value) {
                     document.getElementById('rate1Hot').value = hotOldRateMatch[1];
                 }
-                
-                // 解析冷水费率为小/2通道/冷水老费率
-                const coldOldRateMatch = nonStandardData.match(/冷水费率(\d+)/);
-                if (coldOldRateMatch && coldOldRateMatch[1]) {
+
+                // 解析冷水费率为小/2通道/冷水老费率（跳过「2路」新费率与已被元/升匹配填入的值）
+                const coldOldRateMatch = nonStandardData.match(/冷水费率(\d+)(?!路)/);
+                if (coldOldRateMatch && coldOldRateMatch[1] && !document.getElementById('rate2Cold').value) {
                     document.getElementById('rate2Cold').value = coldOldRateMatch[1];
                 }
                 
@@ -2371,11 +2385,7 @@
                     document.getElementById('rate2ColdPerLiter').value = coldRate2Match[1];
                 }
                 
-                // 解析冷水费率(0.3)元/升格式为小/2通道/冷水费率
-                const coldRateWithBracketsMatch = nonStandardData.match(/冷水费率\(([\d.]+)\)元\/升/);
-                if (coldRateWithBracketsMatch && coldRateWithBracketsMatch[1]) {
-                    document.getElementById('rate2ColdPerLiter').value = coldRateWithBracketsMatch[1];
-                }
+                // v4.6: 「冷水费率(0.3)元/升」已改判归 小/2通道/冷水老费率（见上方元/升匹配），不再填 小/2通道/冷水费率
                 
                 // 解析热水费率1路为大/1通道/热水费率
                 const hotRate1Match = nonStandardData.match(/热水费率1路([\d.]+)元\/升/);
@@ -2616,6 +2626,8 @@
                 // 脉冲：容忍 路→像 等错字与 (C1000 类括号杂讯
                 grab(/冷水2[^0-9Oo\n]{0,6}?([\dOo]{2,})/, 'channel2Pulse', '冷水2路脉冲', true);
                 grab(/(?:热|熠|烈)水?1[^0-9Oo\n]{0,6}?([\dOo]{2,})/, 'channel1Pulse', '热水1路脉冲', true); // 容 热→熠/烈 错字、"热1路脉冲"无水字形态
+                grab(/启动流量计脉冲[:：]?\s*([\dOo]+)/, 'startFlowPulse', '启动流量计脉冲', true);
+                grab(/氢水流量计脉冲[:：]?\s*([\dOo]+)/, 'hydrogenFlowPulse', '氢水流量计脉冲', true);
                 grab(/放水时间:?冷2路[(]?\s*([\dOo]+)/, 'valve2', '放水时间冷2路', true);
                 grab(/放水时间:?热1路[(]?\s*([\dOo]+)/, 'valve1', '放水时间热1路', true);
                 grab(/制水时间:?[(]?([\dOo]+)/, 'waterTime', '制水时间', true);
@@ -2632,6 +2644,10 @@
                 // 老费率（mL 计费）：「热水费率(7500)mL」「冷水费率(0)」——带"1路/2路"后缀的是新费率（元/升），不会被这两条误抓
                 grab(/热水费率[:]?[(]([\dOo.]+)/, 'rate1Hot', '热水老费率', true);
                 grab(/冷水费率[:]?[(]([\dOo.]+)/, 'rate2Cold', '冷水老费率', true);
+                // v4.6: 带「元/升」后缀形态（冷水费率0.3元/升 / 冷水费率:0.3元/升 / 冷水费率(0.3)元/升）→ 强制归老费率
+                // 放在无单位 grab 之后：只要文中出现 X元/升 形态，后抓覆盖以其为准；[元/升] 前置形态（费率[元/升]0.5）不受影响
+                grab(/冷水费率[:：(（]?\s*([\dOo.]+)\s*[)）]?\s*元\s*\/\s*升/, 'rate2Cold', '冷水老费率', true);
+                grab(/热水费率[:：(（]?\s*([\dOo.]+)\s*[)）]?\s*元\s*\/\s*升/, 'rate1Hot', '热水老费率', true);
                 grab(/消毒后等待时间:?[(]?([\dOo]+)/, 'disinfectionWait', '消毒后等待时间', true);
                 grab(/消毒持续时间:?[(]?([\dOo]+)/, 'disinfectionDuration', '消毒持续时间', true);
 
@@ -2677,7 +2693,7 @@
             // 双渠道交叉互补：主渠道缺失字段从副渠道补（与批量脚本 order_resolver.js 同逻辑）
             function mergeOrderFields(F, FS, otherName) {
                 if (!FS) return F;
-                var LABELS = { company: '公司名称', wechat: '微信公众号名称', vendorId: '厂商账号', model: '产品型号', count: '产品数量', channel2Pulse: '冷水2路脉冲', channel1Pulse: '热水1路脉冲', waterTime: '制水时间', valve2: '放水时间冷2路', valve1: '放水时间热1路', maintainTime: '检修时间', hotWaterTemp: '加热最高温度', coolStartTemp: '制冷启动温度', floatBall: '浮球', singleLimitFlow: '单次限制流量', waterWait: '取水等待时间', waterPause: '取水暂停等待时间', singleLimitTime: '单次限制时间', rate2: '冷水费率2路', rate1: '热水费率1路', rate1Hot: '热水老费率', rate2Cold: '冷水老费率', disinfectionWait: '消毒后等待时间', disinfectionDuration: '消毒持续时间', filterLife: '滤芯寿命', platform: '云平台' };
+                var LABELS = { company: '公司名称', wechat: '微信公众号名称', vendorId: '厂商账号', model: '产品型号', count: '产品数量', channel2Pulse: '冷水2路脉冲', channel1Pulse: '热水1路脉冲', waterTime: '制水时间', valve2: '放水时间冷2路', valve1: '放水时间热1路', maintainTime: '检修时间', hotWaterTemp: '加热最高温度', coolStartTemp: '制冷启动温度', floatBall: '浮球', singleLimitFlow: '单次限制流量', waterWait: '取水等待时间', waterPause: '取水暂停等待时间', singleLimitTime: '单次限制时间', rate2: '冷水费率2路', rate1: '热水费率1路', rate1Hot: '热水老费率', rate2Cold: '冷水老费率', startFlowPulse: '启动流量计脉冲', hydrogenFlowPulse: '氢水流量计脉冲', disinfectionWait: '消毒后等待时间', disinfectionDuration: '消毒持续时间', filterLife: '滤芯寿命', platform: '云平台' };
                 var mergedKeys = [];
                 Object.keys(LABELS).forEach(function (k) {
                     if ((F[k] === undefined || F[k] === '') && FS[k] !== undefined && FS[k] !== '') {
@@ -3077,7 +3093,7 @@
                 ['motherboardModel', 'channel2Pulse', 'channel1Pulse', 'waterTime', 'valve2Time', 'valve1Time',
                  'maintainTime', 'hotWaterTemp', 'coolStartTemp', 'floatBall', 'singleLimitFlow',
                  'waterWaitTime', 'waterPauseTime', 'singleLimitTime', 'rate2ColdPerLiter', 'rate1HotPerLiter',
-                 'rate1Hot', 'rate2Cold',
+                 'rate1Hot', 'rate2Cold', 'startFlowPulse', 'hydrogenFlowPulse',
                  'tempLockDisinfectionWait', 'disinfectionDuration', 'inStockCount'].forEach(function (id) {
                     var el = document.getElementById(id);
                     if (el) el.value = '';
@@ -3085,6 +3101,8 @@
                 setVal('motherboardModel', F.model);
                 setVal('channel2Pulse', F.channel2Pulse);
                 setVal('channel1Pulse', F.channel1Pulse);
+                setVal('startFlowPulse', F.startFlowPulse);
+                setVal('hydrogenFlowPulse', F.hydrogenFlowPulse);
                 setVal('waterTime', F.waterTime);
                 setVal('valve2Time', F.valve2);
                 setVal('valve1Time', F.valve1 || F.valve2); // 与一键转换同规则：热1路缺省回填冷2路
@@ -3143,6 +3161,8 @@
                 if (F.filterLife) parts.push('滤芯寿命：☑' + (F.filterLife === '0' ? '时间' : '流量'));
                 add('冷水2路脉冲', F.channel2Pulse);
                 add('热水1路脉冲', F.channel1Pulse);
+                add('启动流量计脉冲', F.startFlowPulse);
+                add('氢水流量计脉冲', F.hydrogenFlowPulse);
                 add('制水时间', F.waterTime);
                 add('放水时间冷2路', F.valve2);
                 add('放水时间热1路', F.valve1);

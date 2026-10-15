@@ -16,14 +16,7 @@ window.YL_TOOLS = [
     "desc": "按设备类型生成标准入库参数",
     "common": true
   },
-  {
-    "id": "stockParamTool2",
-    "name": "入库参数生成2",
-    "icon": "🧪",
-    "cat": "入库",
-    "desc": "接口对比调试版：百度/腾讯多 OCR 接口切换对比",
-    "common": true
-  },
+  /* v4.6: 入库参数生成器2 入口已隐藏（面板与逻辑保留，恢复入口只需把下面条目放回数组） */
   {
     "id": "iccidTool",
     "name": "ICCID 详情",

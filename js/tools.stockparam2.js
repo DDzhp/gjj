@@ -42,6 +42,7 @@
     // 参数表单
     motherboardModel: 1, systemType: 1, filterLifeType: 1,
     channel2Pulse: 1, channel1Pulse: 1, waterTime: 1,
+    startFlowPulse: 1, hydrogenFlowPulse: 1,
     valve2Time: 1, valve1Time: 1, maintainTime: 1,
     rate1Hot: 1, rate2Cold: 1, rate1HotPerLiter: 1, rate2ColdPerLiter: 1,
     singleLimitFlow: 1, waterWaitTime: 1, waterPauseTime: 1,
@@ -128,9 +129,9 @@
     });
   }
 
-  /* ---------- 2.5 识别完成自动解析 + 下拉 500px（仅 2 号工具；main-a.js 各识别完成点回调） ---------- */
+  /* ---------- 2.5 识别完成自动解析 + 下拉 500px（1 号/2 号均生效；main-a.js 各识别完成点回调） ---------- */
   window.__orderAutoParse = function () {
-    if (window.currentActiveTool !== 'stockParamTool2') return;
+    if (window.currentActiveTool !== 'stockParamTool' && window.currentActiveTool !== 'stockParamTool2') return;
     setTimeout(function () {
       // 自动点「⚡ 解析并填充参数」：回填表单 + 非标摘要 + 标准内容
       if (typeof parseOrderText === 'function') { try { parseOrderText(); } catch (e) { } }

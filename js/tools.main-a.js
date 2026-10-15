@@ -2911,13 +2911,12 @@
                     if (!window.__CloudOCR) { orderSetStatus('云端渠道不可用（qrbatch-init 未加载），请改用本地引擎', true); return; }
                     if (ch === 'both') {
                         // 腾讯+百度互补：并行识别 → 主(腾讯优先)缺副补 → 文本框放双原文供核对，解析时自动合并
-                        // 互补引擎对可被钩子覆盖（入库参数生成器2 切换为双云高精度），1 号默认腾讯标准+百度标准，文案逐字不变
-                        var be = (typeof window.__orderBothEngines === 'function') ? window.__orderBothEngines() : ['tencent', 'baidu'];
+                        // v4.5 起互补默认双云高精度（腾讯高精度+百度高精度），可用 __orderBothEngines 钩子覆盖
+                        var be = (typeof window.__orderBothEngines === 'function') ? window.__orderBothEngines() : ['tencent_accurate', 'baidu_accurate'];
                         var nA = orderChanLabel(be[0]), nB = orderChanLabel(be[1]);
-                        var isStdBoth = (be[0] === 'tencent' && be[1] === 'baidu');
-                        var bothTitle = isStdBoth ? '腾讯+百度云' : (orderChanShort(be[0]) + '+' + orderChanShort(be[1]));
+                        var bothTitle = orderChanShort(be[0]) + '+' + orderChanShort(be[1]);
                         __orderTessLoading = true;
-                        orderSetStatus('云端识别中（' + (isStdBoth ? '腾讯云 + 百度云' : bothTitle) + '互补）…');
+                        orderSetStatus('云端识别中（' + bothTitle + '互补）…');
                         Promise.all([
                             window.__CloudOCR.ocr(__orderImageDataUrl, be[0]).catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; }),
                             window.__CloudOCR.ocr(__orderImageDataUrl, be[1]).catch(function (e) { return { text: '', error: (e && e.message) || String(e) }; })
@@ -2941,6 +2940,8 @@
                             var supPart = (Fm.mergedKeys && Fm.mergedKeys.length) ? '<span style="color:#2b8a3e;font-weight:600;">　〔互补补充: ' + Fm.mergedKeys.join('、') + '〕</span>' : '';
                             var missPart = Fm.missing.length ? '<span style="color:#e74c3c;">　未识别：' + Fm.missing.join('、') + '</span>' : '';
                             orderSetStatusHTML('✅ ' + bothTitle + '互补识别完成！' + okPart + supPart + missPart + '<span style="color:#888;">　请核对/修正文字，再点「⚡ 解析并填充参数」</span>');
+                            // 识别完成钩子（入库参数生成器2：自动解析填充 + 下拉 500px；1 号未定义钩子不受影响）
+                            if (typeof window.__orderAutoParse === 'function') window.__orderAutoParse();
                         });
                         return;
                     }
@@ -2952,7 +2953,11 @@
                         var wrap = document.getElementById('orderOcrTextWrap');
                         if (ta) ta.value = r.text;
                         if (wrap) wrap.style.display = r.text ? 'block' : 'none';
-                        if (r.text) orderOcrDoneStatus(r.text, orderChanLabel(ch));
+                        if (r.text) {
+                            orderOcrDoneStatus(r.text, orderChanLabel(ch));
+                            // 识别完成钩子（入库参数生成器2：自动解析填充 + 下拉 500px；1 号未定义钩子不受影响）
+                            if (typeof window.__orderAutoParse === 'function') window.__orderAutoParse();
+                        }
                         else orderSetStatus('⚠️ 云端未识别到文字，可换渠道或手工粘贴订单文字', true);
                     }).catch(function (err) {
                         __orderTessLoading = false;
@@ -3005,6 +3010,8 @@
                                 if (wrap) wrap.style.display = txt ? 'block' : 'none';
                                 if (txt) {
                                     orderOcrDoneStatus(txt, ch === 'tencent' ? '腾讯云' : (ch === 'baidu' ? '百度云' : '本地引擎'));
+                                    // 识别完成钩子（入库参数生成器2：自动解析填充 + 下拉 500px；1 号未定义钩子不受影响）
+                                    if (typeof window.__orderAutoParse === 'function') window.__orderAutoParse();
                                 } else {
                                     orderSetStatus('⚠️ 未识别到文字，请换更清晰的图片或手工粘贴订单文字', true);
                                 }

@@ -9,9 +9,12 @@
  *           /ocr_accurate       通用文字识别（高精度版 accurate_basic）
  *   腾讯云  /ocr_tencent            通用印刷体识别（标准 GeneralBasicOCR）
  *           /ocr_tencent_accurate   通用印刷体识别（高精度 GeneralAccurateOCR）
- *   互补    腾讯+百度 = 双云【高精度】版本取并集（经 __orderBothEngines 钩子，
- *           仅 2 号工具生效；1 号工具互补保持双标准版不变）
- *   渠道排序：腾讯+百度 → 腾讯高精度 → 百度高精度 → 腾讯标准 → 百度标准 → 本地
+ *   互补    腾讯+百度 = 双云【高精度】版本取并集（v4.5 起为全局默认，
+ *           1 号与 2 号行为一致；如需临时改回可用 __orderBothEngines 钩子覆盖）
+ *   渠道排序（1 号与 2 号一致）：腾讯+百度 → 腾讯高精度 → 百度高精度 →
+ *           腾讯标准 → 百度标准 → 本地
+ *   专属增强：2 号识别完成后自动解析填充参数并下拉 500px（__orderAutoParse 钩子，
+ *           仅 currentActiveTool 为 2 号时生效，1 号不受影响）
  *   ⚠️ 新端点需先把仓库根目录 cloud_ocr_scf.py 重新部署到腾讯云 SCF，
  *      否则新渠道会报「云端还没有该接口」并给出部署指引。
  *
@@ -64,13 +67,6 @@
     baidu_accurate: '/ocr_accurate',              // 百度 通用文字识别（高精度版）
     tencent: '/ocr_tencent',                      // 腾讯 通用印刷体识别（标准）
     tencent_accurate: '/ocr_tencent_accurate'     // 腾讯 通用印刷体识别（高精度）
-  };
-
-  /* 互补引擎对：2 号工具「腾讯+百度」互补用双云高精度版本；1 号保持标准版不变 */
-  window.__orderBothEngines = function () {
-    return window.currentActiveTool === 'stockParamTool2'
-      ? ['tencent_accurate', 'baidu_accurate']
-      : ['tencent', 'baidu'];
   };
 
   function scaled(canvas, maxDim) {
@@ -131,6 +127,17 @@
       img.src = dataUrl;
     });
   }
+
+  /* ---------- 2.5 识别完成自动解析 + 下拉 500px（仅 2 号工具；main-a.js 各识别完成点回调） ---------- */
+  window.__orderAutoParse = function () {
+    if (window.currentActiveTool !== 'stockParamTool2') return;
+    setTimeout(function () {
+      // 自动点「⚡ 解析并填充参数」：回填表单 + 非标摘要 + 标准内容
+      if (typeof parseOrderText === 'function') { try { parseOrderText(); } catch (e) { } }
+      // 下拉 500px 让用户直接看到已填充的参数表单
+      try { window.scrollBy({ top: 500, behavior: 'smooth' }); } catch (e) { window.scrollBy(0, 500); }
+    }, 300);
+  };
 
   if (window.__CloudOCR && typeof window.__CloudOCR.ocr === 'function') {
     var _origOcr = window.__CloudOCR.ocr;

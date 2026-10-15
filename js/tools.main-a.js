@@ -2626,8 +2626,8 @@
                 // 脉冲：容忍 路→像 等错字与 (C1000 类括号杂讯
                 grab(/冷水2[^0-9Oo\n]{0,6}?([\dOo]{2,})/, 'channel2Pulse', '冷水2路脉冲', true);
                 grab(/(?:热|熠|烈)水?1[^0-9Oo\n]{0,6}?([\dOo]{2,})/, 'channel1Pulse', '热水1路脉冲', true); // 容 热→熠/烈 错字、"热1路脉冲"无水字形态
-                grab(/启动流量计脉冲[:：]?\s*([\dOo]+)/, 'startFlowPulse', '启动流量计脉冲', true);
-                grab(/氢水流量计脉冲[:：]?\s*([\dOo]+)/, 'hydrogenFlowPulse', '氢水流量计脉冲', true);
+                grab(/启动流量计脉冲[:：(（]?\s*([\dOo]+)/, 'startFlowPulse', '启动流量计脉冲', true);
+                grab(/氢水流量计脉冲[:：(（]?\s*([\dOo]+)/, 'hydrogenFlowPulse', '氢水流量计脉冲', true);
                 grab(/放水时间:?冷2路[(]?\s*([\dOo]+)/, 'valve2', '放水时间冷2路', true);
                 grab(/放水时间:?热1路[(]?\s*([\dOo]+)/, 'valve1', '放水时间热1路', true);
                 grab(/制水时间:?[(]?([\dOo]+)/, 'waterTime', '制水时间', true);
